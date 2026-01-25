@@ -1040,7 +1040,91 @@ mod test {
         );
     }
 
-    // TODO: Test create_for_hmd, create_perspective_hmd
+    #[test]
+    fn test_hmd() {
+        const TEST_DATA: [((ProjectionEye, real, real, real, real, real, real, real), [[real; 4]; 4]); 2] = [
+            (
+                (ProjectionEye::LEFT, 1.0, 0.062, 0.11, 0.05, 1.5, 0.1, 1000.0),
+                [
+                    [1.212121, 0.0, 0.0, 0.0],
+                    [0.0, 1.212121, 0.0, 0.0],
+                    [0.084848, 0.0, -1.0002, -1.0],
+                    [0.0, 0.0, -0.20002, 0.0],
+                ],
+            ),
+            (
+                (ProjectionEye::RIGHT, 1.0, 0.062, 0.11, 0.05, 1.5, 0.1, 1000.0),
+                [
+                    [1.212121, 0.0, 0.0, 0.0],
+                    [0.0, 1.212121, 0.0, 0.0],
+                    [-0.084848, 0.0, -1.0002, -1.0],
+                    [0.0, 0.0, -0.20002, 0.0],
+                ],
+            ),
+        ];
+
+        run_projection_test(
+            &TEST_DATA,
+            |(eye, aspect, intraocular_dist, display_width, display_to_lens, oversample, near, far)| {
+                Projection::create_for_hmd(
+                    eye,
+                    aspect,
+                    intraocular_dist,
+                    display_width,
+                    display_to_lens,
+                    oversample,
+                    near,
+                    far,
+                )
+            },
+            |(eye, aspect, intraocular_dist, display_width, display_to_lens, oversample, near, far)| {
+                format!("hmd: eye={eye:?} aspect={aspect} intraocular_dist={intraocular_dist} display_width={display_width} display_to_lens={display_to_lens} oversample={oversample} near={near} far={far}")
+            },
+        );
+    }
+
+    #[test]
+    fn test_perspective_hmd() {
+        const TEST_DATA: [((real, real, real, real, bool, ProjectionEye, real, real), [[real; 4]; 4]); 2] = [
+            (
+                (70.0, 1.0, 0.1, 1000.0, false, ProjectionEye::LEFT, 0.062, 0.5),
+                [
+                    [0.36397025, 0.0, -0.00620062, 0.0],
+                    [0.0, 0.36397025, 0.0, 0.0],
+                    [0.022566104, 0.0, -1.0001999, -1.0],
+                    [0.0, 0.0, -0.20002, 0.0],
+                ],
+            ),
+            (
+                (70.0, 1.0, 0.1, 1000.0, false, ProjectionEye::RIGHT, 0.062, 0.5),
+                [
+                    [0.36397025, 0.0, 0.00620062, 0.0],
+                    [0.0, 0.36397025, 0.0, 0.0],
+                    [-0.022566104, 0.0, -1.0001999, -1.0],
+                    [0.0, 0.0, -0.20002, 0.0],
+                ],
+            ),
+        ];
+
+        run_projection_test(
+            &TEST_DATA,
+            |(fov_y, aspect, near, far, flip_fov, eye, intraocular_dist, convergence_dist)| {
+                Projection::create_perspective_hmd(
+                    fov_y,
+                    aspect,
+                    near,
+                    far,
+                    flip_fov,
+                    eye,
+                    intraocular_dist,
+                    convergence_dist,
+                )
+            },
+            |(fov_y, aspect, near, far, flip_fov, eye, intraocular_dist, convergence_dist)| {
+                format!("perspective hmd: fov_y={fov_y} aspect={aspect} near={near} far={far} flip_fov={flip_fov} eye={eye:?} intraocular_dist={intraocular_dist} convergence_dist={convergence_dist}")
+            },
+        );
+    }
 
     #[test]
     fn test_is_orthogonal() {
