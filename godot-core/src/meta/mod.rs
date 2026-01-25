@@ -48,6 +48,7 @@ mod class_id;
 mod element_type;
 mod godot_convert;
 mod method_info;
+pub mod call_error;
 mod object_to_owned;
 mod param_tuple;
 mod property_info;

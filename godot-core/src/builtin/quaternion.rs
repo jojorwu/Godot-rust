@@ -312,7 +312,14 @@ impl Mul<Quaternion> for Quaternion {
     type Output = Self;
 
     fn mul(self, other: Quaternion) -> Self {
-        self.glam2(&other, |a, b| a * b)
+        // TODO use super::glam?
+
+        let x = self.w * other.x + self.x * other.w + self.y * other.z - self.z * other.y;
+        let y = self.w * other.y + self.y * other.w + self.z * other.x - self.x * other.z;
+        let z = self.w * other.z + self.z * other.w + self.x * other.y - self.y * other.x;
+        let w = self.w * other.w - self.x * other.x - self.y * other.y - self.z * other.z;
+
+        Self::new(x, y, z, w)
     }
 }
 
