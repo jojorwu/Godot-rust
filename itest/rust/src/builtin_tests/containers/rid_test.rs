@@ -9,6 +9,7 @@ use godot::builtin::inner::InnerRid;
 use godot::builtin::Rid;
 use godot::classes::RenderingServer;
 use godot::obj::Singleton;
+use godot::rendering::owned_material::OwnedMaterial;
 use godot::rendering::owned_texture::OwnedTexture;
 
 use crate::framework::{itest, suppress_godot_print};
@@ -143,4 +144,22 @@ fn owned_texture_raii() {
     // After the texture is dropped, the RID should be freed and reused.
     let texture2 = OwnedTexture::new_placeholder();
     assert_eq!(rid, texture2.rid());
+}
+
+#[itest]
+fn owned_material_raii() {
+    let rid = {
+        let mut material = OwnedMaterial::new();
+        let rid = material.rid();
+        assert!(rid.is_valid());
+
+        material.set_param("diffuse_mode", &3.to_variant()); // Lambert
+        material.set_param("specular", &0.5.to_variant());
+
+        rid
+    };
+
+    // After the material is dropped, the RID should be freed and reused.
+    let material2 = OwnedMaterial::new();
+    assert_eq!(rid, material2.rid());
 }
