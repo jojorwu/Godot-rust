@@ -10,6 +10,7 @@ use godot::builtin::Rid;
 use godot::classes::RenderingServer;
 use godot::obj::Singleton;
 use godot::rendering::owned_material::OwnedMaterial;
+use godot::rendering::owned_mesh::OwnedMesh;
 use godot::rendering::owned_texture::OwnedTexture;
 
 use crate::framework::{itest, suppress_godot_print};
@@ -162,4 +163,27 @@ fn owned_material_raii() {
     // After the material is dropped, the RID should be freed and reused.
     let material2 = OwnedMaterial::new();
     assert_eq!(rid, material2.rid());
+}
+
+#[itest]
+fn owned_mesh_raii() {
+    use godot::builtin::Dictionary;
+    use godot::classes::rendering_server::PrimitiveType;
+
+    let rid = {
+        let mut mesh = OwnedMesh::new();
+        let rid = mesh.rid();
+        assert!(rid.is_valid());
+
+        let mut arrays = Dictionary::new();
+        // Add a single triangle
+        arrays.set("vertex", vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0].to_variant());
+        mesh.add_surface(PrimitiveType::TRIANGLES, &arrays);
+
+        rid
+    };
+
+    // After the mesh is dropped, the RID should be freed and reused.
+    let mesh2 = OwnedMesh::new();
+    assert_eq!(rid, mesh2.rid());
 }
