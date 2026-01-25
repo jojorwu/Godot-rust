@@ -9,6 +9,7 @@ use godot::builtin::inner::InnerRid;
 use godot::builtin::Rid;
 use godot::classes::RenderingServer;
 use godot::obj::Singleton;
+use godot::rendering::owned_texture::OwnedTexture;
 
 use crate::framework::{itest, suppress_godot_print};
 
@@ -128,4 +129,18 @@ fn strange_rids() {
     for id in rids.iter() {
         suppress_godot_print(|| server.canvas_item_clear(Rid::new(*id)))
     }
+}
+
+#[itest]
+fn owned_texture_raii() {
+    let rid = {
+        let texture = OwnedTexture::new_placeholder();
+        let rid = texture.rid();
+        assert!(rid.is_valid());
+        rid
+    };
+
+    // After the texture is dropped, the RID should be freed and reused.
+    let texture2 = OwnedTexture::new_placeholder();
+    assert_eq!(rid, texture2.rid());
 }
