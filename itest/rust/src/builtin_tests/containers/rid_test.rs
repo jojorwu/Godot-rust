@@ -11,6 +11,7 @@ use godot::classes::RenderingServer;
 use godot::obj::Singleton;
 use godot::rendering::owned_material::OwnedMaterial;
 use godot::rendering::owned_mesh::OwnedMesh;
+use godot::rendering::owned_shader::OwnedShader;
 use godot::rendering::owned_texture::OwnedTexture;
 
 use crate::framework::{itest, suppress_godot_print};
@@ -186,4 +187,22 @@ fn owned_mesh_raii() {
     // After the mesh is dropped, the RID should be freed and reused.
     let mesh2 = OwnedMesh::new();
     assert_eq!(rid, mesh2.rid());
+}
+
+#[itest]
+fn owned_shader_raii() {
+    let rid = {
+        let mut shader = OwnedShader::new();
+        let rid = shader.rid();
+        assert!(rid.is_valid());
+
+        let code = "shader_type spatial; void fragment() { ALBEDO = vec3(1.0, 0.0, 0.0); }";
+        shader.set_code(code);
+
+        rid
+    };
+
+    // After the shader is dropped, the RID should be freed and reused.
+    let shader2 = OwnedShader::new();
+    assert_eq!(rid, shader2.rid());
 }
