@@ -258,10 +258,11 @@ impl Callable {
         // Could theoretically use `dyn` but would need:
         // - double boxing
         // - a type-erased workaround for PartialEq supertrait (which has a `Self` type parameter and thus is not object-safe)
+        let object_id = callable.object_id().map_or(0, |id| id.to_u64());
         let userdata = CallableUserdata::new(callable);
 
         let info = CallableCustomInfo {
-            // We could technically associate an object_id with the custom callable. is_valid_func would then check that for validity.
+            object_id,
             callable_userdata: Box::into_raw(Box::new(userdata)) as *mut std::ffi::c_void,
             call_func: Some(rust_callable_call_custom::<C>),
             free_func: Some(rust_callable_destroy::<C>),
@@ -608,8 +609,8 @@ mod custom_callable {
     }
 
     impl<F> FnWrapper<F> {
-        pub(crate) fn linked_object_id(&self) -> GDObjectInstanceID {
-            self.linked_object_id.map(InstanceId::to_u64).unwrap_or(0)
+        pub(crate) fn object_id(&self) -> Option<InstanceId> {
+            self.linked_object_id
         }
     }
 
@@ -628,7 +629,9 @@ mod custom_callable {
         /// Errors are supported via panics.
         fn invoke(&mut self, args: &[&Variant]) -> Variant;
 
-        // TODO(v0.5): add object_id().
+        fn object_id(&self) -> Option<InstanceId> {
+            None
+        }
 
         /// Returns the name of this callable for error messages and display.
         ///

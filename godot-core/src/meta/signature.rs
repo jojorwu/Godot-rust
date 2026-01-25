@@ -410,7 +410,7 @@ unsafe fn varcall_return<R: EngineToGodot>(
 /// # Safety
 /// See [`varcall_return`].
 pub(crate) unsafe fn varcall_return_checked<R: ToGodot>(
-    ret_val: Result<R, CallError>,
+    ret_val: Result<R, ()>, // TODO Err should be custom CallError enum
     ret: sys::GDExtensionVariantPtr,
     err: *mut sys::GDExtensionCallError,
 ) {
