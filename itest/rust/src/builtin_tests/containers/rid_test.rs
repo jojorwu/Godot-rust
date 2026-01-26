@@ -9,6 +9,7 @@ use godot::builtin::inner::InnerRid;
 use godot::builtin::Rid;
 use godot::classes::RenderingServer;
 use godot::obj::Singleton;
+use godot::rendering::owned_light::OwnedLight;
 use godot::rendering::owned_material::OwnedMaterial;
 use godot::rendering::owned_mesh::OwnedMesh;
 use godot::rendering::owned_shader::OwnedShader;
@@ -205,4 +206,24 @@ fn owned_shader_raii() {
     // After the shader is dropped, the RID should be freed and reused.
     let shader2 = OwnedShader::new();
     assert_eq!(rid, shader2.rid());
+}
+
+#[itest]
+fn owned_light_raii() {
+    use godot::builtin::Color;
+    use godot::classes::rendering_server::LightType;
+
+    let rid = {
+        let mut light = OwnedLight::new(LightType::DIRECTIONAL);
+        let rid = light.rid();
+        assert!(rid.is_valid());
+
+        light.set_color(Color::from_rgb(1.0, 0.5, 0.0));
+
+        rid
+    };
+
+    // After the light is dropped, the RID should be freed and reused.
+    let light2 = OwnedLight::new(LightType::OMNI);
+    assert_eq!(rid, light2.rid());
 }
