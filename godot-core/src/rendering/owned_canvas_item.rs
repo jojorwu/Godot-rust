@@ -51,6 +51,20 @@ impl OwnedCanvasItem {
     pub fn set_transform(&mut self, transform: &Transform2D) {
         RenderingServer::singleton().canvas_item_set_transform(self.rid, transform.clone());
     }
+
+    /// Draws a line on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_line()`.
+    pub fn add_line(&mut self, from: Vector2, to: Vector2, color: Color, width: f32) {
+        RenderingServer::singleton().canvas_item_add_line(self.rid, from, to, color, width);
+    }
+
+    /// Draws a rectangle on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_rect()`.
+    pub fn add_rect(&mut self, rect: crate::builtin::Rect2, color: Color) {
+        RenderingServer::singleton().canvas_item_add_rect(self.rid, rect, color);
+    }
 }
 
 impl Drop for OwnedCanvasItem {
