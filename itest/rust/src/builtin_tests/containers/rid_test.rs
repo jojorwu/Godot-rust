@@ -9,6 +9,7 @@ use godot::builtin::inner::InnerRid;
 use godot::builtin::Rid;
 use godot::classes::RenderingServer;
 use godot::obj::Singleton;
+use godot::rendering::owned_canvas_item::OwnedCanvasItem;
 use godot::rendering::owned_light::OwnedLight;
 use godot::rendering::owned_material::OwnedMaterial;
 use godot::rendering::owned_mesh::OwnedMesh;
@@ -244,4 +245,23 @@ fn owned_viewport_raii() {
     // After the viewport is dropped, the RID should be freed and reused.
     let viewport2 = OwnedViewport::new();
     assert_eq!(rid, viewport2.rid());
+}
+
+#[itest]
+fn owned_canvas_item_raii() {
+    let parent = OwnedViewport::new();
+
+    let rid = {
+        let mut item = OwnedCanvasItem::new();
+        let rid = item.rid();
+        assert!(rid.is_valid());
+
+        item.set_parent(parent.rid());
+
+        rid
+    };
+
+    // After the item is dropped, the RID should be freed and reused.
+    let item2 = OwnedCanvasItem::new();
+    assert_eq!(rid, item2.rid());
 }
