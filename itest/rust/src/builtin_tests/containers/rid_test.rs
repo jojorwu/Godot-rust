@@ -14,6 +14,7 @@ use godot::rendering::owned_material::OwnedMaterial;
 use godot::rendering::owned_mesh::OwnedMesh;
 use godot::rendering::owned_shader::OwnedShader;
 use godot::rendering::owned_texture::OwnedTexture;
+use godot::rendering::owned_viewport::OwnedViewport;
 
 use crate::framework::{itest, suppress_godot_print};
 
@@ -226,4 +227,21 @@ fn owned_light_raii() {
     // After the light is dropped, the RID should be freed and reused.
     let light2 = OwnedLight::new(LightType::OMNI);
     assert_eq!(rid, light2.rid());
+}
+
+#[itest]
+fn owned_viewport_raii() {
+    let rid = {
+        let mut viewport = OwnedViewport::new();
+        let rid = viewport.rid();
+        assert!(rid.is_valid());
+
+        viewport.set_size(128, 64);
+
+        rid
+    };
+
+    // After the viewport is dropped, the RID should be freed and reused.
+    let viewport2 = OwnedViewport::new();
+    assert_eq!(rid, viewport2.rid());
 }
