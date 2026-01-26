@@ -9,6 +9,14 @@ use godot::builtin::inner::InnerRid;
 use godot::builtin::Rid;
 use godot::classes::RenderingServer;
 use godot::obj::Singleton;
+use godot::rendering::owned_canvas::OwnedCanvas;
+use godot::rendering::owned_canvas_item::OwnedCanvasItem;
+use godot::rendering::owned_light::OwnedLight;
+use godot::rendering::owned_material::OwnedMaterial;
+use godot::rendering::owned_mesh::OwnedMesh;
+use godot::rendering::owned_shader::OwnedShader;
+use godot::rendering::owned_texture::OwnedTexture;
+use godot::rendering::owned_viewport::OwnedViewport;
 
 use crate::framework::{itest, suppress_godot_print};
 
@@ -128,4 +136,162 @@ fn strange_rids() {
     for id in rids.iter() {
         suppress_godot_print(|| server.canvas_item_clear(Rid::new(*id)))
     }
+}
+
+#[itest]
+fn owned_texture_raii() {
+    let rid = {
+        let texture = OwnedTexture::new_placeholder();
+        let rid = texture.rid();
+        assert!(rid.is_valid());
+        rid
+    };
+
+    // After the texture is dropped, the RID should be freed and reused.
+    let texture2 = OwnedTexture::new_placeholder();
+    assert_eq!(rid, texture2.rid());
+}
+
+#[itest]
+fn owned_material_raii() {
+    let rid = {
+        let mut material = OwnedMaterial::new();
+        let rid = material.rid();
+        assert!(rid.is_valid());
+
+        material.set_param("diffuse_mode", &3.to_variant()); // Lambert
+        material.set_param("specular", &0.5.to_variant());
+
+        rid
+    };
+
+    // After the material is dropped, the RID should be freed and reused.
+    let material2 = OwnedMaterial::new();
+    assert_eq!(rid, material2.rid());
+}
+
+#[itest]
+fn owned_mesh_raii() {
+    use godot::builtin::Dictionary;
+    use godot::classes::rendering_server::PrimitiveType;
+
+    let rid = {
+        let mut mesh = OwnedMesh::new();
+        let rid = mesh.rid();
+        assert!(rid.is_valid());
+
+        let mut arrays = Dictionary::new();
+        // Add a single triangle
+        arrays.set("vertex", vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0].to_variant());
+        mesh.add_surface(PrimitiveType::TRIANGLES, &arrays);
+
+        assert_eq!(mesh.surface_get_array_len(0), 3);
+
+        mesh.clear();
+        assert_eq!(mesh.surface_get_array_len(0), 0);
+
+        rid
+    };
+
+    // After the mesh is dropped, the RID should be freed and reused.
+    let mesh2 = OwnedMesh::new();
+    assert_eq!(rid, mesh2.rid());
+}
+
+#[itest]
+fn owned_shader_raii() {
+    let rid = {
+        let mut shader = OwnedShader::new();
+        let rid = shader.rid();
+        assert!(rid.is_valid());
+
+        let code = "shader_type spatial; void fragment() { ALBEDO = vec3(1.0, 0.0, 0.0); }";
+        shader.set_code(code);
+
+        rid
+    };
+
+    // After the shader is dropped, the RID should be freed and reused.
+    let shader2 = OwnedShader::new();
+    assert_eq!(rid, shader2.rid());
+}
+
+#[itest]
+fn owned_light_raii() {
+    use godot::builtin::Color;
+    use godot::classes::rendering_server::LightType;
+
+    let rid = {
+        let mut light = OwnedLight::new(LightType::DIRECTIONAL);
+        let rid = light.rid();
+        assert!(rid.is_valid());
+
+        light.set_color(Color::from_rgb(1.0, 0.5, 0.0));
+
+        rid
+    };
+
+    // After the light is dropped, the RID should be freed and reused.
+    let light2 = OwnedLight::new(LightType::OMNI);
+    assert_eq!(rid, light2.rid());
+}
+
+#[itest]
+fn owned_viewport_raii() {
+    let rid = {
+        let mut viewport = OwnedViewport::new();
+        let rid = viewport.rid();
+        assert!(rid.is_valid());
+
+        viewport.set_size(128, 64);
+
+        rid
+    };
+
+    // After the viewport is dropped, the RID should be freed and reused.
+    let viewport2 = OwnedViewport::new();
+    assert_eq!(rid, viewport2.rid());
+}
+
+#[itest]
+fn owned_canvas_item_raii() {
+    use godot::builtin::{Color, Transform2D, Vector2};
+
+    let parent = OwnedViewport::new();
+
+    let rid = {
+        let mut item = OwnedCanvasItem::new();
+        let rid = item.rid();
+        assert!(rid.is_valid());
+
+        item.set_parent(parent.rid());
+        item.add_circle(Vector2::new(10.0, 20.0), 5.0, Color::from_rgb(1.0, 0.0, 0.0));
+        item.set_modulate(Color::from_rgb(0.5, 0.5, 0.5));
+        item.set_transform(&Transform2D::new(0.0, Vector2::new(50.0, 50.0)));
+
+        rid
+    };
+
+    // After the item is dropped, the RID should be freed and reused.
+    let item2 = OwnedCanvasItem::new();
+    assert_eq!(rid, item2.rid());
+}
+
+#[itest]
+fn owned_canvas_raii() {
+    let item = OwnedCanvasItem::new();
+
+    let rid = {
+        let mut canvas = OwnedCanvas::new();
+        let rid = canvas.rid();
+        assert!(rid.is_valid());
+
+        canvas.set_item_mirroring(item.rid(), Vector2::new(1.0, 0.0));
+
+        rid
+    };
+
+    // After the canvas is dropped, the RID should be freed and reused.
+    let canvas2 = OwnedCanvas::new();
+    assert_eq!(rid, canvas2.rid());
 }

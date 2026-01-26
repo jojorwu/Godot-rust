@@ -26,6 +26,7 @@ pub mod global;
 pub mod init;
 pub mod meta;
 pub mod obj;
+pub mod rendering;
 pub mod registry;
 pub mod task;
 pub mod tools;
