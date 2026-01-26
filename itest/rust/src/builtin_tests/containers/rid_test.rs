@@ -185,6 +185,11 @@ fn owned_mesh_raii() {
         arrays.set("vertex", vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0].to_variant());
         mesh.add_surface(PrimitiveType::TRIANGLES, &arrays);
 
+        assert_eq!(mesh.surface_get_array_len(0), 3);
+
+        mesh.clear();
+        assert_eq!(mesh.surface_get_array_len(0), 0);
+
         rid
     };
 
