@@ -1,3 +1,4 @@
+pub mod owned_canvas;
 pub mod owned_canvas_item;
 pub mod owned_light;
 pub mod owned_material;

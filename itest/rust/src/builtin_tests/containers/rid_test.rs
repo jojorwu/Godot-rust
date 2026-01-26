@@ -9,6 +9,7 @@ use godot::builtin::inner::InnerRid;
 use godot::builtin::Rid;
 use godot::classes::RenderingServer;
 use godot::obj::Singleton;
+use godot::rendering::owned_canvas::OwnedCanvas;
 use godot::rendering::owned_canvas_item::OwnedCanvasItem;
 use godot::rendering::owned_light::OwnedLight;
 use godot::rendering::owned_material::OwnedMaterial;
@@ -264,4 +265,23 @@ fn owned_canvas_item_raii() {
     // After the item is dropped, the RID should be freed and reused.
     let item2 = OwnedCanvasItem::new();
     assert_eq!(rid, item2.rid());
+}
+
+#[itest]
+fn owned_canvas_raii() {
+    let item = OwnedCanvasItem::new();
+
+    let rid = {
+        let mut canvas = OwnedCanvas::new();
+        let rid = canvas.rid();
+        assert!(rid.is_valid());
+
+        canvas.set_item_mirroring(item.rid(), Vector2::new(1.0, 0.0));
+
+        rid
+    };
+
+    // After the canvas is dropped, the RID should be freed and reused.
+    let canvas2 = OwnedCanvas::new();
+    assert_eq!(rid, canvas2.rid());
 }
