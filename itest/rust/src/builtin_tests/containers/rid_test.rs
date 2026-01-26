@@ -255,6 +255,8 @@ fn owned_viewport_raii() {
 
 #[itest]
 fn owned_canvas_item_raii() {
+    use godot::builtin::{Color, Transform2D, Vector2};
+
     let parent = OwnedViewport::new();
 
     let rid = {
@@ -263,6 +265,9 @@ fn owned_canvas_item_raii() {
         assert!(rid.is_valid());
 
         item.set_parent(parent.rid());
+        item.add_circle(Vector2::new(10.0, 20.0), 5.0, Color::from_rgb(1.0, 0.0, 0.0));
+        item.set_modulate(Color::from_rgb(0.5, 0.5, 0.5));
+        item.set_transform(&Transform2D::new(0.0, Vector2::new(50.0, 50.0)));
 
         rid
     };

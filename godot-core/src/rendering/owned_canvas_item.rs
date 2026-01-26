@@ -1,5 +1,6 @@
 
 use crate::builtin::rid::Rid;
+use crate::builtin::{Color, Transform2D, Vector2};
 use crate::classes::RenderingServer;
 
 /// A RAII wrapper for a canvas item RID that is owned by this type.
@@ -28,6 +29,27 @@ impl OwnedCanvasItem {
     /// See `RenderingServer.canvas_item_set_parent()`.
     pub fn set_parent(&mut self, parent: Rid) {
         RenderingServer::singleton().canvas_item_set_parent(self.rid, parent);
+    }
+
+    /// Draws a circle on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_circle()`.
+    pub fn add_circle(&mut self, position: Vector2, radius: f32, color: Color) {
+        RenderingServer::singleton().canvas_item_add_circle(self.rid, position, radius, color);
+    }
+
+    /// Sets the color modulation of the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_set_modulate()`.
+    pub fn set_modulate(&mut self, color: Color) {
+        RenderingServer::singleton().canvas_item_set_modulate(self.rid, color);
+    }
+
+    /// Sets the transform of the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_set_transform()`.
+    pub fn set_transform(&mut self, transform: &Transform2D) {
+        RenderingServer::singleton().canvas_item_set_transform(self.rid, transform.clone());
     }
 }
 
