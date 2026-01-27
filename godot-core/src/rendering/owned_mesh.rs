@@ -1,4 +1,6 @@
-use crate::builtin::{Array, PackedVector2Array, PackedVector3Array, VarDictionary, VariantType};
+use crate::builtin::{
+    Array, PackedVector2Array, PackedVector3Array, Rid, VarDictionary, VariantType,
+};
 use crate::classes::rendering_server::PrimitiveType;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
@@ -68,6 +70,20 @@ impl OwnedMesh {
             VariantType::ARRAY => vertex_array.to::<crate::builtin::AnyArray>().len() as i32,
             _ => 0,
         }
+    }
+
+    /// Returns the material of a surface.
+    ///
+    /// See `RenderingServer.mesh_surface_get_material()`.
+    pub fn surface_get_material(&self, surface_idx: i32) -> Rid {
+        RenderingServer::singleton().mesh_surface_get_material(self.rid, surface_idx)
+    }
+
+    /// Sets the material of a surface.
+    ///
+    /// See `RenderingServer.mesh_surface_set_material()`.
+    pub fn surface_set_material(&mut self, surface_idx: i32, material: Rid) {
+        RenderingServer::singleton().mesh_surface_set_material(self.rid, surface_idx, material);
     }
 
     /// Removes all surfaces from the mesh.

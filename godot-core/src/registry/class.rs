@@ -303,7 +303,7 @@ fn register_classes_and_dyn_traits(
 pub fn unregister_classes(init_level: InitLevel) {
     let mut loaded_classes_by_level = global_loaded_classes_by_init_level();
     let mut loaded_classes_by_name = global_loaded_classes_by_name();
-    // TODO clean up dyn traits
+    let mut dyn_traits_by_typeid = global_dyn_traits_by_typeid();
 
     let loaded_classes_current_level = loaded_classes_by_level
         .remove(&init_level)
@@ -311,12 +311,19 @@ pub fn unregister_classes(init_level: InitLevel) {
 
     out!("Unregister classes of level {init_level:?}...");
     for class in loaded_classes_current_level.into_iter().rev() {
-        // Remove from other map.
+        // Remove from other maps.
         loaded_classes_by_name.remove(&class.name);
+
+        for trait_impls in dyn_traits_by_typeid.values_mut() {
+            trait_impls.retain(|impl_info| impl_info.class_name() != &class.name);
+        }
 
         // Unregister from Godot.
         unregister_class_raw(class);
     }
+
+    // Clean up empty trait entries.
+    dyn_traits_by_typeid.retain(|_, v| !v.is_empty());
 }
 
 #[cfg(feature = "codegen-full")]

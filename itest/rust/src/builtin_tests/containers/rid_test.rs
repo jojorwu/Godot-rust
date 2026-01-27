@@ -192,6 +192,7 @@ fn owned_mesh_raii() {
         assert_eq!(mesh.surface_get_array_len(0), 3);
 
         mesh.clear();
+        assert_eq!(mesh.surface_get_array_len(0), 0);
 
         rid
     };

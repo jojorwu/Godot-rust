@@ -30,6 +30,12 @@ macro_rules! impl_owned_rid {
             }
         }
 
+        impl AsRef<crate::builtin::Rid> for $name {
+            fn as_ref(&self) -> &crate::builtin::Rid {
+                &self.rid
+            }
+        }
+
         impl Drop for $name {
             fn drop(&mut self) {
                 if self.rid.is_valid() {

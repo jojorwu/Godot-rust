@@ -43,4 +43,18 @@ impl OwnedInstance {
     pub fn set_scenario(&mut self, scenario: Rid) {
         RenderingServer::singleton().instance_set_scenario(self.rid, scenario);
     }
+
+    /// Sets the transform of the instance.
+    ///
+    /// See `RenderingServer.instance_set_transform()`.
+    pub fn set_transform(&mut self, transform: &crate::builtin::Transform3D) {
+        RenderingServer::singleton().instance_set_transform(self.rid, *transform);
+    }
+
+    /// Sets whether the instance is visible.
+    ///
+    /// See `RenderingServer.instance_set_visible()`.
+    pub fn set_visible(&mut self, visible: bool) {
+        RenderingServer::singleton().instance_set_visible(self.rid, visible);
+    }
 }
