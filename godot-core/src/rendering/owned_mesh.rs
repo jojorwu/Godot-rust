@@ -41,11 +41,21 @@ impl OwnedMesh {
         RenderingServer::singleton().mesh_add_surface_from_arrays(self.rid, primitive, arrays);
     }
 
+    /// Returns the number of surfaces in the mesh.
+    ///
+    /// See `RenderingServer.mesh_get_surface_count()`.
+    pub fn get_surface_count(&self) -> i32 {
+        RenderingServer::singleton().mesh_get_surface_count(self.rid)
+    }
+
     /// Returns the number of vertices in a surface.
     ///
     /// See `RenderingServer.mesh_surface_get_arrays()`.
     pub fn surface_get_array_len(&self, surface_idx: i32) -> i32 {
         let arrays = RenderingServer::singleton().mesh_surface_get_arrays(self.rid, surface_idx);
+        if arrays.is_empty() {
+            return 0;
+        }
         let vertex_array: crate::builtin::AnyArray = arrays.at(0).to();
         vertex_array.len() as i32
     }
