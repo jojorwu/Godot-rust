@@ -10,6 +10,15 @@ pub struct OwnedTexture {
 }
 
 impl OwnedTexture {
+    /// Creates a new texture from an image and returns a wrapper that will free it on drop.
+    ///
+    /// See `RenderingServer.texture_2d_create()`.
+    #[cfg(feature = "codegen-full")]
+    pub fn new(image: &crate::obj::Gd<crate::classes::Image>) -> Self {
+        let rid = RenderingServer::singleton().texture_2d_create(Some(image));
+        Self { rid }
+    }
+
     /// Creates a new placeholder texture and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.texture_2d_placeholder_create()`.

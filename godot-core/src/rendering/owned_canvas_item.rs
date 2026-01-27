@@ -1,4 +1,4 @@
-use crate::builtin::{Color, Rid, Transform2D, Vector2};
+use crate::builtin::{Color, Rect2, Rid, Transform2D, Vector2};
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
@@ -70,8 +70,31 @@ impl OwnedCanvasItem {
     /// Draws a rectangle on the canvas item.
     ///
     /// See `RenderingServer.canvas_item_add_rect()`.
-    pub fn add_rect(&mut self, rect: crate::builtin::Rect2, color: Color) {
+    pub fn add_rect(&mut self, rect: Rect2, color: Color) {
         RenderingServer::singleton().canvas_item_add_rect(self.rid, rect, color);
+    }
+
+    /// Draws a texture on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_texture_rect()`.
+    pub fn add_texture_rect(&mut self, rect: Rect2, texture: Rid) {
+        RenderingServer::singleton().canvas_item_add_texture_rect(self.rid, rect, texture);
+    }
+
+    /// Draws a texture region on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_texture_rect_region()`.
+    pub fn add_texture_rect_region(&mut self, rect: Rect2, texture: Rid, src_rect: Rect2) {
+        RenderingServer::singleton()
+            .canvas_item_add_texture_rect_region(self.rid, rect, texture, src_rect);
+    }
+
+    /// Draws a MSDF texture region on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_msdf_texture_rect_region()`.
+    pub fn add_msdf_texture_rect_region(&mut self, rect: Rect2, texture: Rid, src_rect: Rect2) {
+        RenderingServer::singleton()
+            .canvas_item_add_msdf_texture_rect_region(self.rid, rect, texture, src_rect);
     }
 }
 

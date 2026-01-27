@@ -1,4 +1,6 @@
-use crate::builtin::{Array, Rid};
+use crate::builtin::{
+    Array, PackedVector2Array, PackedVector3Array, Rid, VarDictionary, VariantType,
+};
 use crate::classes::rendering_server::PrimitiveType;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
@@ -22,6 +24,14 @@ impl OwnedMesh {
     /// See `RenderingServer.mesh_create()`.
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().mesh_create();
+        Self { rid }
+    }
+
+    /// Creates a new mesh from surfaces and returns a wrapper that will free it on drop.
+    ///
+    /// See `RenderingServer.mesh_create_from_surfaces()`.
+    pub fn new_from_surfaces(surfaces: &Array<VarDictionary>) -> Self {
+        let rid = RenderingServer::singleton().mesh_create_from_surfaces(surfaces);
         Self { rid }
     }
 
@@ -56,8 +66,17 @@ impl OwnedMesh {
         if arrays.is_empty() {
             return 0;
         }
-        let vertex_array: crate::builtin::AnyArray = arrays.at(0).to();
-        vertex_array.len() as i32
+        let vertex_array = arrays.at(0);
+        match vertex_array.get_type() {
+            VariantType::PACKED_VECTOR3_ARRAY => {
+                vertex_array.to::<PackedVector3Array>().len() as i32
+            }
+            VariantType::PACKED_VECTOR2_ARRAY => {
+                vertex_array.to::<PackedVector2Array>().len() as i32
+            }
+            VariantType::ARRAY => vertex_array.to::<crate::builtin::AnyArray>().len() as i32,
+            _ => 0,
+        }
     }
 
     /// Removes all surfaces from the mesh.
