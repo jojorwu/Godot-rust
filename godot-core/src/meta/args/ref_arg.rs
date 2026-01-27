@@ -11,7 +11,7 @@ use godot_ffi::{ExtVariantType, GodotFfi, GodotNullableFfi, PtrcallType};
 
 use crate::builtin::Variant;
 use crate::meta::error::ConvertError;
-use crate::meta::{FromGodot, GodotConvert, GodotFfiVariant, ToGodot};
+use crate::meta::{GodotConvert, GodotFfiVariant, ToGodot};
 use crate::sys;
 
 /// Simple reference wrapper, used when passing arguments by-ref to Godot APIs.
@@ -111,16 +111,6 @@ where
             .expect("Objects are currently mapped through ObjectArg; RefArg shouldn't be null");
 
         shared_ref.to_godot_owned()
-    }
-}
-
-// TODO refactor signature tuples into separate in+out traits, so FromGodot is no longer needed.
-impl<T> FromGodot for RefArg<'_, T>
-where
-    T: FromGodot,
-{
-    fn try_from_godot(_via: Self::Via) -> Result<Self, ConvertError> {
-        wrong_direction!(try_from_godot)
     }
 }
 

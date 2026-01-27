@@ -255,9 +255,14 @@ pub trait EngineBitfield: Copy {
             .unwrap_or_else(|| panic!("ordinal {ord} does not map to any valid bit flag"))
     }
 
-    // TODO consolidate API: named methods vs. | & ! etc.
+    /// Returns whether the given `flag` is set.
     fn is_set(self, flag: Self) -> bool {
         self.ord() & flag.ord() != 0
+    }
+
+    /// Alias for [`is_set()`][Self::is_set].
+    fn has_flag(self, flag: Self) -> bool {
+        self.is_set(flag)
     }
 
     /// Returns metadata for all bitfield constants.

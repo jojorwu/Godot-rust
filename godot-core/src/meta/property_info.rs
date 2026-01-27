@@ -111,15 +111,33 @@ impl PropertyInfo {
     /// Create a new `PropertyInfo` representing a property named `property_name` with type `T` automatically.
     ///
     /// This will generate property info equivalent to what a `#[var]` attribute would produce.
-    pub fn new_var<T: Var>(property_name: &str) -> Self {
-        T::Via::property_info(property_name).with_hint_info(T::var_hint())
+    pub fn new_var<T: Var>(property_name: impl AsRef<str>) -> Self {
+        T::Via::property_info(property_name.as_ref()).with_hint_info(T::var_hint())
     }
 
     /// Create a new `PropertyInfo` for an exported property named `property_name` with type `T` automatically.
     ///
     /// This will generate property info equivalent to what an `#[export]` attribute would produce.
-    pub fn new_export<T: Export>(property_name: &str) -> Self {
-        T::Via::property_info(property_name).with_hint_info(T::export_hint())
+    pub fn new_export<T: Export>(property_name: impl AsRef<str>) -> Self {
+        T::Via::property_info(property_name.as_ref()).with_hint_info(T::export_hint())
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the given `usage`.
+    pub fn with_usage(self, usage: PropertyUsageFlags) -> Self {
+        Self { usage, ..self }
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the given `class_id`.
+    pub fn with_class(self, class_id: ClassId) -> Self {
+        Self { class_id, ..self }
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the given `variant_type`.
+    pub fn with_variant_type(self, variant_type: VariantType) -> Self {
+        Self {
+            variant_type,
+            ..self
+        }
     }
 
     /// Change the `hint` and `hint_string` to be the given `hint_info`.
@@ -130,24 +148,11 @@ impl PropertyInfo {
     /// # Example
     /// Creating an `@export_range` property.
     ///
-    // TODO: Make this nicer to use.
     /// ```no_run
-    /// use godot::register::property::export_info_functions;
-    /// use godot::meta::PropertyInfo;
+    /// use godot::meta::{PropertyInfo, PropertyHintInfo};
     ///
     /// let property = PropertyInfo::new_export::<f64>("my_range_property")
-    ///     .with_hint_info(export_info_functions::export_range(
-    ///         0.0,
-    ///         10.0,
-    ///         Some(0.1),
-    ///         false,
-    ///         false,
-    ///         false,
-    ///         false,
-    ///         false,
-    ///         false,
-    ///         Some("mm".to_string()),
-    ///     ));
+    ///     .with_hint_info(PropertyHintInfo::range(0.0, 10.0).with_step(0.1).with_suffix("mm"));
     /// ```
     pub fn with_hint_info(self, hint_info: PropertyHintInfo) -> Self {
         Self { hint_info, ..self }
@@ -332,6 +337,89 @@ impl PropertyHintInfo {
     pub fn none() -> Self {
         Self {
             hint: PropertyHint::NONE,
+            hint_string: GString::new(),
+        }
+    }
+
+    /// Create a new `PropertyHintInfo` for a range.
+    pub fn range(min: f64, max: f64) -> Self {
+        Self {
+            hint: PropertyHint::RANGE,
+            hint_string: (&format!("{min},{max}")).into(),
+        }
+    }
+
+    /// Create a new `PropertyHintInfo` for an enum.
+    pub fn enum_names(names: &[&str]) -> Self {
+        Self {
+            hint: PropertyHint::ENUM,
+            hint_string: (&names.join(",")).into(),
+        }
+    }
+
+    /// Create a new `PropertyHintInfo` for bit flags.
+    pub fn flags(names: &[&str]) -> Self {
+        Self {
+            hint: PropertyHint::FLAGS,
+            hint_string: (&names.join(",")).into(),
+        }
+    }
+
+    /// Returns a copy of this `PropertyHintInfo` with the given `step`.
+    pub fn with_step(mut self, step: f64) -> Self {
+        let mut parts: Vec<String> = self
+            .hint_string
+            .to_string()
+            .split(',')
+            .map(String::from)
+            .collect();
+        if parts.len() < 2 {
+            // Not a range-like hint string? Just append.
+            parts.push(step.to_string());
+        } else {
+            // For range, step is 3rd element.
+            if parts.len() == 2 {
+                parts.push(step.to_string());
+            } else {
+                parts[2] = step.to_string();
+            }
+        }
+        self.hint_string = (&parts.join(",")).into();
+        self
+    }
+
+    /// Returns a copy of this `PropertyHintInfo` with the given `suffix`.
+    pub fn with_suffix(mut self, suffix: &str) -> Self {
+        let mut s = self.hint_string.to_string();
+        if !s.is_empty() {
+            s.push(',');
+        }
+        s.push_str("suffix:");
+        s.push_str(suffix);
+        self.hint_string = (&s).into();
+        self
+    }
+
+    /// Create a new `PropertyHintInfo` for a file path.
+    pub fn file(filter: &str) -> Self {
+        Self {
+            hint: PropertyHint::FILE,
+            hint_string: filter.into(),
+        }
+    }
+
+    /// Create a new `PropertyHintInfo` for a directory path.
+    pub fn dir() -> Self {
+        Self {
+            hint: PropertyHint::DIR,
+            hint_string: GString::new(),
+        }
+    }
+
+    /// Create a new `PropertyHintInfo` for a multiline string.
+    pub fn multiline() -> Self {
+        Self {
+            hint: PropertyHint::MULTILINE_TEXT,
             hint_string: GString::new(),
         }
     }

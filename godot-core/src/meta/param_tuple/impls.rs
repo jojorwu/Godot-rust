@@ -25,10 +25,8 @@ macro_rules! count_idents {
     ($id:ident $($rest:ident)*) => { 1 + count_idents!($($rest)*)};
 }
 
-macro_rules! unsafe_impl_param_tuple {
+macro_rules! impl_param_tuple_core {
     ($(($p:ident, $n:tt): $P:ident),*) => {
-        impl<$($P: FromGodot + fmt::Debug),*> TupleFromGodot for ($($P,)*) {}
-
         impl<$($P),*> ParamTuple for ($($P,)*) where $($P: GodotConvert + fmt::Debug),* {
             const LEN: usize = count_idents!($($P)*);
 
@@ -54,6 +52,12 @@ macro_rules! unsafe_impl_param_tuple {
                 )
             }
         }
+    }
+}
+
+macro_rules! impl_in_param_tuple {
+    ($(($p:ident, $n:tt): $P:ident),*) => {
+        impl<$($P: FromGodot + fmt::Debug),*> TupleFromGodot for ($($P,)*) {}
 
         impl<$($P),*> InParamTuple for ($($P,)*) where $($P: EngineFromGodot + fmt::Debug),* {
             unsafe fn from_varcall_args(
@@ -72,19 +76,21 @@ macro_rules! unsafe_impl_param_tuple {
                     return Ok(param_tuple);
                 }
 
-                // Slow path: merge provided args with defaults (requires allocation).
-                let mut all_args = Vec::with_capacity(Self::LEN);
+                // Slow path: merge provided args with defaults (avoiding Vec allocation by using stack array).
+                let mut all_args = [std::ptr::null(); count_idents!($($P)*)];
 
                 // Copy all provided args.
                 for i in 0..arg_count {
-                    all_args.push(unsafe { *args_ptr.add(i) });
+                    all_args[i] = unsafe { *args_ptr.add(i) };
                 }
 
                 // Fill remaining parameters with default values.
                 let required_param_count = Self::LEN - default_values.len();
-                let first_missing_index = arg_count - required_param_count;
-                for i in first_missing_index..default_values.len() {
-                    all_args.push(default_values[i].var_sys());
+                for i in 0..default_values.len() {
+                    let param_index = required_param_count + i;
+                    if param_index >= arg_count {
+                        all_args[param_index] = default_values[i].var_sys();
+                    }
                 }
 
                 // Convert all args to the tuple.
@@ -102,10 +108,7 @@ macro_rules! unsafe_impl_param_tuple {
                 args_ptr: *const sys::GDExtensionConstTypePtr,
                 call_type: sys::PtrcallType,
                 call_ctx: &crate::meta::CallContext,
-            ) -> CallResult<Self>
-            where
-                $($P: EngineFromGodot,)*
-            {
+            ) -> CallResult<Self> {
                 let tuple = (
                     $(
                         // SAFETY: `args_ptr` has length `Self::LEN` and `$n` is less than `Self::LEN`, and `args_ptr` must be an array whose
@@ -133,7 +136,11 @@ macro_rules! unsafe_impl_param_tuple {
                 )
             }
         }
+    }
+}
 
+macro_rules! impl_out_param_tuple {
+    ($(($p:ident, $n:tt): $P:ident),*) => {
         impl<$($P),*> OutParamTuple for ($($P,)*) where $($P: EngineToGodot<Via: Clone> + fmt::Debug,)* {
             fn with_variants<F, R>(self, f: F) -> R
             where
@@ -191,6 +198,14 @@ macro_rules! unsafe_impl_param_tuple {
                 ]
             }
         }
+    }
+}
+
+macro_rules! unsafe_impl_param_tuple {
+    ($(($p:ident, $n:tt): $P:ident),*) => {
+        impl_param_tuple_core!($(($p, $n): $P),*);
+        impl_in_param_tuple!($(($p, $n): $P),*);
+        impl_out_param_tuple!($(($p, $n): $P),*);
     };
 }
 
