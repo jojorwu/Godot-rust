@@ -21,6 +21,8 @@ mod manual_extensions;
 mod match_class;
 mod type_safe_replacements;
 
+pub use manual_extensions::GetNodeError;
+
 // Re-exports all generated classes, interface traits and sidecar modules.
 pub use crate::gen::classes::*;
 // Macro re-export.

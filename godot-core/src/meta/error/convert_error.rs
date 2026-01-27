@@ -15,6 +15,26 @@ use crate::meta::{ClassId, ElementType, ToGodot};
 
 type Cause = Box<dyn Error + Send + Sync>;
 
+/// A thread-safe representation of a value that failed to convert.
+#[derive(Debug, Clone)]
+pub(crate) enum ThreadSafeValue {
+    Int(i64),
+    #[allow(dead_code)]
+    Real(f64),
+    #[allow(dead_code)]
+    String(String),
+}
+
+impl fmt::Display for ThreadSafeValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Int(v) => write!(f, "{v}"),
+            Self::Real(v) => write!(f, "{v}"),
+            Self::String(v) => write!(f, "{v:?}"),
+        }
+    }
+}
+
 /// Represents errors that can occur when converting values from Godot.
 ///
 /// To create user-defined errors, you can use [`ConvertError::default()`] or [`ConvertError::new("message")`][Self::new].
@@ -22,6 +42,7 @@ type Cause = Box<dyn Error + Send + Sync>;
 pub struct ConvertError {
     kind: ErrorKind,
     value: Option<Variant>,
+    thread_safe_value: Option<ThreadSafeValue>,
 }
 
 impl ConvertError {
@@ -38,7 +59,11 @@ impl ConvertError {
     /// Create a new custom error for a conversion, without associated value.
     #[allow(dead_code)] // Needed a few times already, stays to prevent churn on refactorings.
     pub(crate) fn with_kind(kind: ErrorKind) -> Self {
-        Self { kind, value: None }
+        Self {
+            kind,
+            value: None,
+            thread_safe_value: None,
+        }
     }
 
     /// Create a new custom error for a conversion with the value that failed to convert.
@@ -49,6 +74,22 @@ impl ConvertError {
         Self {
             kind,
             value: Some(value.to_variant()),
+            thread_safe_value: None,
+        }
+    }
+
+    pub(crate) fn with_kind_thread_safe_value<V>(
+        kind: ErrorKind,
+        value: V,
+        ts_value: ThreadSafeValue,
+    ) -> Self
+    where
+        V: ToGodot,
+    {
+        Self {
+            kind,
+            value: Some(value.to_variant()),
+            thread_safe_value: Some(ts_value),
         }
     }
 
@@ -72,6 +113,7 @@ impl ConvertError {
         Self {
             kind: ErrorKind::Custom(Some(error.into())),
             value: Some(value.to_variant()),
+            thread_safe_value: None,
         }
     }
 
@@ -106,6 +148,8 @@ impl fmt::Display for ConvertError {
 
         if let Some(value) = &self.value {
             write!(f, ": {value:?}")?;
+        } else if let Some(ts_value) = &self.thread_safe_value {
+            write!(f, ": {ts_value}")?;
         }
 
         Ok(())
@@ -126,6 +170,7 @@ impl Default for ConvertError {
         Self {
             kind: ErrorKind::Custom(None),
             value: None,
+            thread_safe_value: None,
         }
     }
 }
@@ -134,18 +179,32 @@ impl Default for ConvertError {
 #[derive(Debug)]
 pub(crate) struct ErasedConvertError {
     kind: ErrorKind,
+    thread_safe_value: Option<ThreadSafeValue>,
 }
 
 impl From<ConvertError> for ErasedConvertError {
     fn from(v: ConvertError) -> Self {
-        let ConvertError { kind, .. } = v;
-        Self { kind }
+        let ConvertError {
+            kind,
+            thread_safe_value,
+            ..
+        } = v;
+        Self {
+            kind,
+            thread_safe_value,
+        }
     }
 }
 
 impl fmt::Display for ErasedConvertError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.kind)
+        write!(f, "{}", self.kind)?;
+
+        if let Some(ts_value) = &self.thread_safe_value {
+            write!(f, ": {ts_value}")?;
+        }
+
+        Ok(())
     }
 }
 
@@ -300,6 +359,13 @@ impl FromFfiError {
         V: ToGodot,
     {
         ConvertError::with_kind_value(ErrorKind::FromFfi(self), value)
+    }
+
+    pub fn into_error_ts<V>(self, value: V, ts_value: ThreadSafeValue) -> ConvertError
+    where
+        V: ToGodot,
+    {
+        ConvertError::with_kind_thread_safe_value(ErrorKind::FromFfi(self), value, ts_value)
     }
 }
 

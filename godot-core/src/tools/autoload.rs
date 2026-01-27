@@ -112,7 +112,7 @@ where
 
     let autoload_node = root
         .try_get_node_as::<Node>(&autoload_path)
-        .ok_or_else(|| ConvertError::new(format!("autoload `{autoload_name}` not found")))?;
+        .map_err(|_| ConvertError::new(format!("autoload `{autoload_name}` not found")))?;
 
     // Store in cache as Gd<Node>.
     AUTOLOAD_CACHE.with(|cache| {

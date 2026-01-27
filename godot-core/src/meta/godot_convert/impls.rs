@@ -197,8 +197,7 @@ macro_rules! impl_godot_scalar {
             fn try_from_ffi(ffi: Self::Ffi) -> Result<Self, ConvertError> {
                 Self::try_from(ffi).map_err(|_rust_err| {
                     // rust_err is something like "out of range integral type conversion attempted", not adding extra information.
-                    // TODO consider passing value into error message, but how thread-safely? don't eagerly convert to string.
-                    $err.into_error(ffi)
+                    $err.into_error_ts(ffi, crate::meta::error::ThreadSafeValue::Int(ffi as i64))
                 })
             }
 
