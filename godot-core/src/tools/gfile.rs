@@ -369,7 +369,6 @@ impl GFile {
     ) -> std::io::Result<PackedStringArray> {
         arg_into_ref!(delim);
 
-        // FIXME: pass by-ref
         let val = self.fa.get_csv_line_ex().delim(delim).done();
         self.check_error()?;
         Ok(val)

@@ -24,7 +24,6 @@ macro_rules! inner_function {
 #[macro_export]
 #[doc(hidden)]
 macro_rules! inner_godot_msg {
-    // FIXME expr needs to be parenthesised, see usages
     ($godot_fn:ident; $fmt:literal $(, $args:expr)* $(,)?) => {
     //($($args:tt),* $(,)?) => {
         unsafe {
