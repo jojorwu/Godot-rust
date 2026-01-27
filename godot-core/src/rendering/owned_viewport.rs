@@ -1,13 +1,10 @@
-use crate::builtin::Rid;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-/// A RAII wrapper for a viewport RID that is owned by this type.
-/// The viewport is freed when this object is dropped.
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct OwnedViewport {
-    rid: Rid,
-}
+crate::rendering::impl_owned_rid!(
+    OwnedViewport,
+    "A RAII wrapper for a viewport RID that is owned by this type.\nThe viewport is freed when this object is dropped."
+);
 
 impl Default for OwnedViewport {
     fn default() -> Self {
@@ -24,23 +21,10 @@ impl OwnedViewport {
         Self { rid }
     }
 
-    /// Returns the underlying RID of the viewport.
-    pub fn rid(&self) -> Rid {
-        self.rid
-    }
-
     /// Sets the size of the viewport.
     ///
     /// See `RenderingServer.viewport_set_size()`.
     pub fn set_size(&mut self, width: i32, height: i32) {
         RenderingServer::singleton().viewport_set_size(self.rid, width, height);
-    }
-}
-
-impl Drop for OwnedViewport {
-    fn drop(&mut self) {
-        if self.rid.is_valid() {
-            RenderingServer::singleton().free_rid(self.rid);
-        }
     }
 }

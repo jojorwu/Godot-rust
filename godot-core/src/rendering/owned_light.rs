@@ -1,14 +1,12 @@
-use crate::builtin::{Color, Rid};
+use crate::builtin::Color;
 use crate::classes::rendering_server::LightType;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-/// A RAII wrapper for a light RID that is owned by this type.
-/// The light is freed when this object is dropped.
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct OwnedLight {
-    rid: Rid,
-}
+crate::rendering::impl_owned_rid!(
+    OwnedLight,
+    "A RAII wrapper for a light RID that is owned by this type.\nThe light is freed when this object is dropped."
+);
 
 impl OwnedLight {
     /// Creates a new light of the given type and returns a wrapper that will free it on drop.
@@ -25,23 +23,10 @@ impl OwnedLight {
         Self { rid }
     }
 
-    /// Returns the underlying RID of the light.
-    pub fn rid(&self) -> Rid {
-        self.rid
-    }
-
     /// Sets the color of the light.
     ///
     /// See `RenderingServer.light_set_color()`.
     pub fn set_color(&mut self, color: Color) {
         RenderingServer::singleton().light_set_color(self.rid, color);
-    }
-}
-
-impl Drop for OwnedLight {
-    fn drop(&mut self) {
-        if self.rid.is_valid() {
-            RenderingServer::singleton().free_rid(self.rid);
-        }
     }
 }

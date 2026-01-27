@@ -1,13 +1,10 @@
-use crate::builtin::Rid;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-/// A RAII wrapper for a texture RID that is owned by this type.
-/// The texture is freed when this object is dropped.
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct OwnedTexture {
-    rid: Rid,
-}
+crate::rendering::impl_owned_rid!(
+    OwnedTexture,
+    "A RAII wrapper for a texture RID that is owned by this type.\nThe texture is freed when this object is dropped."
+);
 
 impl OwnedTexture {
     /// Creates a new texture from an image and returns a wrapper that will free it on drop.
@@ -25,18 +22,5 @@ impl OwnedTexture {
     pub fn new_placeholder() -> Self {
         let rid = RenderingServer::singleton().texture_2d_placeholder_create();
         Self { rid }
-    }
-
-    /// Returns the underlying RID of the texture.
-    pub fn rid(&self) -> Rid {
-        self.rid
-    }
-}
-
-impl Drop for OwnedTexture {
-    fn drop(&mut self) {
-        if self.rid.is_valid() {
-            RenderingServer::singleton().free_rid(self.rid);
-        }
     }
 }

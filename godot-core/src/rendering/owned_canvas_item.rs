@@ -2,12 +2,10 @@ use crate::builtin::{Color, Rect2, Rid, Transform2D, Vector2};
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-/// A RAII wrapper for a canvas item RID that is owned by this type.
-/// The canvas item is freed when this object is dropped.
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct OwnedCanvasItem {
-    rid: Rid,
-}
+crate::rendering::impl_owned_rid!(
+    OwnedCanvasItem,
+    "A RAII wrapper for a canvas item RID that is owned by this type.\nThe canvas item is freed when this object is dropped."
+);
 
 impl Default for OwnedCanvasItem {
     fn default() -> Self {
@@ -22,11 +20,6 @@ impl OwnedCanvasItem {
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().canvas_item_create();
         Self { rid }
-    }
-
-    /// Returns the underlying RID of the canvas item.
-    pub fn rid(&self) -> Rid {
-        self.rid
     }
 
     /// Sets the parent of the canvas item.
@@ -95,13 +88,5 @@ impl OwnedCanvasItem {
     pub fn add_msdf_texture_rect_region(&mut self, rect: Rect2, texture: Rid, src_rect: Rect2) {
         RenderingServer::singleton()
             .canvas_item_add_msdf_texture_rect_region(self.rid, rect, texture, src_rect);
-    }
-}
-
-impl Drop for OwnedCanvasItem {
-    fn drop(&mut self) {
-        if self.rid.is_valid() {
-            RenderingServer::singleton().free_rid(self.rid);
-        }
     }
 }

@@ -2,12 +2,10 @@ use crate::builtin::{Rid, Vector2};
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-/// A RAII wrapper for a canvas RID that is owned by this type.
-/// The canvas is freed when this object is dropped.
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct OwnedCanvas {
-    rid: Rid,
-}
+crate::rendering::impl_owned_rid!(
+    OwnedCanvas,
+    "A RAII wrapper for a canvas RID that is owned by this type.\nThe canvas is freed when this object is dropped."
+);
 
 impl Default for OwnedCanvas {
     fn default() -> Self {
@@ -24,23 +22,10 @@ impl OwnedCanvas {
         Self { rid }
     }
 
-    /// Returns the underlying RID of the canvas.
-    pub fn rid(&self) -> Rid {
-        self.rid
-    }
-
     /// Sets the mirroring of a canvas item.
     ///
     /// See `RenderingServer.canvas_set_item_mirroring()`.
     pub fn set_item_mirroring(&mut self, item: Rid, mirroring: Vector2) {
         RenderingServer::singleton().canvas_set_item_mirroring(self.rid, item, mirroring);
-    }
-}
-
-impl Drop for OwnedCanvas {
-    fn drop(&mut self) {
-        if self.rid.is_valid() {
-            RenderingServer::singleton().free_rid(self.rid);
-        }
     }
 }

@@ -1,16 +1,12 @@
-use crate::builtin::{
-    Array, PackedVector2Array, PackedVector3Array, Rid, VarDictionary, VariantType,
-};
+use crate::builtin::{Array, PackedVector2Array, PackedVector3Array, VarDictionary, VariantType};
 use crate::classes::rendering_server::PrimitiveType;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-/// A RAII wrapper for a mesh RID that is owned by this type.
-/// The mesh is freed when this object is dropped.
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct OwnedMesh {
-    rid: Rid,
-}
+crate::rendering::impl_owned_rid!(
+    OwnedMesh,
+    "A RAII wrapper for a mesh RID that is owned by this type.\nThe mesh is freed when this object is dropped."
+);
 
 impl Default for OwnedMesh {
     fn default() -> Self {
@@ -33,11 +29,6 @@ impl OwnedMesh {
     pub fn new_from_surfaces(surfaces: &Array<VarDictionary>) -> Self {
         let rid = RenderingServer::singleton().mesh_create_from_surfaces(surfaces);
         Self { rid }
-    }
-
-    /// Returns the underlying RID of the mesh.
-    pub fn rid(&self) -> Rid {
-        self.rid
     }
 
     /// Adds a surface to the mesh.
@@ -84,13 +75,5 @@ impl OwnedMesh {
     /// See `RenderingServer.mesh_clear()`.
     pub fn clear(&mut self) {
         RenderingServer::singleton().mesh_clear(self.rid);
-    }
-}
-
-impl Drop for OwnedMesh {
-    fn drop(&mut self) {
-        if self.rid.is_valid() {
-            RenderingServer::singleton().free_rid(self.rid);
-        }
     }
 }

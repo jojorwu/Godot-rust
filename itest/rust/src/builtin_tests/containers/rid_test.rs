@@ -10,14 +10,6 @@ use godot::builtin::Rid;
 use godot::classes::RenderingServer;
 use godot::obj::{IndexEnum, Singleton};
 use godot::prelude::*;
-use godot::rendering::owned_canvas::OwnedCanvas;
-use godot::rendering::owned_canvas_item::OwnedCanvasItem;
-use godot::rendering::owned_light::OwnedLight;
-use godot::rendering::owned_material::OwnedMaterial;
-use godot::rendering::owned_mesh::OwnedMesh;
-use godot::rendering::owned_shader::OwnedShader;
-use godot::rendering::owned_texture::OwnedTexture;
-use godot::rendering::owned_viewport::OwnedViewport;
 
 use crate::framework::{itest, suppress_godot_print};
 
@@ -141,23 +133,25 @@ fn strange_rids() {
 
 #[itest]
 fn owned_texture_raii() {
+    let mut server = RenderingServer::singleton();
     let rid = {
-        let texture = OwnedTexture::new_placeholder();
+        let texture = server.texture_2d_placeholder_create_owned();
         let rid = texture.rid();
         assert!(rid.is_valid());
         rid
     };
 
     // After the texture is dropped, the RID should be freed and reused.
-    let texture2 = OwnedTexture::new_placeholder();
+    let texture2 = server.texture_2d_placeholder_create_owned();
     assert_eq!(rid, texture2.rid());
 }
 
 #[itest]
 fn owned_material_raii() {
+    let mut server = RenderingServer::singleton();
     let rid = {
-        let mut material = OwnedMaterial::new();
-        let rid = material.rid();
+        let mut material = server.material_create_owned();
+        let rid = *material;
         assert!(rid.is_valid());
 
         material.set_param("diffuse_mode", &3_i32.to_variant()); // Lambert
@@ -167,8 +161,8 @@ fn owned_material_raii() {
     };
 
     // After the material is dropped, the RID should be freed and reused.
-    let material2 = OwnedMaterial::new();
-    assert_eq!(rid, material2.rid());
+    let material2 = server.material_create_owned();
+    assert_eq!(rid, *material2);
 }
 
 #[itest]
@@ -176,9 +170,10 @@ fn owned_mesh_raii() {
     use godot::classes::mesh::ArrayType;
     use godot::classes::rendering_server::PrimitiveType;
 
+    let mut server = RenderingServer::singleton();
     let rid = {
-        let mut mesh = OwnedMesh::new();
-        let rid = mesh.rid();
+        let mut mesh = server.mesh_create_owned();
+        let rid = *mesh;
         assert!(rid.is_valid());
 
         let mut arrays = VarArray::new();
@@ -197,22 +192,21 @@ fn owned_mesh_raii() {
         assert_eq!(mesh.surface_get_array_len(0), 3);
 
         mesh.clear();
-        // mesh_clear removes all surfaces, so count should be 0.
-        // But surface_get_array_len(0) might panic if there are no surfaces.
 
         rid
     };
 
     // After the mesh is dropped, the RID should be freed and reused.
-    let mesh2 = OwnedMesh::new();
-    assert_eq!(rid, mesh2.rid());
+    let mesh2 = server.mesh_create_owned();
+    assert_eq!(rid, *mesh2);
 }
 
 #[itest]
 fn owned_shader_raii() {
+    let mut server = RenderingServer::singleton();
     let rid = {
-        let mut shader = OwnedShader::new();
-        let rid = shader.rid();
+        let mut shader = server.shader_create_owned();
+        let rid = *shader;
         assert!(rid.is_valid());
 
         let code = "shader_type spatial; void fragment() { ALBEDO = vec3(1.0, 0.0, 0.0); }";
@@ -222,8 +216,8 @@ fn owned_shader_raii() {
     };
 
     // After the shader is dropped, the RID should be freed and reused.
-    let shader2 = OwnedShader::new();
-    assert_eq!(rid, shader2.rid());
+    let shader2 = server.shader_create_owned();
+    assert_eq!(rid, *shader2);
 }
 
 #[itest]
@@ -231,9 +225,10 @@ fn owned_light_raii() {
     use godot::builtin::Color;
     use godot::classes::rendering_server::LightType;
 
+    let mut server = RenderingServer::singleton();
     let rid = {
-        let mut light = OwnedLight::new(LightType::DIRECTIONAL);
-        let rid = light.rid();
+        let mut light = server.light_create_owned(LightType::DIRECTIONAL);
+        let rid = *light;
         assert!(rid.is_valid());
 
         light.set_color(Color::from_rgb(1.0, 0.5, 0.0));
@@ -242,15 +237,16 @@ fn owned_light_raii() {
     };
 
     // After the light is dropped, the RID should be freed and reused.
-    let light2 = OwnedLight::new(LightType::OMNI);
-    assert_eq!(rid, light2.rid());
+    let light2 = server.light_create_owned(LightType::OMNI);
+    assert_eq!(rid, *light2);
 }
 
 #[itest]
 fn owned_viewport_raii() {
+    let mut server = RenderingServer::singleton();
     let rid = {
-        let mut viewport = OwnedViewport::new();
-        let rid = viewport.rid();
+        let mut viewport = server.viewport_create_owned();
+        let rid = *viewport;
         assert!(rid.is_valid());
 
         viewport.set_size(128, 64);
@@ -259,20 +255,21 @@ fn owned_viewport_raii() {
     };
 
     // After the viewport is dropped, the RID should be freed and reused.
-    let viewport2 = OwnedViewport::new();
-    assert_eq!(rid, viewport2.rid());
+    let viewport2 = server.viewport_create_owned();
+    assert_eq!(rid, *viewport2);
 }
 
 #[itest]
 fn owned_canvas_item_raii() {
-    let parent = OwnedViewport::new();
+    let mut server = RenderingServer::singleton();
+    let parent = server.viewport_create_owned();
 
     let rid = {
-        let mut item = OwnedCanvasItem::new();
-        let rid = item.rid();
+        let mut item = server.canvas_item_create_owned();
+        let rid = *item;
         assert!(rid.is_valid());
 
-        item.set_parent(parent.rid());
+        item.set_parent(*parent);
         item.add_circle(
             Vector2::new(10.0, 20.0),
             5.0,
@@ -288,25 +285,82 @@ fn owned_canvas_item_raii() {
     };
 
     // After the item is dropped, the RID should be freed and reused.
-    let item2 = OwnedCanvasItem::new();
-    assert_eq!(rid, item2.rid());
+    let item2 = server.canvas_item_create_owned();
+    assert_eq!(rid, *item2);
 }
 
 #[itest]
 fn owned_canvas_raii() {
-    let item = OwnedCanvasItem::new();
+    let mut server = RenderingServer::singleton();
+    let item = server.canvas_item_create_owned();
 
     let rid = {
-        let mut canvas = OwnedCanvas::new();
-        let rid = canvas.rid();
+        let mut canvas = server.canvas_create_owned();
+        let rid = *canvas;
         assert!(rid.is_valid());
 
-        canvas.set_item_mirroring(item.rid(), Vector2::new(1.0, 0.0));
+        canvas.set_item_mirroring(*item, Vector2::new(1.0, 0.0));
 
         rid
     };
 
     // After the canvas is dropped, the RID should be freed and reused.
-    let canvas2 = OwnedCanvas::new();
-    assert_eq!(rid, canvas2.rid());
+    let canvas2 = server.canvas_create_owned();
+    assert_eq!(rid, *canvas2);
+}
+
+#[itest]
+fn owned_camera_raii() {
+    let mut server = RenderingServer::singleton();
+    let rid = {
+        let camera = server.camera_create_owned();
+        let rid = *camera;
+        assert!(rid.is_valid());
+        rid
+    };
+
+    let camera2 = server.camera_create_owned();
+    assert_eq!(rid, *camera2);
+}
+
+#[itest]
+fn owned_scenario_raii() {
+    let mut server = RenderingServer::singleton();
+    let rid = {
+        let scenario = server.scenario_create_owned();
+        let rid = *scenario;
+        assert!(rid.is_valid());
+        rid
+    };
+
+    let scenario2 = server.scenario_create_owned();
+    assert_eq!(rid, *scenario2);
+}
+
+#[itest]
+fn owned_instance_raii() {
+    let mut server = RenderingServer::singleton();
+    let rid = {
+        let instance = server.instance_create_owned();
+        let rid = *instance;
+        assert!(rid.is_valid());
+        rid
+    };
+
+    let instance2 = server.instance_create_owned();
+    assert_eq!(rid, *instance2);
+}
+
+#[itest]
+fn owned_environment_raii() {
+    let mut server = RenderingServer::singleton();
+    let rid = {
+        let environment = server.environment_create_owned();
+        let rid = *environment;
+        assert!(rid.is_valid());
+        rid
+    };
+
+    let environment2 = server.environment_create_owned();
+    assert_eq!(rid, *environment2);
 }
