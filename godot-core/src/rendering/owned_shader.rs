@@ -1,12 +1,18 @@
-
-use crate::builtin::rid::Rid;
+use crate::builtin::Rid;
 use crate::classes::RenderingServer;
+use crate::obj::Singleton;
 
 /// A RAII wrapper for a shader RID that is owned by this type.
 /// The shader is freed when this object is dropped.
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct OwnedShader {
     rid: Rid,
+}
+
+impl Default for OwnedShader {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OwnedShader {
@@ -27,7 +33,7 @@ impl OwnedShader {
     ///
     /// See `RenderingServer.shader_set_code()`.
     pub fn set_code(&mut self, code: &str) {
-        RenderingServer::singleton().shader_set_code(self.rid, code.into());
+        RenderingServer::singleton().shader_set_code(self.rid, code);
     }
 }
 

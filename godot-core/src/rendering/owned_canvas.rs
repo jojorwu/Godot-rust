@@ -1,13 +1,18 @@
-
-use crate::builtin::rid::Rid;
-use crate::builtin::Vector2;
+use crate::builtin::{Rid, Vector2};
 use crate::classes::RenderingServer;
+use crate::obj::Singleton;
 
 /// A RAII wrapper for a canvas RID that is owned by this type.
 /// The canvas is freed when this object is dropped.
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct OwnedCanvas {
     rid: Rid,
+}
+
+impl Default for OwnedCanvas {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OwnedCanvas {

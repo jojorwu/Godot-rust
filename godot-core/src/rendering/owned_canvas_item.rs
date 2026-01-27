@@ -1,13 +1,18 @@
-
-use crate::builtin::rid::Rid;
-use crate::builtin::{Color, Transform2D, Vector2};
+use crate::builtin::{Color, Rid, Transform2D, Vector2};
 use crate::classes::RenderingServer;
+use crate::obj::Singleton;
 
 /// A RAII wrapper for a canvas item RID that is owned by this type.
 /// The canvas item is freed when this object is dropped.
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct OwnedCanvasItem {
     rid: Rid,
+}
+
+impl Default for OwnedCanvasItem {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OwnedCanvasItem {
@@ -49,14 +54,17 @@ impl OwnedCanvasItem {
     ///
     /// See `RenderingServer.canvas_item_set_transform()`.
     pub fn set_transform(&mut self, transform: &Transform2D) {
-        RenderingServer::singleton().canvas_item_set_transform(self.rid, transform.clone());
+        RenderingServer::singleton().canvas_item_set_transform(self.rid, *transform);
     }
 
     /// Draws a line on the canvas item.
     ///
     /// See `RenderingServer.canvas_item_add_line()`.
     pub fn add_line(&mut self, from: Vector2, to: Vector2, color: Color, width: f32) {
-        RenderingServer::singleton().canvas_item_add_line(self.rid, from, to, color, width);
+        RenderingServer::singleton()
+            .canvas_item_add_line_ex(self.rid, from, to, color)
+            .width(width)
+            .done();
     }
 
     /// Draws a rectangle on the canvas item.

@@ -1,13 +1,18 @@
-
-use crate::builtin::rid::Rid;
-use crate::builtin::Vector2i;
+use crate::builtin::Rid;
 use crate::classes::RenderingServer;
+use crate::obj::Singleton;
 
 /// A RAII wrapper for a viewport RID that is owned by this type.
 /// The viewport is freed when this object is dropped.
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct OwnedViewport {
     rid: Rid,
+}
+
+impl Default for OwnedViewport {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OwnedViewport {

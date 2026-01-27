@@ -1,14 +1,19 @@
-
-use crate::builtin::rid::Rid;
-use crate::builtin::Dictionary;
-use crate::classes::rendering_server::{ArrayFormat, PrimitiveType};
+use crate::builtin::{Array, Rid};
+use crate::classes::rendering_server::PrimitiveType;
 use crate::classes::RenderingServer;
+use crate::obj::Singleton;
 
 /// A RAII wrapper for a mesh RID that is owned by this type.
 /// The mesh is freed when this object is dropped.
 #[derive(Debug, Eq, PartialEq, Hash)]
 pub struct OwnedMesh {
     rid: Rid,
+}
+
+impl Default for OwnedMesh {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OwnedMesh {
@@ -28,22 +33,21 @@ impl OwnedMesh {
     /// Adds a surface to the mesh.
     ///
     /// See `RenderingServer.mesh_add_surface_from_arrays()`.
-    pub fn add_surface(&mut self, primitive: PrimitiveType, arrays: &Dictionary) {
-        RenderingServer::singleton().mesh_add_surface_from_arrays(self.rid, primitive, arrays.clone());
-    }
-
-    /// Returns the format of a surface.
-    ///
-    /// See `RenderingServer.mesh_surface_get_format()`.
-    pub fn surface_get_format(&self, surface_idx: i32) -> ArrayFormat {
-        RenderingServer::singleton().mesh_surface_get_format(self.rid, surface_idx)
+    pub fn add_surface(
+        &mut self,
+        primitive: PrimitiveType,
+        arrays: &Array<crate::builtin::Variant>,
+    ) {
+        RenderingServer::singleton().mesh_add_surface_from_arrays(self.rid, primitive, arrays);
     }
 
     /// Returns the number of vertices in a surface.
     ///
-    /// See `RenderingServer.mesh_surface_get_array_len()`.
+    /// See `RenderingServer.mesh_surface_get_arrays()`.
     pub fn surface_get_array_len(&self, surface_idx: i32) -> i32 {
-        RenderingServer::singleton().mesh_surface_get_array_len(self.rid, surface_idx)
+        let arrays = RenderingServer::singleton().mesh_surface_get_arrays(self.rid, surface_idx);
+        let vertex_array: crate::builtin::AnyArray = arrays.at(0).to();
+        vertex_array.len() as i32
     }
 
     /// Removes all surfaces from the mesh.

@@ -1,5 +1,3 @@
-use crate::obj::traits::Singleton;
-
 pub mod owned_canvas;
 pub mod owned_canvas_item;
 pub mod owned_light;

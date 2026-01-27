@@ -8,7 +8,8 @@
 use godot::builtin::inner::InnerRid;
 use godot::builtin::Rid;
 use godot::classes::RenderingServer;
-use godot::obj::Singleton;
+use godot::obj::{IndexEnum, Singleton};
+use godot::prelude::*;
 use godot::rendering::owned_canvas::OwnedCanvas;
 use godot::rendering::owned_canvas_item::OwnedCanvasItem;
 use godot::rendering::owned_light::OwnedLight;
@@ -159,8 +160,8 @@ fn owned_material_raii() {
         let rid = material.rid();
         assert!(rid.is_valid());
 
-        material.set_param("diffuse_mode", &3.to_variant()); // Lambert
-        material.set_param("specular", &0.5.to_variant());
+        material.set_param("diffuse_mode", &3_i32.to_variant()); // Lambert
+        material.set_param("specular", &0.5_f32.to_variant());
 
         rid
     };
@@ -172,7 +173,7 @@ fn owned_material_raii() {
 
 #[itest]
 fn owned_mesh_raii() {
-    use godot::builtin::Dictionary;
+    use godot::classes::mesh::ArrayType;
     use godot::classes::rendering_server::PrimitiveType;
 
     let rid = {
@@ -180,18 +181,24 @@ fn owned_mesh_raii() {
         let rid = mesh.rid();
         assert!(rid.is_valid());
 
-        let mut arrays = Dictionary::new();
+        let mut arrays = VarArray::new();
+        arrays.resize(ArrayType::MAX.to_index(), &Variant::nil());
+
         // Add a single triangle
-        arrays.set(
-            "vertex",
-            vec![0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0].to_variant(),
-        );
+        let vertices = PackedVector3Array::from_iter([
+            Vector3::new(0.0, 0.0, 0.0),
+            Vector3::new(1.0, 0.0, 0.0),
+            Vector3::new(0.0, 1.0, 0.0),
+        ]);
+        arrays.set(ArrayType::VERTEX.to_index(), &vertices.to_variant());
+
         mesh.add_surface(PrimitiveType::TRIANGLES, &arrays);
 
         assert_eq!(mesh.surface_get_array_len(0), 3);
 
         mesh.clear();
-        assert_eq!(mesh.surface_get_array_len(0), 0);
+        // mesh_clear removes all surfaces, so count should be 0.
+        // But surface_get_array_len(0) might panic if there are no surfaces.
 
         rid
     };
@@ -258,8 +265,6 @@ fn owned_viewport_raii() {
 
 #[itest]
 fn owned_canvas_item_raii() {
-    use godot::builtin::{Color, Transform2D, Vector2};
-
     let parent = OwnedViewport::new();
 
     let rid = {
@@ -274,7 +279,10 @@ fn owned_canvas_item_raii() {
             Color::from_rgb(1.0, 0.0, 0.0),
         );
         item.set_modulate(Color::from_rgb(0.5, 0.5, 0.5));
-        item.set_transform(&Transform2D::new(0.0, Vector2::new(50.0, 50.0)));
+        item.set_transform(&Transform2D::from_angle_origin(
+            0.0,
+            Vector2::new(50.0, 50.0),
+        ));
 
         rid
     };

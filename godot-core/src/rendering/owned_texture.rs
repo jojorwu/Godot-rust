@@ -1,6 +1,6 @@
-
-use crate::builtin::rid::Rid;
+use crate::builtin::Rid;
 use crate::classes::RenderingServer;
+use crate::obj::Singleton;
 
 /// A RAII wrapper for a texture RID that is owned by this type.
 /// The texture is freed when this object is dropped.

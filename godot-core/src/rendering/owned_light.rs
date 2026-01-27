@@ -1,8 +1,7 @@
-
-use crate::builtin::rid::Rid;
-use crate::builtin::Color;
-use crate::classes::RenderingServer;
+use crate::builtin::{Color, Rid};
 use crate::classes::rendering_server::LightType;
+use crate::classes::RenderingServer;
+use crate::obj::Singleton;
 
 /// A RAII wrapper for a light RID that is owned by this type.
 /// The light is freed when this object is dropped.
@@ -16,7 +15,13 @@ impl OwnedLight {
     ///
     /// See `RenderingServer.light_create()`.
     pub fn new(light_type: LightType) -> Self {
-        let rid = RenderingServer::singleton().light_create(light_type);
+        let mut server = RenderingServer::singleton();
+        let rid = match light_type {
+            LightType::DIRECTIONAL => server.directional_light_create(),
+            LightType::OMNI => server.omni_light_create(),
+            LightType::SPOT => server.spot_light_create(),
+            _ => panic!("Unsupported light type"),
+        };
         Self { rid }
     }
 
