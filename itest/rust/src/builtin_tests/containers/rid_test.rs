@@ -28,14 +28,11 @@ fn rid_equiv() {
 fn canvas_set_parent() {
     // This originally caused UB, but still testing it here in case it breaks.
     let mut server = RenderingServer::singleton();
-    let canvas = server.canvas_create();
-    let viewport = server.viewport_create();
+    let canvas = server.canvas_create_owned();
+    let viewport = server.viewport_create_owned();
 
-    suppress_godot_print(|| server.canvas_item_set_parent(viewport, canvas));
-    suppress_godot_print(|| server.canvas_item_set_parent(viewport, viewport));
-
-    server.free_rid(canvas);
-    server.free_rid(viewport);
+    suppress_godot_print(|| server.canvas_item_set_parent(*viewport, *canvas));
+    suppress_godot_print(|| server.canvas_item_set_parent(*viewport, *viewport));
 }
 
 #[itest]
@@ -45,32 +42,32 @@ fn multi_thread_test() {
 
     use godot::builtin::{Color, Vector2};
 
+    use godot::rendering::OwnedCanvasItem;
+
     let threads = (0..10)
         .map(|_| {
             std::thread::spawn(|| {
                 let mut server = RenderingServer::singleton();
-                (0..1000).map(|_| server.canvas_item_create()).collect()
+                (0..1000)
+                    .map(|_| server.canvas_item_create_owned())
+                    .collect::<Vec<_>>()
             })
         })
         .collect::<Vec<_>>();
 
-    let mut rids: Vec<Rid> = vec![];
+    let mut items: Vec<OwnedCanvasItem> = vec![];
 
     for thread in threads.into_iter() {
-        rids.append(&mut thread.join().unwrap());
+        items.append(&mut thread.join().unwrap());
     }
 
-    let set = rids.iter().cloned().collect::<HashSet<_>>();
-    assert_eq!(set.len(), rids.len());
+    let set = items.iter().map(|i| i.rid()).collect::<HashSet<_>>();
+    assert_eq!(set.len(), items.len());
 
     let mut server = RenderingServer::singleton();
 
-    for rid in rids.iter() {
-        server.canvas_item_add_circle(*rid, Vector2::ZERO, 1.0, Color::from_rgb(1.0, 0.0, 0.0));
-    }
-
-    for rid in rids.iter() {
-        server.free_rid(*rid);
+    for item in items.iter() {
+        server.canvas_item_add_circle(**item, Vector2::ZERO, 1.0, Color::from_rgb(1.0, 0.0, 0.0));
     }
 }
 

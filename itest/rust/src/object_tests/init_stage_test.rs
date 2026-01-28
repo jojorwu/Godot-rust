@@ -8,7 +8,7 @@
 use std::panic;
 use std::sync::Once;
 
-use godot::builtin::{Rid, Variant};
+use godot::builtin::Variant;
 use godot::classes::{Engine, IObject, Os, RenderingServer, Time};
 use godot::init::InitStage;
 use godot::obj::{Base, GodotClass, NewAlloc, Singleton};
@@ -156,14 +156,14 @@ pub fn on_init_editor() {
 #[derive(GodotClass)]
 #[class(base=Object)]
 struct MainLoopCallbackSingleton {
-    tex: Rid,
+    tex: godot::rendering::OwnedTexture,
 }
 
 #[godot_api]
 impl IObject for MainLoopCallbackSingleton {
     fn init(_: Base<Self::Base>) -> Self {
         Self {
-            tex: RenderingServer::singleton().texture_2d_placeholder_create(),
+            tex: RenderingServer::singleton().texture_2d_placeholder_create_owned(),
         }
     }
 }
@@ -229,10 +229,8 @@ fn on_deinit_main_loop() {
     Engine::singleton()
         .unregister_singleton(&MainLoopCallbackSingleton::class_id().to_string_name());
 
-    let tex = singleton.bind().tex;
-    assert!(tex.is_valid());
+    assert!(singleton.bind().tex.is_valid());
 
-    RenderingServer::singleton().free_rid(tex);
     singleton.free();
 }
 
