@@ -284,7 +284,13 @@ impl Struct {
             let singleton = T::singleton();
             crate::classes::Engine::singleton()
                 .unregister_singleton(&T::class_id().to_string_name());
-            singleton.free();
+
+            // Bypass singleton check for shutdown.
+            // SAFETY: this is the end of the singleton's life cycle.
+            unsafe {
+                sys::interface_fn!(object_destroy)(singleton.obj_sys());
+                singleton.drop_weak();
+            }
         });
 
         self

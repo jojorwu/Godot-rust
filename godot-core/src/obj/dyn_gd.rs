@@ -444,7 +444,7 @@ where
 
 impl<T, D> DynGd<T, D>
 where
-    T: GodotClass + Bounds<Memory = bounds::MemManual>,
+    T: GodotClass + Bounds<Memory = bounds::MemManual, IsSingleton = bounds::No>,
     D: ?Sized + 'static,
 {
     /// Destroy the manually-managed Godot object.

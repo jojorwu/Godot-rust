@@ -1480,40 +1480,10 @@ impl<T: ArrayElement + FromGodot> Iterator for Iter<'_, T> {
     }
 }
 
-// TODO There's a macro for this, but it doesn't support generics yet; add support and use it
-impl<T: ArrayElement> PartialEq for Array<T> {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        unsafe {
-            let mut result = false;
-            sys::builtin_call! {
-                array_operator_equal(self.sys(), other.sys(), result.sys_mut())
-            }
-            result
-        }
-    }
-}
-
-impl<T: ArrayElement> PartialOrd for Array<T> {
-    #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        let op_less = |lhs, rhs| unsafe {
-            let mut result = false;
-            sys::builtin_call! {
-                array_operator_less(lhs, rhs, result.sys_mut())
-            }
-            result
-        };
-
-        if op_less(self.sys(), other.sys()) {
-            Some(std::cmp::Ordering::Less)
-        } else if op_less(other.sys(), self.sys()) {
-            Some(std::cmp::Ordering::Greater)
-        } else if self.eq(other) {
-            Some(std::cmp::Ordering::Equal)
-        } else {
-            None
-        }
+impl_builtin_traits! {
+    <T: ArrayElement> for Array<T> {
+        PartialEq => array_operator_equal;
+        PartialOrd => array_operator_less;
     }
 }
 

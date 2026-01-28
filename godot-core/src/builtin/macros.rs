@@ -8,13 +8,13 @@
 #![macro_use]
 
 macro_rules! impl_builtin_traits_inner {
-    ( Default for $Type:ty => $gd_method:ident ) => {
-        impl Default for $Type {
+    ( [$( $Generics:tt )*] Default for $Type:ty => $gd_method:ident ) => {
+        impl $( $Generics )* Default for $Type {
             #[inline]
             fn default() -> Self {
                 unsafe {
                     Self::new_with_uninit(|self_ptr| {
-                        let ctor = ::godot_ffi::builtin_fn!($gd_method);
+                        let ctor = crate::sys::builtin_fn!($gd_method);
                         ctor(self_ptr, std::ptr::null_mut())
                     })
                 }
@@ -22,13 +22,13 @@ macro_rules! impl_builtin_traits_inner {
         }
     };
 
-    ( Clone for $Type:ty => $gd_method:ident ) => {
-        impl Clone for $Type {
+    ( [$( $Generics:tt )*] Clone for $Type:ty => $gd_method:ident ) => {
+        impl $( $Generics )* Clone for $Type {
             #[inline]
             fn clone(&self) -> Self {
                 unsafe {
                     Self::new_with_uninit(|self_ptr| {
-                        let ctor = ::godot_ffi::builtin_fn!($gd_method);
+                        let ctor = crate::sys::builtin_fn!($gd_method);
                         let args = [self.sys()];
                         ctor(self_ptr, args.as_ptr());
                     })
@@ -37,25 +37,25 @@ macro_rules! impl_builtin_traits_inner {
         }
     };
 
-    ( Drop for $Type:ty => $gd_method:ident ) => {
-        impl Drop for $Type {
+    ( [$( $Generics:tt )*] Drop for $Type:ty => $gd_method:ident ) => {
+        impl $( $Generics )* Drop for $Type {
             #[inline]
             fn drop(&mut self) {
                 unsafe {
-                    let destructor = ::godot_ffi::builtin_fn!($gd_method @1);
+                    let destructor = crate::sys::builtin_fn!($gd_method @1);
                     destructor(self.sys_mut());
                 }
             }
         }
     };
 
-    ( PartialEq for $Type:ty => $gd_method:ident ) => {
-        impl PartialEq for $Type {
+    ( [$( $Generics:tt )*] PartialEq for $Type:ty => $gd_method:ident ) => {
+        impl $( $Generics )* PartialEq for $Type {
             #[inline]
             fn eq(&self, other: &Self) -> bool {
                 unsafe {
                     let mut result = false;
-                    ::godot_ffi::builtin_call! {
+                    crate::sys::builtin_call! {
                         $gd_method(self.sys(), other.sys(), result.sys_mut())
                     };
                     result
@@ -64,18 +64,43 @@ macro_rules! impl_builtin_traits_inner {
         }
     };
 
-    ( Eq for $Type:ty => $gd_method:ident ) => {
-        impl_builtin_traits_inner!(PartialEq for $Type => $gd_method);
-        impl Eq for $Type {}
+    ( [$( $Generics:tt )*] Eq for $Type:ty => $gd_method:ident ) => {
+        impl_builtin_traits_inner!([$( $Generics )*] PartialEq for $Type => $gd_method);
+        impl $( $Generics )* Eq for $Type {}
     };
 
-    ( Ord for $Type:ty => $gd_method:ident ) => {
-        impl Ord for $Type {
+    ( [$( $Generics:tt )*] PartialOrd for $Type:ty => $gd_method:ident ) => {
+        impl $( $Generics )* PartialOrd for $Type {
+            #[inline]
+            fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                let op_less = |lhs, rhs| unsafe {
+                    let mut result = false;
+                    crate::sys::builtin_call! {
+                        $gd_method(lhs, rhs, result.sys_mut())
+                    };
+                    result
+                };
+
+                if op_less(self.sys(), other.sys()) {
+                    Some(std::cmp::Ordering::Less)
+                } else if op_less(other.sys(), self.sys()) {
+                    Some(std::cmp::Ordering::Greater)
+                } else if self.eq(other) {
+                    Some(std::cmp::Ordering::Equal)
+                } else {
+                    None
+                }
+            }
+        }
+    };
+
+    ( [$( $Generics:tt )*] Ord for $Type:ty => $gd_method:ident ) => {
+        impl $( $Generics )* Ord for $Type {
             #[inline]
             fn cmp(&self, other: &Self) -> std::cmp::Ordering {
                 let op_less = |lhs, rhs| unsafe {
                     let mut result = false;
-                    ::godot_ffi::builtin_call! {
+                    crate::sys::builtin_call! {
                         $gd_method(lhs, rhs, result.sys_mut())
                     };
                     result
@@ -90,7 +115,7 @@ macro_rules! impl_builtin_traits_inner {
                 }
             }
         }
-        impl PartialOrd for $Type {
+        impl $( $Generics )* PartialOrd for $Type {
             #[inline]
             fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
                 Some(self.cmp(other))
@@ -100,8 +125,8 @@ macro_rules! impl_builtin_traits_inner {
 
 
     // Requires a `hash` function.
-    ( Hash for $Type:ty ) => {
-        impl std::hash::Hash for $Type {
+    ( [$( $Generics:tt )*] Hash for $Type:ty ) => {
+        impl $( $Generics )* std::hash::Hash for $Type {
             fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
                 // The GDExtension interface only deals in `int64_t`, but the engine's own `hash()` function
                 // actually returns `uint32_t`.
@@ -119,8 +144,30 @@ macro_rules! impl_builtin_traits {
     ) => (
         $(
             impl_builtin_traits_inner! {
-                $Trait for $Type $(=> $gd_method)?
+                [] $Trait for $Type $(=> $gd_method)?
             }
         )*
-    )
+    );
+
+    (
+        <$( $Gen:ident $(: $Bound:path)? ),*> for $Type:ty {
+            $( $Trait:ident $(=> $gd_method:ident)?; )*
+        }
+    ) => (
+        impl_builtin_traits! {
+            @expand [ <$( $Gen $(: $Bound)? ),*> ]
+            for $Type { $( $Trait $(=> $gd_method)?; )* }
+        }
+    );
+
+    (
+        @expand $Generics:tt
+        for $Type:ty { $( $Trait:ident $(=> $gd_method:ident)?; )* }
+    ) => (
+        $(
+            impl_builtin_traits_inner! {
+                $Generics $Trait for $Type $(=> $gd_method)?
+            }
+        )*
+    );
 }

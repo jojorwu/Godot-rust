@@ -20,7 +20,7 @@ use crate::meta::{
 };
 use crate::obj::{
     bounds, cap, Bounds, DynGd, GdDerefTarget, GdMut, GdRef, GodotClass, Inherits, InstanceId,
-    OnEditor, RawGd, WithBaseField, WithSignals,
+    OnEditor, RawGd, Singleton, WithBaseField, WithSignals,
 };
 use crate::private::{callbacks, PanicPayload};
 use crate::registry::class::try_dynify_object;
@@ -722,10 +722,10 @@ impl<T: GodotClass> Gd<T> {
 }
 
 /// _The methods in this impl block are only available for objects `T` that are manually managed,
-/// i.e. anything that is not `RefCounted` or inherited from it._ <br><br>
+/// i.e. anything that is not `RefCounted` or inherited from it. They must also not be singletons._ <br><br>
 impl<T> Gd<T>
 where
-    T: GodotClass + Bounds<Memory = bounds::MemManual>,
+    T: GodotClass + Bounds<Memory = bounds::MemManual, IsSingleton = bounds::No>,
 {
     /// Destroy the manually-managed Godot object.
     ///
@@ -760,7 +760,6 @@ where
             }
         };
 
-        // TODO disallow for singletons, either only at runtime or both at compile time (new memory policy) and runtime
         use bounds::Declarer;
 
         // Runtime check in case of T=Object, no-op otherwise
@@ -771,6 +770,24 @@ where
                 "Called free() on Gd<Object> which points to a RefCounted dynamic type; free() only supported for manually managed types\n\
                 Object: {self:?}"
             ));
+        }
+
+        // Runtime check for singletons, specifically for T=Object.
+        // For other T, this is already checked at compile time via the IsSingleton = No bound.
+        if self.is_instance_valid() {
+            let class_name = self.dynamic_class_string();
+            if crate::classes::Engine::singleton().has_singleton(&class_name) {
+                if let Some(singleton) =
+                    crate::classes::Engine::singleton().get_singleton(&class_name)
+                {
+                    if singleton.obj_sys() == self.obj_sys() {
+                        return error_or_panic(format!(
+                            "Called free() on a singleton object of class '{class_name}'.\n\
+                            Object: {self:?}"
+                        ));
+                    }
+                }
+            }
         }
 
         // If ref_counted returned None, that means the instance was destroyed

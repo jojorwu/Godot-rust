@@ -83,6 +83,7 @@ unsafe impl Bounds for NoBase {
     type DynMemory = bounds::MemManual;
     type Declarer = bounds::DeclEngine;
     type Exportable = bounds::No;
+    type IsSingleton = bounds::No;
 }
 
 /// Non-strict inheritance relationship in the Godot class hierarchy.
