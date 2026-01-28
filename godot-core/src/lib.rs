@@ -26,6 +26,7 @@ pub mod global;
 pub mod init;
 pub mod meta;
 pub mod obj;
+pub mod physics;
 pub mod registry;
 pub mod rendering;
 pub mod task;

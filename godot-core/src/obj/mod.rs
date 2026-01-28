@@ -23,6 +23,7 @@ mod passive_gd;
 mod raw_gd;
 mod traits;
 
+pub(crate) mod raii;
 pub(crate) mod rtti;
 
 pub use base::*;
@@ -35,6 +36,8 @@ pub use on_ready::*;
 pub(crate) use passive_gd::PassiveGd;
 pub use raw_gd::*;
 pub use traits::*;
+
+pub(crate) use raii::impl_owned_rid;
 
 pub mod bounds;
 pub mod script;

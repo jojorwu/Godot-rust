@@ -365,3 +365,102 @@ fn owned_environment_raii() {
     let environment2 = server.environment_create_owned();
     assert_eq!(rid, *environment2);
 }
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_physics_2d_raii() {
+    use godot::classes::physics_server_2d::ShapeType;
+    use godot::classes::PhysicsServer2D;
+
+    let mut server = PhysicsServer2D::singleton();
+
+    let rid_space = {
+        let space = server.space_create_owned();
+        let rid = *space;
+        assert!(rid.is_valid());
+        rid
+    };
+    let space2 = server.space_create_owned();
+    assert_eq!(rid_space, *space2);
+
+    let rid_body = {
+        let body = server.body_create_owned();
+        let rid = *body;
+        assert!(rid.is_valid());
+        rid
+    };
+    let body2 = server.body_create_owned();
+    assert_eq!(rid_body, *body2);
+
+    let rid_area = {
+        let area = server.area_create_owned();
+        let rid = *area;
+        assert!(rid.is_valid());
+        rid
+    };
+    let area2 = server.area_create_owned();
+    assert_eq!(rid_area, *area2);
+
+    let rid_shape = {
+        let shape = server.shape_create_owned(ShapeType::CIRCLE);
+        let rid = *shape;
+        assert!(rid.is_valid());
+        rid
+    };
+    let shape2 = server.shape_create_owned(ShapeType::CIRCLE);
+    assert_eq!(rid_shape, *shape2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_physics_3d_raii() {
+    use godot::classes::physics_server_3d::ShapeType;
+    use godot::classes::PhysicsServer3D;
+
+    let mut server = PhysicsServer3D::singleton();
+
+    let rid_space = {
+        let space = server.space_create_owned();
+        let rid = *space;
+        assert!(rid.is_valid());
+        rid
+    };
+    let space2 = server.space_create_owned();
+    assert_eq!(rid_space, *space2);
+
+    let rid_body = {
+        let body = server.body_create_owned();
+        let rid = *body;
+        assert!(rid.is_valid());
+        rid
+    };
+    let body2 = server.body_create_owned();
+    assert_eq!(rid_body, *body2);
+
+    let rid_soft_body = {
+        let soft_body = server.soft_body_create_owned();
+        let rid = *soft_body;
+        assert!(rid.is_valid());
+        rid
+    };
+    let soft_body2 = server.soft_body_create_owned();
+    assert_eq!(rid_soft_body, *soft_body2);
+
+    let rid_area = {
+        let area = server.area_create_owned();
+        let rid = *area;
+        assert!(rid.is_valid());
+        rid
+    };
+    let area2 = server.area_create_owned();
+    assert_eq!(rid_area, *area2);
+
+    let rid_shape = {
+        let shape = server.shape_create_owned(ShapeType::BOX);
+        let rid = *shape;
+        assert!(rid.is_valid());
+        rid
+    };
+    let shape2 = server.shape_create_owned(ShapeType::BOX);
+    assert_eq!(rid_shape, *shape2);
+}
