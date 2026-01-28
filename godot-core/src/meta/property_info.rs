@@ -384,25 +384,26 @@ impl PropertyHintInfo {
     }
 
     /// Returns a copy of this `PropertyHintInfo` with the given `step`.
+    ///
+    /// This method only has an effect if the hint is [`PropertyHint::RANGE`].
+    /// It expects the hint string to follow Godot's standard range format: `"min,max[,step[,extra]]"`.
     pub fn with_step(mut self, step: f64) -> Self {
-        let mut parts: Vec<String> = self
-            .hint_string
-            .to_string()
-            .split(',')
-            .map(String::from)
-            .collect();
-        if parts.len() < 2 {
-            // Not a range-like hint string? Just append.
-            parts.push(step.to_string());
-        } else {
-            // For range, step is 3rd element.
-            if parts.len() == 2 {
-                parts.push(step.to_string());
-            } else {
-                parts[2] = step.to_string();
-            }
+        if self.hint != PropertyHint::RANGE {
+            return self;
         }
-        self.hint_string = (&parts.join(",")).into();
+
+        let hint_str = self.hint_string.to_string();
+        let mut parts: Vec<String> = hint_str.split(',').map(String::from).collect();
+
+        if parts.len() >= 2 {
+            let step_str = step.to_string();
+            if parts.len() == 2 {
+                parts.push(step_str);
+            } else {
+                parts[2] = step_str;
+            }
+            self.hint_string = GString::from(parts.join(",").as_str());
+        }
         self
     }
 

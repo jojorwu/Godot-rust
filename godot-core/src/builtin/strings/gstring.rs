@@ -272,6 +272,23 @@ impl GString {
     pub fn as_inner(&self) -> inner::InnerString<'_> {
         inner::InnerString::from_outer(self)
     }
+
+    /// Sets the Unicode code point ("character") at position `index`.
+    ///
+    /// # Panics (safeguards-balanced)
+    /// If `index` is out of bounds.
+    pub fn set_unicode_at(&mut self, index: usize, character: char) {
+        let len = self.len();
+        sys::balanced_assert!(
+            index < len,
+            "set_unicode_at: index {index} out of bounds (len {len})"
+        );
+
+        unsafe {
+            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), index as i64);
+            *ptr = character as u32;
+        }
+    }
 }
 
 // SAFETY:
@@ -423,28 +440,6 @@ impl std::str::FromStr for GString {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::from(s))
-    }
-}
-
-impl std::ops::Index<usize> for GString {
-    type Output = char;
-
-    fn index(&self, index: usize) -> &Self::Output {
-        &self.chars()[index]
-    }
-}
-
-impl std::ops::IndexMut<usize> for GString {
-    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
-        let len = self.len();
-        if index >= len {
-            panic!("GString index out of bounds: len is {len} but index is {index}");
-        }
-
-        unsafe {
-            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), index as i64);
-            &mut *(ptr.cast::<char>())
-        }
     }
 }
 
