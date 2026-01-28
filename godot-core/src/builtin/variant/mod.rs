@@ -150,25 +150,29 @@ impl Variant {
         let sys_type = self.sys_type();
 
         // There is a special case when the Variant has type OBJECT, but the Object* is null.
-        let is_null_object = if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
+        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
+            // Faster check available from 4.4 onwards.
+            #[cfg(since_api = "4.4")]
+            let is_null_object =
+                unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
+
+            #[cfg(before_api = "4.4")]
             // SAFETY: we checked that the raw type is OBJECT, so we can interpret the type-ptr as address of an object-ptr.
-            let object_ptr = unsafe {
-                crate::obj::raw_object_init(|type_ptr| {
+            let is_null_object = unsafe {
+                let object_ptr = crate::obj::raw_object_init(|type_ptr| {
                     let converter = sys::builtin_fn!(object_from_variant);
                     converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
-                })
+                });
+
+                object_ptr.is_null()
             };
 
-            object_ptr.is_null()
-        } else {
-            false
-        };
-
-        if is_null_object {
-            VariantType::NIL
-        } else {
-            VariantType::from_sys(sys_type)
+            if is_null_object {
+                return VariantType::NIL;
+            }
         }
+
+        VariantType::from_sys(sys_type)
     }
 
     /// For variants holding an object, returns the object's instance ID.

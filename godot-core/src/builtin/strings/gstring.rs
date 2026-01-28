@@ -426,6 +426,28 @@ impl std::str::FromStr for GString {
     }
 }
 
+impl std::ops::Index<usize> for GString {
+    type Output = char;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.chars()[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for GString {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        let len = self.len();
+        if index >= len {
+            panic!("GString index out of bounds: len is {len} but index is {index}");
+        }
+
+        unsafe {
+            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), index as i64);
+            &mut *(ptr.cast::<char>())
+        }
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Conversion from other Godot string-types
 
