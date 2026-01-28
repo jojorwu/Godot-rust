@@ -272,6 +272,23 @@ impl GString {
     pub fn as_inner(&self) -> inner::InnerString<'_> {
         inner::InnerString::from_outer(self)
     }
+
+    /// Sets the Unicode code point ("character") at position `index`.
+    ///
+    /// # Panics (safeguards-balanced)
+    /// If `index` is out of bounds.
+    pub fn set_unicode_at(&mut self, index: usize, character: char) {
+        let len = self.len();
+        sys::balanced_assert!(
+            index < len,
+            "set_unicode_at: index {index} out of bounds (len {len})"
+        );
+
+        unsafe {
+            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), index as i64);
+            *ptr = character as u32;
+        }
+    }
 }
 
 // SAFETY:

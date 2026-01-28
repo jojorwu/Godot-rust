@@ -116,7 +116,7 @@ impl CallErrors {
 }
 
 /// Inserts a `CallError` into a global variable and returns its ID to later remove it.
-fn call_error_insert(err: CallError) -> i32 {
+pub(crate) fn call_error_insert(err: CallError) -> i32 {
     // Wraps around if entire i32 is depleted. If this happens in practice (unlikely, users need to deliberately ignore errors that are printed),
     // we just overwrite the oldest errors, should still work.
     let id = CALL_ERRORS.lock().insert(err);

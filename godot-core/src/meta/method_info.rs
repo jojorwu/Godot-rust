@@ -34,7 +34,7 @@ use crate::sys;
 /// let method = MethodInfo {
 ///     id: 0,
 ///     method_name: StringName::from("spawn_at"),
-///     class_name: ClassId::none(),
+///     class_id: ClassId::none(),
 ///     return_type: PropertyInfo {
 ///         variant_type: VariantType::OBJECT,
 ///         class_id: Node2D::class_id(),
@@ -77,7 +77,7 @@ pub struct MethodInfo {
     ///
     /// For script-defined methods, this is typically the script's class ID obtained via [`ClassId::new_dynamic()`].
     /// Use [`ClassId::none()`] if the class is not applicable or unknown.
-    pub class_name: ClassId,
+    pub class_id: ClassId,
 
     /// Description of the method's return type.
     ///
@@ -117,8 +117,7 @@ impl MethodInfo {
         let Self {
             id,
             method_name,
-            // TODO: Do we need this?
-            class_name: _class_name,
+            class_id: _class_id,
             return_type,
             arguments,
             default_arguments,

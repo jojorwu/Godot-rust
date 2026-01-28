@@ -233,7 +233,7 @@ pub use godot_core::possibly_docs as docs;
 #[doc(hidden)]
 pub use godot_core::sys;
 #[doc(inline)]
-pub use godot_core::{builtin, classes, global, meta, obj, task, tools};
+pub use godot_core::{builtin, classes, global, meta, obj, rendering, task, tools};
 
 /// Entry point and global init/shutdown of the library.
 pub mod init {

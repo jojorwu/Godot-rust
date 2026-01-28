@@ -91,6 +91,12 @@ pub fn derive_godot_class(item: venial::Item) -> ParseResult<TokenStream> {
         (TokenStream::new(), TokenStream::new())
     };
 
+    let is_singleton_bound = if struct_cfg.is_singleton {
+        quote! { ::godot::obj::bounds::Yes }
+    } else {
+        quote! { ::godot::obj::bounds::No }
+    };
+
     let (user_class_impl, has_default_virtual) = make_user_class_impl(
         class_name,
         &struct_cfg.base_ty,
@@ -178,6 +184,7 @@ pub fn derive_godot_class(item: venial::Item) -> ParseResult<TokenStream> {
             type DynMemory = <<Self as ::godot::obj::GodotClass>::Base as ::godot::obj::Bounds>::DynMemory;
             type Declarer = ::godot::obj::bounds::DeclUser;
             type Exportable = <<Self as ::godot::obj::GodotClass>::Base as ::godot::obj::Bounds>::Exportable;
+            type IsSingleton = #is_singleton_bound;
         }
 
         #funcs_collection_struct

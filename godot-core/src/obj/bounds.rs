@@ -58,7 +58,7 @@ use crate::{out, sys};
 // Sealed trait
 
 pub(super) mod private {
-    use super::{Declarer, DynMemory, Exportable, Memory};
+    use super::{Declarer, DynMemory, Exportable, Memory, SingletonBound};
 
     // Bounds trait declared here for code locality; re-exported in crate::obj.
 
@@ -103,6 +103,10 @@ pub(super) mod private {
         /// Enables `#[export]` for those classes.
         #[doc(hidden)]
         type Exportable: Exportable;
+
+        /// Whether this class is a singleton.
+        #[doc(hidden)]
+        type IsSingleton: SingletonBound;
     }
 
     /// Implements [`Bounds`] for a user-defined class.
@@ -137,6 +141,8 @@ pub(super) mod private {
                 type DynMemory = <<$UserClass as $crate::obj::GodotClass>::Base as $crate::obj::Bounds>::DynMemory;
                 type Declarer = $crate::obj::bounds::DeclUser;
                 type Exportable = <<$UserClass as $crate::obj::GodotClass>::Base as $crate::obj::Bounds>::Exportable;
+                // User-defined singletons via macro specify this manually; default is No.
+                type IsSingleton = $crate::obj::bounds::No;
             }
         };
     }
@@ -425,17 +431,28 @@ impl Declarer for DeclUser {
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
-// Exportable bounds (still hidden)
+// Capability bounds (still hidden)
 
 #[doc(hidden)]
 pub trait Exportable: Sealed {}
 
 #[doc(hidden)]
+pub trait SingletonBound: Sealed {
+    const IS_SINGLETON: bool;
+}
+
+#[doc(hidden)]
 pub enum Yes {}
 impl Sealed for Yes {}
 impl Exportable for Yes {}
+impl SingletonBound for Yes {
+    const IS_SINGLETON: bool = true;
+}
 
 #[doc(hidden)]
 pub enum No {}
 impl Sealed for No {}
 impl Exportable for No {}
+impl SingletonBound for No {
+    const IS_SINGLETON: bool = false;
+}

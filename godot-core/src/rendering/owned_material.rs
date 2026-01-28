@@ -1,13 +1,16 @@
-
-use crate::builtin::rid::Rid;
-use crate::builtin::variant::Variant;
+use crate::builtin::Variant;
 use crate::classes::RenderingServer;
+use crate::obj::Singleton;
 
-/// A RAII wrapper for a material RID that is owned by this type.
-/// The material is freed when this object is dropped.
-#[derive(Debug, Eq, PartialEq, Hash)]
-pub struct OwnedMaterial {
-    rid: Rid,
+crate::rendering::impl_owned_rid!(
+    OwnedMaterial,
+    "A RAII wrapper for a material RID that is owned by this type.\nThe material is freed when this object is dropped."
+);
+
+impl Default for OwnedMaterial {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl OwnedMaterial {
@@ -19,23 +22,10 @@ impl OwnedMaterial {
         Self { rid }
     }
 
-    /// Returns the underlying RID of the material.
-    pub fn rid(&self) -> Rid {
-        self.rid
-    }
-
     /// Sets a parameter on the material.
     ///
     /// See `RenderingServer.material_set_param()`.
     pub fn set_param(&mut self, param: &str, value: &Variant) {
-        RenderingServer::singleton().material_set_param(self.rid, param.into(), value);
-    }
-}
-
-impl Drop for OwnedMaterial {
-    fn drop(&mut self) {
-        if self.rid.is_valid() {
-            RenderingServer::singleton().free_rid(self.rid);
-        }
+        RenderingServer::singleton().material_set_param(self.rid, param, value);
     }
 }

@@ -459,11 +459,8 @@ pub unsafe extern "C" fn validate_property<T: cap::GodotValidateProperty>(
 // Safe, higher-level methods
 
 pub fn register_class_by_builder<T: cap::GodotRegisterClass>(_class_builder: &mut dyn Any) {
-    // TODO use actual argument, once class builder carries state
-    // let class_builder = class_builder
-    //     .downcast_mut::<ClassBuilder<T>>()
-    //     .expect("bad type erasure");
-
+    // In the future, we will use the passed _class_builder if it carries state.
+    // Currently, we just create a new one.
     let mut class_builder = ClassBuilder::new();
     T::__godot_register_class(&mut class_builder);
 }
@@ -473,11 +470,6 @@ pub fn register_user_properties<T: cap::ImplementsGodotExports>(_class_builder: 
 }
 
 pub fn register_user_methods_constants<T: cap::ImplementsGodotApi>(_class_builder: &mut dyn Any) {
-    // let class_builder = class_builder
-    //     .downcast_mut::<ClassBuilder<T>>()
-    //     .expect("bad type erasure");
-
-    //T::register_methods(class_builder);
     T::__register_methods();
     T::__register_constants();
 }

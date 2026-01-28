@@ -88,12 +88,15 @@ where
         #[cfg(feature = "trace")]
         trace::push(true, false, call_ctx);
 
-        // SAFETY: TODO.
+        // SAFETY: `args_ptr` must point to `arg_count` valid `GDExtensionConstVariantPtr`s, which is ensured by Godot
+        // when making a varcall.
         let args =
             unsafe { Params::from_varcall_args(args_ptr, arg_count, default_values, call_ctx)? };
 
         let rust_result = unsafe { func(instance_ptr, args) };
-        // SAFETY: TODO.
+
+        // SAFETY: `ret` must be a valid `GDExtensionVariantPtr` and `err` must be a valid `GDExtensionCallError` pointer,
+        // both are provided by Godot for the duration of the call.
         unsafe { varcall_return::<Ret>(rust_result, ret, err) };
         Ok(())
     }
@@ -117,12 +120,11 @@ where
         #[cfg(feature = "trace")]
         trace::push(true, true, call_ctx);
 
-        // SAFETY: TODO.
+        // SAFETY: `args_ptr` must point to valid `GDExtensionConstTypePtr`s for each parameter in `Params`, which is
+        // ensured by Godot when making a ptrcall.
         let args = unsafe { Params::from_ptrcall_args(args_ptr, call_type, call_ctx)? };
 
-        // SAFETY:
-        // `ret` is always a pointer to an initialized value of type $R
-        // TODO: double-check the above
+        // SAFETY: `ret` is a pointer to an initialized value of the return type's FFI representation, provided by Godot.
         unsafe { ptrcall_return::<Ret>(func(instance_ptr, args), ret, call_ctx, call_type) };
 
         Ok(())
@@ -207,7 +209,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
         let object_call_script_method = sys::interface_fn!(object_call_script_method);
 
         let variant = args.with_variant_pointers(|sys_args| {
-            // SAFETY: TODO.
+            // SAFETY: `return_ptr` is a pointer to an uninitialized `Variant`, which is safe to initialize.
             unsafe {
                 Variant::new_with_var_uninit(|return_ptr| {
                     let mut err = sys::default_call_error();
@@ -249,7 +251,8 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 type_ptrs.extend(varargs.iter().map(sys::GodotFfi::sys));
 
                 // Important: this calls from_sys_init_default().
-                // SAFETY: TODO.
+                // SAFETY: `return_ptr` is a pointer to an uninitialized FFI value, which is safe to initialize.
+                // `type_ptrs` contains valid pointers to arguments.
                 utility_fn(return_ptr, type_ptrs.as_ptr(), type_ptrs.len() as i32);
             })
         }
@@ -410,15 +413,23 @@ unsafe fn varcall_return<R: EngineToGodot>(
 /// # Safety
 /// See [`varcall_return`].
 pub(crate) unsafe fn varcall_return_checked<R: ToGodot>(
-    ret_val: Result<R, ()>, // TODO Err should be custom CallError enum
+    ret_val: CallResult<R>,
     ret: sys::GDExtensionVariantPtr,
     err: *mut sys::GDExtensionCallError,
 ) {
-    if let Ok(ret_val) = ret_val {
-        varcall_return(ret_val, ret, err);
-    } else {
-        *err = sys::default_call_error();
-        (*err).error = sys::GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT;
+    match ret_val {
+        Ok(ret_val) => {
+            // SAFETY: requirements are passed through from the caller.
+            unsafe { varcall_return(ret_val, ret, err) };
+        }
+        Err(error) => {
+            // SAFETY: `err` is a valid pointer to `GDExtensionCallError` provided by Godot.
+            unsafe {
+                *err = sys::default_call_error();
+                (*err).error = sys::GODOT_RUST_CUSTOM_CALL_ERROR;
+                (*err).argument = crate::private::call_error_insert(error);
+            }
+        }
     }
 }
 

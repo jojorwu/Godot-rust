@@ -53,6 +53,17 @@ fn global_dyn_traits_by_typeid() -> GlobalGuard<'static, HashMap<any::TypeId, Ve
     lock_or_panic(&DYN_TRAITS_BY_TYPEID, "dyn traits")
 }
 
+fn global_dyn_traits_by_trait_and_class(
+) -> GlobalGuard<'static, HashMap<(any::TypeId, ClassId), DynTraitImpl>> {
+    static DYN_TRAITS_BY_TRAIT_AND_CLASS: Global<HashMap<(any::TypeId, ClassId), DynTraitImpl>> =
+        Global::default();
+
+    lock_or_panic(
+        &DYN_TRAITS_BY_TRAIT_AND_CLASS,
+        "dyn traits (by trait and class)",
+    )
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Represents a class which is currently loaded and retained in memory.
@@ -268,6 +279,7 @@ fn register_classes_and_dyn_traits(
     let mut loaded_classes_by_level = global_loaded_classes_by_init_level();
     let mut loaded_classes_by_name = global_loaded_classes_by_name();
     let mut dyn_traits_by_typeid = global_dyn_traits_by_typeid();
+    let mut dyn_traits_by_trait_and_class = global_dyn_traits_by_trait_and_class();
 
     for info in map.values_mut() {
         let class_name = info.class_name;
@@ -288,7 +300,9 @@ fn register_classes_and_dyn_traits(
             dyn_traits_by_typeid
                 .entry(trait_type_id)
                 .or_default()
-                .push(dyn_trait_impl);
+                .push(dyn_trait_impl.clone());
+
+            dyn_traits_by_trait_and_class.insert((trait_type_id, class_name), dyn_trait_impl);
         }
 
         loaded_classes_by_level
@@ -303,7 +317,8 @@ fn register_classes_and_dyn_traits(
 pub fn unregister_classes(init_level: InitLevel) {
     let mut loaded_classes_by_level = global_loaded_classes_by_init_level();
     let mut loaded_classes_by_name = global_loaded_classes_by_name();
-    // TODO clean up dyn traits
+    let mut dyn_traits_by_typeid = global_dyn_traits_by_typeid();
+    let mut dyn_traits_by_trait_and_class = global_dyn_traits_by_trait_and_class();
 
     let loaded_classes_current_level = loaded_classes_by_level
         .remove(&init_level)
@@ -311,12 +326,21 @@ pub fn unregister_classes(init_level: InitLevel) {
 
     out!("Unregister classes of level {init_level:?}...");
     for class in loaded_classes_current_level.into_iter().rev() {
-        // Remove from other map.
+        // Remove from other maps.
         loaded_classes_by_name.remove(&class.name);
+
+        for trait_impls in dyn_traits_by_typeid.values_mut() {
+            trait_impls.retain(|impl_info| impl_info.class_name() != &class.name);
+        }
+
+        dyn_traits_by_trait_and_class.retain(|&(_, class_id), _| class_id != class.name);
 
         // Unregister from Godot.
         unregister_class_raw(class);
     }
+
+    // Clean up empty trait entries.
+    dyn_traits_by_typeid.retain(|_, v| !v.is_empty());
 }
 
 #[cfg(feature = "codegen-full")]
@@ -340,29 +364,28 @@ pub fn auto_register_rpcs<T: GodotClass>(object: &mut T) {
 /// implement `AsDyn<D>`, even if there exists some superclass that does implement `AsDyn<D>`. This restriction could in theory be
 /// lifted, but would need quite a bit of extra machinery to work.
 pub(crate) fn try_dynify_object<T: GodotClass, D: ?Sized + 'static>(
-    mut object: Gd<T>,
+    object: Gd<T>,
 ) -> Result<DynGd<T, D>, (FromGodotError, Gd<T>)> {
     let typeid = any::TypeId::of::<D>();
     let trait_name = sys::short_type_name::<D>();
 
-    // Iterate all classes that implement the trait.
-    let dyn_traits_by_typeid = global_dyn_traits_by_typeid();
-    let Some(relations) = dyn_traits_by_typeid.get(&typeid) else {
-        return Err((FromGodotError::UnregisteredDynTrait { trait_name }, object));
-    };
+    let dyn_traits_by_trait_and_class = global_dyn_traits_by_trait_and_class();
 
-    // TODO maybe use 2nd hashmap instead of linear search.
-    // (probably not pair of typeid/classname, as that wouldn't allow the above check).
-    for relation in relations {
-        match relation.get_dyn_gd(object) {
-            Ok(dyn_gd) => return Ok(dyn_gd),
-            Err(obj) => object = obj,
-        }
+    let dynamic_class = object.dynamic_class_string();
+    let class_id = ClassId::new_dynamic(dynamic_class.to_string());
+
+    if let Some(relation) = dyn_traits_by_trait_and_class.get(&(typeid, class_id)) {
+        // SAFETY: `relation` stores the `ErasedDynifyFn` which expects an object of `class_id`.
+        // We just verified that `object` has this dynamic class.
+        return relation
+            .get_dyn_gd(object)
+            .map_err(|obj| (FromGodotError::UnregisteredDynTrait { trait_name }, obj));
     }
 
+    // If not found in optimized map, it might be because it's a script class or unregistered.
     let error = FromGodotError::UnimplementedDynTrait {
         trait_name,
-        class_name: object.dynamic_class_string().to_string(),
+        class_name: dynamic_class.to_string(),
     };
 
     Err((error, object))
@@ -406,7 +429,6 @@ where
     // Include only implementors inheriting given T.
     // For example – don't include Nodes or Objects while creating hint_string for Resource.
     let relations_iter = relations.iter().filter_map(|implementor| {
-        // TODO – check if caching it (using is_derived_base_cached) yields any benefits.
         if implementor.parent_class_name? == T::class_id()
             || ClassDb::singleton().is_parent_class(
                 &implementor.parent_class_name?.to_string_name(),
@@ -617,8 +639,9 @@ fn register_class_raw(mut info: ClassRegistrationInfo) {
 
     // ...then custom symbols
 
-    //let mut class_builder = crate::builder::ClassBuilder::<?>::new();
-    let mut class_builder = 0; // TODO dummy argument; see callbacks
+    // Currently, ClassBuilder is a ZST and doesn't carry state.
+    // We pass a dummy () to the type-erased registration functions.
+    let mut class_builder = ();
 
     // Order of the following registrations is crucial:
     // 1. Methods and constants.

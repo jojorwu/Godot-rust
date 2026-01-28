@@ -33,7 +33,7 @@ fn node_get_node() {
 
     // Deref via &T
     let found = grandparent.try_get_node_as::<Node3D>(&NodePath::from("parent/child"));
-    let found = found.expect("try_get_node_as() returned Some(..)");
+    let found = found.expect("try_get_node_as() returned Ok(..)");
     assert_eq!(found.instance_id(), child_id);
 
     grandparent.free();
@@ -41,11 +41,13 @@ fn node_get_node() {
 
 #[itest]
 fn node_get_node_fail() {
+    use godot::classes::GetNodeError;
+
     let mut child = Node3D::new_alloc();
     child.set_name("child");
 
     let found = child.try_get_node_as::<Node3D>("non-existent");
-    assert!(found.is_none());
+    assert_eq!(found, Err(GetNodeError::NotFound));
 
     child.free();
 }

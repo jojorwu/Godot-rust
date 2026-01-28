@@ -189,7 +189,7 @@ fn make_class(class: &Class, ctx: &mut Context, view: &ApiView) -> GeneratedClas
     // notify() and notify_reversed() are added after other methods, to list others first in docs.
     let notify_methods = notifications::make_notify_methods(class_name, ctx);
 
-    let (assoc_memory, assoc_dyn_memory, is_exportable) = make_bounds(class, ctx);
+    let (assoc_memory, assoc_dyn_memory, is_exportable, is_singleton) = make_bounds(class, ctx);
 
     let internal_methods = quote! {
         /// Creates a validated object for FFI boundary crossing.
@@ -261,6 +261,7 @@ fn make_class(class: &Class, ctx: &mut Context, view: &ApiView) -> GeneratedClas
                 type DynMemory = crate::obj::bounds::#assoc_dyn_memory;
                 type Declarer = crate::obj::bounds::DeclEngine;
                 type Exportable = crate::obj::bounds::#is_exportable;
+                type IsSingleton = crate::obj::bounds::#is_singleton;
             }
 
             #(
@@ -521,7 +522,7 @@ fn make_deref_impl(class_name: &TyName, base_ty: &TokenStream) -> TokenStream {
     }
 }
 
-fn make_bounds(class: &Class, ctx: &mut Context) -> (Ident, Ident, Ident) {
+fn make_bounds(class: &Class, ctx: &mut Context) -> (Ident, Ident, Ident, Ident) {
     let c = class.name();
 
     let assoc_dyn_memory = if c.rust_ty == "Object" {
@@ -545,7 +546,13 @@ fn make_bounds(class: &Class, ctx: &mut Context) -> (Ident, Ident, Ident) {
         ident("No")
     };
 
-    (assoc_memory, assoc_dyn_memory, is_exportable)
+    let is_singleton = if ctx.is_singleton(c) {
+        ident("Yes")
+    } else {
+        ident("No")
+    };
+
+    (assoc_memory, assoc_dyn_memory, is_exportable, is_singleton)
 }
 
 fn make_class_methods(

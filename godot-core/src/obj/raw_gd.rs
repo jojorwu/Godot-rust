@@ -709,8 +709,11 @@ impl<T: GodotClass> GodotFfiVariant for RawGd<T> {
         };
 
         raw.with_inc_refcount().owned_cast().map_err(|raw| {
+            // SAFETY: raw is not null (checked above by variant.is_object_alive()).
+            let actual = unsafe { raw.as_non_null() }.get_class().to_string();
             FromVariantError::WrongClass {
                 expected: T::class_id(),
+                actual: Some(actual),
             }
             .into_error(raw)
         })

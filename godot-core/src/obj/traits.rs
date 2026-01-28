@@ -83,6 +83,7 @@ unsafe impl Bounds for NoBase {
     type DynMemory = bounds::MemManual;
     type Declarer = bounds::DeclEngine;
     type Exportable = bounds::No;
+    type IsSingleton = bounds::No;
 }
 
 /// Non-strict inheritance relationship in the Godot class hierarchy.
@@ -255,9 +256,25 @@ pub trait EngineBitfield: Copy {
             .unwrap_or_else(|| panic!("ordinal {ord} does not map to any valid bit flag"))
     }
 
-    // TODO consolidate API: named methods vs. | & ! etc.
+    /// Returns whether the given `flag` is set.
     fn is_set(self, flag: Self) -> bool {
         self.ord() & flag.ord() != 0
+    }
+
+    /// Alias for [`is_set()`][Self::is_set].
+    fn has_flag(self, flag: Self) -> bool {
+        self.is_set(flag)
+    }
+
+    /// Returns a new bitfield with the given `flag` set or cleared.
+    fn with_flag(self, flag: Self, set: bool) -> Self {
+        let mut ord = self.ord();
+        if set {
+            ord |= flag.ord();
+        } else {
+            ord &= !flag.ord();
+        }
+        Self::from_ord(ord)
     }
 
     /// Returns metadata for all bitfield constants.
@@ -825,14 +842,12 @@ pub mod cap {
         fn __godot_to_string(this: VirtualMethodReceiver<Self>) -> GString;
     }
 
-    // TODO Evaluate whether we want this public or not
     #[doc(hidden)]
     pub trait GodotNotification: GodotClass {
         #[doc(hidden)]
         fn __godot_notification(&mut self, what: i32);
     }
 
-    // TODO Evaluate whether we want this public or not
     #[doc(hidden)]
     pub trait GodotRegisterClass: GodotClass {
         #[doc(hidden)]
