@@ -265,6 +265,17 @@ pub trait EngineBitfield: Copy {
         self.is_set(flag)
     }
 
+    /// Returns a new bitfield with the given `flag` set or cleared.
+    fn with_flag(self, flag: Self, set: bool) -> Self {
+        let mut ord = self.ord();
+        if set {
+            ord |= flag.ord();
+        } else {
+            ord &= !flag.ord();
+        }
+        Self::from_ord(ord)
+    }
+
     /// Returns metadata for all bitfield constants.
     ///
     /// This includes all constants as they appear in the bitfield definition.
@@ -830,14 +841,12 @@ pub mod cap {
         fn __godot_to_string(this: VirtualMethodReceiver<Self>) -> GString;
     }
 
-    // TODO Evaluate whether we want this public or not
     #[doc(hidden)]
     pub trait GodotNotification: GodotClass {
         #[doc(hidden)]
         fn __godot_notification(&mut self, what: i32);
     }
 
-    // TODO Evaluate whether we want this public or not
     #[doc(hidden)]
     pub trait GodotRegisterClass: GodotClass {
         #[doc(hidden)]

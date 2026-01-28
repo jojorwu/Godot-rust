@@ -639,8 +639,9 @@ fn register_class_raw(mut info: ClassRegistrationInfo) {
 
     // ...then custom symbols
 
-    //let mut class_builder = crate::builder::ClassBuilder::<?>::new();
-    let mut class_builder = 0; // TODO dummy argument; see callbacks
+    // Currently, ClassBuilder is a ZST and doesn't carry state.
+    // We pass a dummy () to the type-erased registration functions.
+    let mut class_builder = ();
 
     // Order of the following registrations is crucial:
     // 1. Methods and constants.

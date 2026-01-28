@@ -545,10 +545,10 @@ pub mod export_info_functions {
         let filter = filter.as_ref();
         sys::strict_assert!(is_file || filter.is_empty()); // Dir never has filter.
 
-        export_file_or_dir_inner(&field_ty, is_file, is_global, filter)
+        export_file_or_dir_inner::<T>(&field_ty, is_file, is_global, filter)
     }
 
-    pub fn export_file_or_dir_inner(
+    pub fn export_file_or_dir_inner<T: Export>(
         field_ty: &PropertyInfo,
         is_file: bool,
         is_global: bool,
@@ -582,18 +582,17 @@ pub mod export_info_functions {
             _ => {
                 // E.g. `global_file`.
                 let attribute_name = hint.as_str().to_lowercase();
+                let type_name = std::any::type_name::<T>();
 
-                // TODO nicer error handling.
-                // Compile time may be difficult (at least without extra traits... maybe const fn?). But at least more context info, field name etc.
                 #[cfg(since_api = "4.3")]
                 panic!(
-                    "#[export({attribute_name})] only supports GString, Array<String> or PackedStringArray field types\n\
+                    "#[export({attribute_name})] for type `{type_name}` only supports GString, Array<String> or PackedStringArray field types\n\
                     encountered: {field_ty:?}"
                 );
 
                 #[cfg(before_api = "4.3")]
                 panic!(
-                    "#[export({attribute_name})] only supports GString type prior to Godot 4.3\n\
+                    "#[export({attribute_name})] for type `{type_name}` only supports GString type prior to Godot 4.3\n\
                     encountered: {field_ty:?}"
                 );
             }
