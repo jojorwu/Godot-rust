@@ -464,3 +464,82 @@ fn owned_physics_3d_raii() {
     let shape2 = server.shape_create_owned(ShapeType::BOX);
     assert_eq!(rid_shape, *shape2);
 }
+
+#[itest]
+#[cfg(feature = "codegen-full-experimental")]
+fn owned_navigation_2d_raii() {
+    use godot::classes::NavigationServer2D;
+
+    let mut server = NavigationServer2D::singleton();
+
+    let rid_map = {
+        let map = server.map_create_owned();
+        let rid = *map;
+        assert!(rid.is_valid());
+        rid
+    };
+    let map2 = server.map_create_owned();
+    assert_eq!(rid_map, *map2);
+
+    let rid_region = {
+        let region = server.region_create_owned();
+        let rid = *region;
+        assert!(rid.is_valid());
+        rid
+    };
+    let region2 = server.region_create_owned();
+    assert_eq!(rid_region, *region2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full-experimental")]
+fn owned_navigation_3d_raii() {
+    use godot::classes::NavigationServer3D;
+
+    let mut server = NavigationServer3D::singleton();
+
+    let rid_map = {
+        let map = server.map_create_owned();
+        let rid = *map;
+        assert!(rid.is_valid());
+        rid
+    };
+    let map2 = server.map_create_owned();
+    assert_eq!(rid_map, *map2);
+
+    let rid_region = {
+        let region = server.region_create_owned();
+        let rid = *region;
+        assert!(rid.is_valid());
+        rid
+    };
+    let region2 = server.region_create_owned();
+    assert_eq!(rid_region, *region2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_text_server_raii() {
+    use godot::classes::TextServerManager;
+
+    let tsm = TextServerManager::singleton();
+    let mut ts = tsm.get_primary_interface().expect("primary text server");
+
+    let rid_font = {
+        let font = ts.create_font_owned();
+        let rid = *font;
+        assert!(rid.is_valid());
+        rid
+    };
+    let font2 = ts.create_font_owned();
+    assert_eq!(rid_font, *font2);
+
+    let rid_shaped = {
+        let shaped = ts.create_shaped_text_owned();
+        let rid = *shaped;
+        assert!(rid.is_valid());
+        rid
+    };
+    let shaped2 = ts.create_shaped_text_owned();
+    assert_eq!(rid_shaped, *shaped2);
+}
