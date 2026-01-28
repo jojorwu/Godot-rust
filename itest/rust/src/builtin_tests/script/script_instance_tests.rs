@@ -107,7 +107,7 @@ impl TestScriptInstance {
             method_list: vec![MethodInfo {
                 id: 1,
                 method_name: StringName::from("script_method_a"),
-                class_name: ClassId::new_cached::<TestScript>(|| "TestScript".to_string()),
+                class_id: ClassId::new_cached::<TestScript>(|| "TestScript".to_string()),
                 return_type: PropertyInfo::new_var::<GString>(""),
                 arguments: vec![
                     PropertyInfo::new_var::<GString>("arg_a"),

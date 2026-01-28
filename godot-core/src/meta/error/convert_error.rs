@@ -398,6 +398,7 @@ pub(crate) enum FromVariantError {
 
     WrongClass {
         expected: ClassId,
+        actual: Option<String>,
     },
 
     /// Variant holds an object which is no longer alive.
@@ -423,8 +424,12 @@ impl fmt::Display for FromVariantError {
                 // Note: wording is the same as in CallError::failed_param_conversion_engine()
                 write!(f, "cannot convert from {actual:?} to {expected:?}")
             }
-            Self::WrongClass { expected } => {
-                write!(f, "cannot convert to class {expected}")
+            Self::WrongClass { expected, actual } => {
+                write!(f, "cannot convert to class {expected}")?;
+                if let Some(actual) = actual {
+                    write!(f, " (found {actual})")?;
+                }
+                Ok(())
             }
             Self::DeadObject => write!(f, "variant holds object which is no longer alive"),
         }

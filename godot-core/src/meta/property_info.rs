@@ -107,6 +107,18 @@ pub struct PropertyInfo {
     pub usage: PropertyUsageFlags,
 }
 
+impl Default for PropertyInfo {
+    fn default() -> Self {
+        Self {
+            variant_type: VariantType::NIL,
+            class_id: ClassId::none(),
+            property_name: StringName::default(),
+            hint_info: PropertyHintInfo::none(),
+            usage: PropertyUsageFlags::DEFAULT,
+        }
+    }
+}
+
 impl PropertyInfo {
     /// Create a new `PropertyInfo` representing a property named `property_name` with type `T` automatically.
     ///
@@ -330,6 +342,12 @@ impl PropertyInfo {
 pub struct PropertyHintInfo {
     pub hint: PropertyHint,
     pub hint_string: GString,
+}
+
+impl Default for PropertyHintInfo {
+    fn default() -> Self {
+        Self::none()
+    }
 }
 
 impl PropertyHintInfo {
