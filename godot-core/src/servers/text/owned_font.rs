@@ -22,9 +22,10 @@ impl OwnedFont {
     pub fn new(server: &Gd<TextServer>) -> Self {
         let mut server = server.clone();
         let rid = server.create_font();
-        Self {
-            rid,
-            server: server.clone(),
-        }
+        Self { rid, server }
+    }
+
+    pub(crate) fn from_rid(rid: crate::builtin::Rid, server: Gd<TextServer>) -> Self {
+        Self { rid, server }
     }
 }

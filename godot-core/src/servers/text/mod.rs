@@ -16,13 +16,15 @@ pub use owned_shaped_text::OwnedShapedText;
 impl crate::classes::TextServer {
     /// Creates a new font and returns a wrapper that will free it on drop.
     pub fn create_font_owned(&mut self) -> OwnedFont {
-        let gd = crate::private::rebuild_gd(self).cast::<crate::classes::TextServer>();
-        OwnedFont::new(&gd)
+        let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::TextServer>();
+        let rid = gd.create_font();
+        OwnedFont::from_rid(rid, gd)
     }
 
     /// Creates a new shaped text and returns a wrapper that will free it on drop.
     pub fn create_shaped_text_owned(&mut self) -> OwnedShapedText {
-        let gd = crate::private::rebuild_gd(self).cast::<crate::classes::TextServer>();
-        OwnedShapedText::new(&gd)
+        let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::TextServer>();
+        let rid = gd.create_shaped_text();
+        OwnedShapedText::from_rid(rid, gd)
     }
 }
