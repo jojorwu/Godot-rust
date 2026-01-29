@@ -26,6 +26,7 @@ mod geometry {
 }
 
 mod containers {
+    mod any_array_test;
     mod array_test;
     mod callable_test;
     mod dictionary_test;
@@ -48,6 +49,8 @@ mod script {
 }
 
 mod color_test;
+
+mod math_approx_test;
 
 mod convert_test;
 

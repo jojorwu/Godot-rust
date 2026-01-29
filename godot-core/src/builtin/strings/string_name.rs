@@ -339,6 +339,16 @@ impl_shared_string_api! {
     builtin_mod: string_name,
 }
 
+#[cfg(since_api = "4.5")]
+impl std::ops::Index<usize> for StringName {
+    type Output = char;
+
+    #[inline]
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.chars()[index]
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Comparison with Rust strings
 

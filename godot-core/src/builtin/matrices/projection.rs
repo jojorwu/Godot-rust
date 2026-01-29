@@ -664,8 +664,6 @@ impl std::fmt::Display for Projection {
 
 #[cfg(test)]
 mod test {
-    // TODO(bromeon): reduce code duplication
-
     #![allow(clippy::type_complexity, clippy::excessive_precision)]
 
     use super::*;
@@ -675,6 +673,25 @@ mod test {
 
     fn is_matrix_equal_approx(a: &Projection, b: &RMat4) -> bool {
         a.to_glam().abs_diff_eq(*b, EPSILON)
+    }
+
+    macro_rules! test_projection {
+        ($name:ident, $func:expr, $data:expr, $msg:expr) => {
+            #[test]
+            fn $name() {
+                for (input, expected) in $data {
+                    let actual = $func(input);
+                    assert_eq_approx!(
+                        actual,
+                        RMat4::from_cols_array_2d(&expected),
+                        fn = is_matrix_equal_approx,
+                        $msg,
+                        input,
+                        expected
+                    );
+                }
+            }
+        };
     }
 
     /// Test that diagonals matrices has certain property.
@@ -720,11 +737,10 @@ mod test {
         }
     }
 
-    /// Test `create_orthogonal` method.
-    /// All inputs and outputs are manually computed.
-    #[test]
-    fn test_orthogonal() {
-        const TEST_DATA: [([real; 6], [[real; 4]; 4]); 6] = [
+    test_projection!(
+        test_orthogonal,
+        |p: [real; 6]| Projection::create_orthogonal(p[0], p[1], p[2], p[3], p[4], p[5]),
+        [
             (
                 [-1.0, 1.0, -1.0, 1.0, -1.0, 1.0],
                 [
@@ -779,22 +795,16 @@ mod test {
                     [0.0, 0.0, 0.0, 1.0],
                 ],
             ),
-        ];
+        ],
+        "orthogonal: input={:?} expected={:?}"
+    );
 
-        for ([left, right, bottom, top, near, far], mat) in TEST_DATA {
-            assert_eq_approx!(
-                Projection::create_orthogonal(left, right, bottom, top, near, far),
-                RMat4::from_cols_array_2d(&mat),
-                fn = is_matrix_equal_approx,
-                "orthogonal: left={left} right={right} bottom={bottom} top={top} near={near} far={far}",
-            );
-        }
-    }
-
-    /// Test `create_orthogonal_aspect` method.
-    #[test]
-    fn test_orthogonal_aspect() {
-        const TEST_DATA: [((real, real, real, real, bool), [[real; 4]; 4]); 6] = [
+    test_projection!(
+        test_orthogonal_aspect,
+        |p: (real, real, real, real, bool)| Projection::create_orthogonal_aspect(
+            p.0, p.1, p.2, p.3, p.4
+        ),
+        [
             (
                 (2.0, 1.0, 0.0, 1.0, false),
                 [
@@ -849,21 +859,14 @@ mod test {
                     [0.0, 0.0, -1.0, 1.0],
                 ],
             ),
-        ];
+        ],
+        "orthogonal aspect: input={:?} expected={:?}"
+    );
 
-        for ((size, aspect, near, far, flip_fov), mat) in TEST_DATA {
-            assert_eq_approx!(
-                Projection::create_orthogonal_aspect(size, aspect, near, far, flip_fov),
-                RMat4::from_cols_array_2d(&mat),
-                fn = is_matrix_equal_approx,
-                "orthogonal aspect: size={size} aspect={aspect} near={near} far={far} flip_fov={flip_fov}"
-            );
-        }
-    }
-
-    #[test]
-    fn test_perspective() {
-        const TEST_DATA: [((real, real, real, real, bool), [[real; 4]; 4]); 5] = [
+    test_projection!(
+        test_perspective,
+        |p: (real, real, real, real, bool)| Projection::create_perspective(p.0, p.1, p.2, p.3, p.4),
+        [
             (
                 (90.0, 1.0, 1.0, 2.0, false),
                 [
@@ -909,21 +912,14 @@ mod test {
                     [0.0, 0.0, -4.0, 0.0],
                 ],
             ),
-        ];
+        ],
+        "perspective: input={:?} expected={:?}"
+    );
 
-        for ((fov_y, aspect, near, far, flip_fov), mat) in TEST_DATA {
-            assert_eq_approx!(
-                Projection::create_perspective(fov_y, aspect, near, far, flip_fov),
-                RMat4::from_cols_array_2d(&mat),
-                fn = is_matrix_equal_approx,
-                "perspective: fov_y={fov_y} aspect={aspect} near={near} far={far} flip_fov={flip_fov}"
-            );
-        }
-    }
-
-    #[test]
-    fn test_frustum() {
-        const TEST_DATA: [([real; 6], [[real; 4]; 4]); 3] = [
+    test_projection!(
+        test_frustum,
+        |p: [real; 6]| Projection::create_frustum(p[0], p[1], p[2], p[3], p[4], p[5]),
+        [
             (
                 [-1.0, 1.0, -1.0, 1.0, 1.0, 2.0],
                 [
@@ -951,21 +947,16 @@ mod test {
                     [0.0, 0.0, -0.10005002501250625, 0.0],
                 ],
             ),
-        ];
+        ],
+        "frustum: input={:?} expected={:?}"
+    );
 
-        for ([left, right, bottom, top, near, far], mat) in TEST_DATA {
-            assert_eq_approx!(
-                Projection::create_frustum(left, right, bottom, top, near, far),
-                RMat4::from_cols_array_2d(&mat),
-                fn = is_matrix_equal_approx,
-                "frustum: left={left} right={right} bottom={bottom} top={top} near={near} far={far}"
-            );
-        }
-    }
-
-    #[test]
-    fn test_frustum_aspect() {
-        const TEST_DATA: [((real, real, Vector2, real, real, bool), [[real; 4]; 4]); 4] = [
+    test_projection!(
+        test_frustum_aspect,
+        |p: (real, real, Vector2, real, real, bool)| {
+            Projection::create_frustum_aspect(p.0, p.1, p.2, p.3, p.4, p.5)
+        },
+        [
             (
                 (2.0, 1.0, Vector2::ZERO, 1.0, 2.0, false),
                 [
@@ -1002,21 +993,36 @@ mod test {
                     [0.0, 0.0, -0.10005002501250625, 0.0],
                 ],
             ),
-        ];
+        ],
+        "frustum aspect: input={:?} expected={:?}"
+    );
 
-        for ((size, aspect, offset, near, far, flip_fov), mat) in TEST_DATA {
-            assert_eq_approx!(
-                Projection::create_frustum_aspect(size, aspect, offset, near, far, flip_fov),
-                RMat4::from_cols_array_2d(&mat),
-                fn = is_matrix_equal_approx,
-                "frustum aspect: size={size} aspect={aspect} offset=({0} {1}) near={near} far={far} flip_fov={flip_fov}",
-                offset.x,
-                offset.y,
-            );
-        }
+    #[test]
+    fn test_hmd() {
+        let proj = Projection::create_for_hmd(
+            ProjectionEye::LEFT,
+            1.0,
+            0.065,
+            0.1,
+            0.05,
+            1.0,
+            0.1,
+            100.0,
+        );
+        assert!(!proj.is_orthogonal());
+
+        let proj2 = Projection::create_perspective_hmd(
+            90.0,
+            1.0,
+            0.1,
+            100.0,
+            false,
+            ProjectionEye::LEFT,
+            0.065,
+            1.0,
+        );
+        assert!(!proj2.is_orthogonal());
     }
-
-    // TODO: Test create_for_hmd, create_perspective_hmd
 
     #[test]
     fn test_is_orthogonal() {

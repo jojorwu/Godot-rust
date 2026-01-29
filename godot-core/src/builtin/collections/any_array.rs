@@ -281,14 +281,12 @@ impl AnyArray {
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if
     /// not found. Starts searching at index `from`; pass `None` to search the entire array.
-    // TODO test if method works.
     pub fn find(&self, value: &Variant, from: Option<usize>) -> Option<usize> {
         self.array.find(value, from)
     }
 
     /// Searches the array backwards for the last occurrence of a value and returns its index, or
     /// `None` if not found. Starts searching at index `from`; pass `None` to search the entire array.
-    // TODO test if method works.
     pub fn rfind(&self, value: &Variant, from: Option<usize>) -> Option<usize> {
         self.array.rfind(value, from)
     }

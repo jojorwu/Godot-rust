@@ -49,13 +49,26 @@ macro_rules! impl_ffi_variant {
             }
 
             fn ffi_from_variant(variant: &Variant) -> Result<Self, ConvertError> {
+                let target_type = Self::VARIANT_TYPE.variant_as_nil();
+
                 // Type check -- at the moment, a strict match is required.
-                if variant.get_type() != Self::VARIANT_TYPE.variant_as_nil() {
+                if variant.get_type() != target_type {
                     return Err(FromVariantError::BadType {
-                        expected: Self::VARIANT_TYPE.variant_as_nil(),
+                        expected: target_type,
                         actual: variant.get_type(),
                     }
                     .into_error(variant.clone()));
+                }
+
+                #[cfg(since_api = "4.4")]
+                {
+                    if let Some(getter) = crate::builtin::get_variant_get_internal_ptr_func(target_type) {
+                        let ptr = unsafe { getter(sys::SysPtr::force_mut(variant.var_sys())) };
+                        if !ptr.is_null() {
+                            let val_ref = unsafe { &*(ptr as *const Self) };
+                            return Ok(val_ref.clone());
+                        }
+                    }
                 }
 
                 let result = unsafe {

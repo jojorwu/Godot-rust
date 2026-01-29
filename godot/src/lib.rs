@@ -235,6 +235,12 @@ pub use godot_core::sys;
 #[doc(inline)]
 pub use godot_core::{builtin, classes, global, meta, obj, rendering, task, tools};
 
+#[cfg(feature = "__codegen-full")]
+pub use godot_core::{display, physics, text};
+
+#[cfg(all(feature = "__codegen-full", feature = "experimental-godot-api"))]
+pub use godot_core::navigation;
+
 /// Entry point and global init/shutdown of the library.
 pub mod init {
     pub use godot_core::init::*;

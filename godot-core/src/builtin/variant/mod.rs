@@ -137,8 +137,30 @@ impl Variant {
     ///
     /// See also [`get_type()`][Self::get_type].
     pub fn is_nil(&self) -> bool {
-        // Use get_type() rather than sys_type(), to also cover nullptr OBJECT as NIL
-        self.get_type() == VariantType::NIL
+        let sys_type = self.sys_type();
+        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_NIL {
+            return true;
+        }
+
+        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
+            #[cfg(since_api = "4.4")]
+            return unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
+
+            #[cfg(before_api = "4.4")]
+            {
+                let is_null_object = unsafe {
+                    let object_ptr = crate::obj::raw_object_init(|type_ptr| {
+                        let converter = sys::builtin_fn!(object_from_variant);
+                        converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
+                    });
+
+                    object_ptr.is_null()
+                };
+                return is_null_object;
+            }
+        }
+
+        false
     }
 
     /// Returns the type that is currently held by this variant.
@@ -242,16 +264,28 @@ impl Variant {
     }
 
     fn call_inner(&self, method: &StringName, args: &[Variant]) -> Variant {
-        let args_sys: Vec<_> = args.iter().map(|v| v.var_sys()).collect();
+        const STACK_ARGS: usize = 16;
         let mut error = sys::default_call_error();
+
+        let mut args_stack = [ptr::null(); STACK_ARGS];
+
+        let (args_ptr, _args_heap) = if args.len() <= STACK_ARGS {
+            for (i, arg) in args.iter().enumerate() {
+                args_stack[i] = arg.var_sys();
+            }
+            (args_stack.as_ptr(), Vec::new())
+        } else {
+            let v: Vec<_> = args.iter().map(|v| v.var_sys()).collect();
+            (v.as_ptr(), v)
+        };
 
         let result = unsafe {
             Variant::new_with_var_uninit(|variant_ptr| {
                 interface_fn!(variant_call)(
                     sys::SysPtr::force_mut(self.var_sys()),
                     method.string_sys(),
-                    args_sys.as_ptr(),
-                    args_sys.len() as i64,
+                    args_ptr,
+                    args.len() as i64,
                     variant_ptr,
                     ptr::addr_of_mut!(error),
                 )
@@ -633,10 +667,7 @@ fn try_from_variant_relaxed<T: EngineFromGodot>(variant: &Variant) -> Result<T, 
     }
 
     // Find correct from->to conversion constructor.
-    let converter = unsafe {
-        let get_constructor = interface_fn!(get_variant_to_type_constructor);
-        get_constructor(to_type.sys())
-    };
+    let converter = get_variant_to_type_constructor(to_type);
 
     // Must be available, since we checked with `variant_can_convert_strict`.
     let converter =
@@ -655,6 +686,49 @@ fn try_from_variant_relaxed<T: EngineFromGodot>(variant: &Variant) -> Result<T, 
     let concrete = T::engine_try_from_godot(via)?;
 
     Ok(concrete)
+}
+
+fn get_variant_to_type_constructor(
+    to_type: VariantType,
+) -> sys::GDExtensionTypeFromVariantConstructorFunc {
+    static CONSTRUCTORS: sys::Global<[sys::GDExtensionTypeFromVariantConstructorFunc; 40]> =
+        sys::Global::new(|| [None; 40]);
+
+    let index = to_type.sys() as usize;
+    if index >= 40 {
+        return unsafe { interface_fn!(get_variant_to_type_constructor)(to_type.sys()) };
+    }
+
+    let mut constructors = CONSTRUCTORS.lock();
+    if let Some(c) = constructors[index] {
+        return Some(c);
+    }
+
+    let c = unsafe { interface_fn!(get_variant_to_type_constructor)(to_type.sys()) };
+    constructors[index] = c;
+    c
+}
+
+#[cfg(since_api = "4.4")]
+pub(crate) fn get_variant_get_internal_ptr_func(
+    variant_type: VariantType,
+) -> sys::GDExtensionVariantGetInternalPtrFunc {
+    static GETTERS: sys::Global<[sys::GDExtensionVariantGetInternalPtrFunc; 40]> =
+        sys::Global::new(|| [None; 40]);
+
+    let index = variant_type.sys() as usize;
+    if index >= 40 {
+        return unsafe { interface_fn!(variant_get_ptr_internal_getter)(variant_type.sys()) };
+    }
+
+    let mut getters = GETTERS.lock();
+    if let Some(g) = getters[index] {
+        return Some(g);
+    }
+
+    let g = unsafe { interface_fn!(variant_get_ptr_internal_getter)(variant_type.sys()) };
+    getters[index] = g;
+    g
 }
 
 fn can_convert_godot_strict(from_type: VariantType, to_type: VariantType) -> bool {

@@ -368,7 +368,6 @@ impl<T: PackedArrayElement> PackedArray<T> {
     where
         T: meta::ArrayElement, // Could technically be a subtrait of PackedArrayElement; for now they're unrelated.
     {
-        // TODO(v0.5) use iterators once available.
         self.as_slice().iter().cloned().collect()
     }
 
@@ -789,6 +788,64 @@ impl<T: PackedArrayElement> fmt::Debug for PackedArray<T> {
         write!(f, "{:?}", self.to_variant().stringify())
     }
 }
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+// Iterators
+
+/// An iterator over elements of a [`PackedArray`].
+pub struct PackedIter<T: PackedArrayElement> {
+    array: PackedArray<T>,
+    index: usize,
+}
+
+impl<T: PackedArrayElement> Iterator for PackedIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let item = self.array.get(self.index);
+        if item.is_some() {
+            self.index += 1;
+        }
+        item
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.array.len() - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+impl<T: PackedArrayElement> ExactSizeIterator for PackedIter<T> {}
+
+impl<T: PackedArrayElement> IntoIterator for PackedArray<T> {
+    type Item = T;
+    type IntoIter = PackedIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        PackedIter {
+            array: self,
+            index: 0,
+        }
+    }
+}
+
+impl<'a, T: PackedArrayElement> IntoIterator for &'a PackedArray<T> {
+    type Item = &'a T;
+    type IntoIter = std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_slice().iter()
+    }
+}
+
+impl<'a, T: PackedArrayElement> IntoIterator for &'a mut PackedArray<T> {
+    type Item = &'a mut T;
+    type IntoIter = std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.as_mut_slice().iter_mut()
+    }
+}
+
 // Generic Display implementation for PackedArray<T> where T: Display
 impl<T: PackedArrayElement + fmt::Display> fmt::Display for PackedArray<T> {
     /// Formats `PackedArray` to match Godot's string representation.

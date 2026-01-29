@@ -28,14 +28,11 @@ fn rid_equiv() {
 fn canvas_set_parent() {
     // This originally caused UB, but still testing it here in case it breaks.
     let mut server = RenderingServer::singleton();
-    let canvas = server.canvas_create();
-    let viewport = server.viewport_create();
+    let canvas = server.canvas_create_owned();
+    let viewport = server.viewport_create_owned();
 
-    suppress_godot_print(|| server.canvas_item_set_parent(viewport, canvas));
-    suppress_godot_print(|| server.canvas_item_set_parent(viewport, viewport));
-
-    server.free_rid(canvas);
-    server.free_rid(viewport);
+    suppress_godot_print(|| server.canvas_item_set_parent(*viewport, *canvas));
+    suppress_godot_print(|| server.canvas_item_set_parent(*viewport, *viewport));
 }
 
 #[itest]
@@ -45,32 +42,32 @@ fn multi_thread_test() {
 
     use godot::builtin::{Color, Vector2};
 
+    use godot::rendering::OwnedCanvasItem;
+
     let threads = (0..10)
         .map(|_| {
             std::thread::spawn(|| {
                 let mut server = RenderingServer::singleton();
-                (0..1000).map(|_| server.canvas_item_create()).collect()
+                (0..1000)
+                    .map(|_| server.canvas_item_create_owned())
+                    .collect::<Vec<_>>()
             })
         })
         .collect::<Vec<_>>();
 
-    let mut rids: Vec<Rid> = vec![];
+    let mut items: Vec<OwnedCanvasItem> = vec![];
 
     for thread in threads.into_iter() {
-        rids.append(&mut thread.join().unwrap());
+        items.append(&mut thread.join().unwrap());
     }
 
-    let set = rids.iter().cloned().collect::<HashSet<_>>();
-    assert_eq!(set.len(), rids.len());
+    let set = items.iter().map(|i| i.rid()).collect::<HashSet<_>>();
+    assert_eq!(set.len(), items.len());
 
     let mut server = RenderingServer::singleton();
 
-    for rid in rids.iter() {
-        server.canvas_item_add_circle(*rid, Vector2::ZERO, 1.0, Color::from_rgb(1.0, 0.0, 0.0));
-    }
-
-    for rid in rids.iter() {
-        server.free_rid(*rid);
+    for item in items.iter() {
+        server.canvas_item_add_circle(**item, Vector2::ZERO, 1.0, Color::from_rgb(1.0, 0.0, 0.0));
     }
 }
 
@@ -364,4 +361,265 @@ fn owned_environment_raii() {
 
     let environment2 = server.environment_create_owned();
     assert_eq!(rid, *environment2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_physics_2d_raii() {
+    use godot::classes::physics_server_2d::ShapeType;
+    use godot::classes::PhysicsServer2D;
+
+    let mut server = PhysicsServer2D::singleton();
+
+    let rid_space = {
+        let space = server.space_create_owned();
+        let rid = *space;
+        assert!(rid.is_valid());
+        rid
+    };
+    let space2 = server.space_create_owned();
+    assert_eq!(rid_space, *space2);
+
+    let rid_body = {
+        let body = server.body_create_owned();
+        let rid = *body;
+        assert!(rid.is_valid());
+        rid
+    };
+    let body2 = server.body_create_owned();
+    assert_eq!(rid_body, *body2);
+
+    let rid_area = {
+        let area = server.area_create_owned();
+        let rid = *area;
+        assert!(rid.is_valid());
+        rid
+    };
+    let area2 = server.area_create_owned();
+    assert_eq!(rid_area, *area2);
+
+    let rid_shape = {
+        let shape = server.shape_create_owned(ShapeType::CIRCLE);
+        let rid = *shape;
+        assert!(rid.is_valid());
+        rid
+    };
+    let shape2 = server.shape_create_owned(ShapeType::CIRCLE);
+    assert_eq!(rid_shape, *shape2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_physics_3d_raii() {
+    use godot::classes::physics_server_3d::ShapeType;
+    use godot::classes::PhysicsServer3D;
+
+    let mut server = PhysicsServer3D::singleton();
+
+    let rid_space = {
+        let space = server.space_create_owned();
+        let rid = *space;
+        assert!(rid.is_valid());
+        rid
+    };
+    let space2 = server.space_create_owned();
+    assert_eq!(rid_space, *space2);
+
+    let rid_body = {
+        let body = server.body_create_owned();
+        let rid = *body;
+        assert!(rid.is_valid());
+        rid
+    };
+    let body2 = server.body_create_owned();
+    assert_eq!(rid_body, *body2);
+
+    let rid_soft_body = {
+        let soft_body = server.soft_body_create_owned();
+        let rid = *soft_body;
+        assert!(rid.is_valid());
+        rid
+    };
+    let soft_body2 = server.soft_body_create_owned();
+    assert_eq!(rid_soft_body, *soft_body2);
+
+    let rid_area = {
+        let area = server.area_create_owned();
+        let rid = *area;
+        assert!(rid.is_valid());
+        rid
+    };
+    let area2 = server.area_create_owned();
+    assert_eq!(rid_area, *area2);
+
+    let rid_shape = {
+        let shape = server.shape_create_owned(ShapeType::BOX);
+        let rid = *shape;
+        assert!(rid.is_valid());
+        rid
+    };
+    let shape2 = server.shape_create_owned(ShapeType::BOX);
+    assert_eq!(rid_shape, *shape2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full-experimental")]
+fn owned_navigation_2d_raii() {
+    use godot::classes::NavigationServer2D;
+
+    let mut server = NavigationServer2D::singleton();
+
+    let rid_map = {
+        let map = server.map_create_owned();
+        let rid = *map;
+        assert!(rid.is_valid());
+        rid
+    };
+    let map2 = server.map_create_owned();
+    assert_eq!(rid_map, *map2);
+
+    let rid_region = {
+        let region = server.region_create_owned();
+        let rid = *region;
+        assert!(rid.is_valid());
+        rid
+    };
+    let region2 = server.region_create_owned();
+    assert_eq!(rid_region, *region2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full-experimental")]
+fn owned_navigation_3d_raii() {
+    use godot::classes::NavigationServer3D;
+
+    let mut server = NavigationServer3D::singleton();
+
+    let rid_map = {
+        let map = server.map_create_owned();
+        let rid = *map;
+        assert!(rid.is_valid());
+        rid
+    };
+    let map2 = server.map_create_owned();
+    assert_eq!(rid_map, *map2);
+
+    let rid_region = {
+        let region = server.region_create_owned();
+        let rid = *region;
+        assert!(rid.is_valid());
+        rid
+    };
+    let region2 = server.region_create_owned();
+    assert_eq!(rid_region, *region2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_text_server_raii() {
+    use godot::classes::TextServerManager;
+
+    let tsm = TextServerManager::singleton();
+    let mut ts = tsm.get_primary_interface().expect("primary text server");
+
+    let rid_font = {
+        let font = ts.create_font_owned();
+        let rid = *font;
+        assert!(rid.is_valid());
+        rid
+    };
+    let font2 = ts.create_font_owned();
+    assert_eq!(rid_font, *font2);
+
+    let rid_shaped = {
+        let shaped = ts.create_shaped_text_owned();
+        let rid = *shaped;
+        assert!(rid.is_valid());
+        rid
+    };
+    let shaped2 = ts.create_shaped_text_owned();
+    assert_eq!(rid_shaped, *shaped2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_rendering_device_raii() {
+    use godot::classes::RenderingServer;
+
+    let rs = RenderingServer::singleton();
+    let rd = rs.get_rendering_device();
+
+    // RenderingDevice might be null if using Compatibility renderer or on unsupported platforms.
+    let Some(mut rd) = rd else {
+        return;
+    };
+
+    let rid_buffer = {
+        let buffer = rd.storage_buffer_create_owned(1024);
+        let rid = *buffer;
+        assert!(rid.is_valid());
+        rid
+    };
+
+    // After the buffer is dropped, the RID should be freed and reused.
+    let buffer2 = rd.storage_buffer_create_owned(1024);
+    assert_eq!(rid_buffer, *buffer2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_physics_joints_raii() {
+    use godot::classes::{PhysicsServer2D, PhysicsServer3D};
+
+    let mut server2d = PhysicsServer2D::singleton();
+    let rid2d = {
+        let joint = server2d.joint_create_owned();
+        let rid = *joint;
+        assert!(rid.is_valid());
+        rid
+    };
+    let joint2d_2 = server2d.joint_create_owned();
+    assert_eq!(rid2d, *joint2d_2);
+
+    let mut server3d = PhysicsServer3D::singleton();
+    let rid3d = {
+        let joint = server3d.joint_create_owned();
+        let rid = *joint;
+        assert!(rid.is_valid());
+        rid
+    };
+    let joint3d_2 = server3d.joint_create_owned();
+    assert_eq!(rid3d, *joint3d_2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_rd_vertex_index_array_raii() {
+    use godot::classes::RenderingServer;
+
+    let rs = RenderingServer::singleton();
+    let rd = rs.get_rendering_device();
+
+    let Some(mut rd) = rd else {
+        return;
+    };
+
+    let _rid_vertex = {
+        let buffer = rd.vertex_buffer_create_owned(1024);
+        let src_buffers = array![*buffer];
+        let array = rd.vertex_array_create_owned(1, 0, &src_buffers);
+        let rid = *array;
+        assert!(rid.is_valid());
+        rid
+    };
+    // Note: Godot might not reuse vertex array RIDs immediately or they might have different pooling.
+    // But dropping should at least not crash.
+
+    let _rid_index = {
+        let buffer = rd.index_buffer_create_owned(1024, godot::classes::rendering_device::IndexBufferFormat::UINT16);
+        let array = rd.index_array_create_owned(*buffer, 0, 1);
+        let rid = *array;
+        assert!(rid.is_valid());
+        rid
+    };
 }

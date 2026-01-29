@@ -368,8 +368,12 @@ crate::meta::impl_godot_as_self!(Color: ByValue);
 
 impl ApproxEq for Color {
     fn approx_eq(&self, other: &Self) -> bool {
-        // TODO(bromeon): re-implement in Rust
-        self.as_inner().is_equal_approx(*other)
+
+
+        self.r.approx_eq(&other.r)
+            && self.g.approx_eq(&other.g)
+            && self.b.approx_eq(&other.b)
+            && self.a.approx_eq(&other.a)
     }
 }
 

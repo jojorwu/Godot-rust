@@ -27,7 +27,7 @@ pub mod init;
 pub mod meta;
 pub mod obj;
 pub mod registry;
-pub mod rendering;
+pub mod servers;
 pub mod task;
 pub mod tools;
 
@@ -35,6 +35,14 @@ mod storage;
 pub use godot_ffi as sys;
 
 pub use crate::private::{fetch_last_panic_context, set_gdext_hook};
+
+#[cfg(all(feature = "codegen-full", feature = "experimental-godot-api"))]
+pub use crate::servers::navigation;
+
+#[cfg(feature = "codegen-full")]
+pub use crate::servers::{display, physics, text};
+
+pub use crate::servers::rendering;
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Validations (see also godot/lib.rs)
