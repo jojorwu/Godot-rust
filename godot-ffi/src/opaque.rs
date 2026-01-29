@@ -24,5 +24,11 @@
 #[derive(Copy, Clone)]
 pub struct Opaque<const N: usize> {
     storage: [u8; N],
+    #[cfg(not(feature = "experimental-threads"))]
     marker: std::marker::PhantomData<*const u8>, // disable Send/Sync
 }
+
+#[cfg(feature = "experimental-threads")]
+unsafe impl<const N: usize> Send for Opaque<N> {}
+#[cfg(feature = "experimental-threads")]
+unsafe impl<const N: usize> Sync for Opaque<N> {}

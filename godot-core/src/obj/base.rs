@@ -5,15 +5,21 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-#[cfg(safeguards_balanced)]
+#[cfg(all(safeguards_balanced, not(feature = "experimental-threads")))]
 use std::cell::Cell;
 use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display, Formatter, Result as FmtResult};
 use std::mem::ManuallyDrop;
-#[cfg(safeguards_balanced)]
+
+#[cfg(all(safeguards_balanced, not(feature = "experimental-threads")))]
 use std::rc::Rc;
+#[cfg(all(safeguards_balanced, feature = "experimental-threads"))]
+use std::sync::Arc as Rc;
+
+#[cfg(feature = "experimental-threads")]
+use std::sync::atomic::{AtomicU8, Ordering};
 
 use crate::builtin::Callable;
 use crate::obj::{bounds, Gd, GodotClass, InstanceId, PassiveGd};
@@ -30,13 +36,35 @@ thread_local! {
 /// Represents the initialization state of a `Base<T>` object.
 #[cfg(safeguards_balanced)] // TODO(v0.5 or v0.6): relax to strict state, once people are used to checks.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[repr(u8)]
 enum InitState {
     /// Object is being constructed (inside `I*::init()` or `Gd::from_init_fn()`).
-    ObjectConstructing,
+    ObjectConstructing = 0,
     /// Object construction is complete.
-    ObjectInitialized,
+    ObjectInitialized = 1,
     /// `ScriptInstance` context - always considered initialized (bypasses lifecycle checks).
-    Script,
+    Script = 2,
+}
+
+#[cfg(feature = "experimental-threads")]
+struct AtomicInitState(AtomicU8);
+
+#[cfg(feature = "experimental-threads")]
+impl AtomicInitState {
+    fn new(state: InitState) -> Self {
+        Self(AtomicU8::new(state as u8))
+    }
+    fn get(&self) -> InitState {
+        match self.0.load(Ordering::Acquire) {
+            0 => InitState::ObjectConstructing,
+            1 => InitState::ObjectInitialized,
+            2 => InitState::Script,
+            _ => unreachable!(),
+        }
+    }
+    fn set(&self, state: InitState) {
+        self.0.store(state as u8, Ordering::Release);
+    }
 }
 
 #[cfg(safeguards_balanced)]
@@ -83,8 +111,10 @@ pub struct Base<T: GodotClass> {
     /// Tracks the initialization state of this `Base<T>` in Debug mode.
     ///
     /// Rc allows to "copy-construct" the base from an existing one, while still affecting the user-instance through the original `Base<T>`.
-    #[cfg(safeguards_balanced)]
+    #[cfg(all(safeguards_balanced, not(feature = "experimental-threads")))]
     init_state: Rc<Cell<InitState>>,
+    #[cfg(all(safeguards_balanced, feature = "experimental-threads"))]
+    init_state: Rc<AtomicInitState>,
 }
 
 impl<T: GodotClass> Base<T> {
@@ -145,11 +175,19 @@ impl<T: GodotClass> Base<T> {
         base_from_obj!(obj, InitState::ObjectConstructing)
     }
 
-    #[cfg(safeguards_balanced)]
+    #[cfg(all(safeguards_balanced, not(feature = "experimental-threads")))]
     fn from_obj(obj: Gd<T>, init_state: InitState) -> Self {
         Self {
             obj: ManuallyDrop::new(obj),
             init_state: Rc::new(Cell::new(init_state)),
+        }
+    }
+
+    #[cfg(all(safeguards_balanced, feature = "experimental-threads"))]
+    fn from_obj(obj: Gd<T>, init_state: InitState) -> Self {
+        Self {
+            obj: ManuallyDrop::new(obj),
+            init_state: Rc::new(AtomicInitState::new(init_state)),
         }
     }
 

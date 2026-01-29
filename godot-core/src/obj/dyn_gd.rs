@@ -546,6 +546,18 @@ where
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Type erasure
 
+#[cfg(feature = "experimental-threads")]
+trait ErasedGd<D>: Send + Sync
+where
+    D: ?Sized + 'static,
+{
+    fn dyn_bind(&self) -> DynGdRef<'_, D>;
+    fn dyn_bind_mut(&mut self) -> DynGdMut<'_, D>;
+
+    fn clone_box(&self) -> Box<dyn ErasedGd<D>>;
+}
+
+#[cfg(not(feature = "experimental-threads"))]
 trait ErasedGd<D>
 where
     D: ?Sized + 'static,
@@ -692,6 +704,22 @@ where
     fn as_node_class() -> Option<ClassId> {
         PropertyHintInfo::object_as_node_class::<T>()
     }
+}
+
+#[cfg(feature = "experimental-threads")]
+unsafe impl<T, D> Send for DynGd<T, D>
+where
+    T: GodotClass,
+    D: ?Sized + 'static,
+{
+}
+
+#[cfg(feature = "experimental-threads")]
+unsafe impl<T, D> Sync for DynGd<T, D>
+where
+    T: GodotClass,
+    D: ?Sized + 'static,
+{
 }
 
 impl<T, D> Default for OnEditor<DynGd<T, D>>

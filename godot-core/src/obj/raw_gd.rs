@@ -524,7 +524,7 @@ where
             return ptr::null_mut();
         }
 
-        let cached = self.cached_storage_ptr.get();
+        let cached = InstanceCache::get(&self.cached_storage_ptr);
         if !cached.is_null() {
             return cached;
         }
@@ -545,7 +545,7 @@ where
         #[cfg(safeguards_strict)]
         crate::classes::ensure_binding_not_null::<T>(ptr);
 
-        self.cached_storage_ptr.set(ptr);
+        InstanceCache::set(&self.cached_storage_ptr, ptr);
         ptr
     }
 }
@@ -885,3 +885,8 @@ pub(crate) fn object_as_arg_ptr<F>(_object_ptr_field: &*mut F) -> sys::GDExtensi
     // Since 4.1, argument pointers were standardized to always be `T**`.
     ptr::addr_of!(*_object_ptr_field) as sys::GDExtensionConstTypePtr
 }
+
+#[cfg(feature = "experimental-threads")]
+unsafe impl<T: GodotClass> Send for RawGd<T> {}
+#[cfg(feature = "experimental-threads")]
+unsafe impl<T: GodotClass> Sync for RawGd<T> {}

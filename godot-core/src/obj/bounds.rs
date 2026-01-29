@@ -51,7 +51,7 @@ use private::Sealed;
 
 use crate::obj::cap::GodotDefault;
 use crate::obj::{Bounds, Gd, GodotClass, RawGd};
-use crate::storage::{InstanceCache, Storage};
+use crate::storage::{InstanceCache, InstanceCacheImpl, Storage};
 use crate::{out, sys};
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -413,7 +413,7 @@ pub enum DeclUser {}
 impl Sealed for DeclUser {}
 impl Declarer for DeclUser {
     type DerefTarget<T: GodotClass> = T::Base;
-    type InstanceCache = std::cell::Cell<sys::GDExtensionClassInstancePtr>;
+    type InstanceCache = InstanceCacheImpl;
 
     unsafe fn is_currently_bound<T>(obj: &RawGd<T>) -> bool
     where

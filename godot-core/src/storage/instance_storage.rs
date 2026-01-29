@@ -5,9 +5,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#[cfg(not(feature = "experimental-threads"))]
 use std::cell::Cell;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
+#[cfg(feature = "experimental-threads")]
+use std::sync::atomic::{AtomicPtr, Ordering};
 
 #[cfg(feature = "experimental-threads")]
 use godot_cell::blocking::{InaccessibleGuard, MutGuard, RefGuard};
@@ -325,17 +328,60 @@ pub unsafe fn destroy_storage<T: GodotClass>(instance_ptr: sys::GDExtensionClass
 
 pub(crate) trait InstanceCache: Clone {
     fn null() -> Self;
+    fn get(&self) -> sys::GDExtensionClassInstancePtr;
+    fn set(&self, ptr: sys::GDExtensionClassInstancePtr);
 }
 
 impl InstanceCache for () {
     fn null() -> Self {} // returns ()
+    fn get(&self) -> sys::GDExtensionClassInstancePtr {
+        ptr::null_mut()
+    }
+    fn set(&self, _ptr: sys::GDExtensionClassInstancePtr) {}
 }
 
+#[cfg(not(feature = "experimental-threads"))]
 impl InstanceCache for Cell<sys::GDExtensionClassInstancePtr> {
     fn null() -> Self {
         Cell::new(ptr::null_mut())
     }
+    fn get(&self) -> sys::GDExtensionClassInstancePtr {
+        self.get()
+    }
+    fn set(&self, ptr: sys::GDExtensionClassInstancePtr) {
+        self.set(ptr)
+    }
 }
+
+#[cfg(feature = "experimental-threads")]
+pub struct ThreadSafeInstanceCache(AtomicPtr<std::os::raw::c_void>);
+
+#[cfg(feature = "experimental-threads")]
+impl Clone for ThreadSafeInstanceCache {
+    fn clone(&self) -> Self {
+        // We don't share the atomic, but it's just a cache, so it's fine to re-resolve it in the clone.
+        Self(AtomicPtr::new(ptr::null_mut()))
+    }
+}
+
+#[cfg(feature = "experimental-threads")]
+impl InstanceCache for ThreadSafeInstanceCache {
+    fn null() -> Self {
+        Self(AtomicPtr::new(ptr::null_mut()))
+    }
+    fn get(&self) -> sys::GDExtensionClassInstancePtr {
+        self.0.load(Ordering::Relaxed) as sys::GDExtensionClassInstancePtr
+    }
+    fn set(&self, ptr: sys::GDExtensionClassInstancePtr) {
+        self.0.store(ptr as *mut _, Ordering::Relaxed)
+    }
+}
+
+#[cfg(not(feature = "experimental-threads"))]
+pub(crate) type InstanceCacheImpl = Cell<sys::GDExtensionClassInstancePtr>;
+
+#[cfg(feature = "experimental-threads")]
+pub(crate) type InstanceCacheImpl = ThreadSafeInstanceCache;
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Callbacks
