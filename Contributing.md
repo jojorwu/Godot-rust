@@ -60,6 +60,20 @@ can result in your PR being closed with zero reviews.
 Further information for contributors, such as tools supporting you in local development, is available in the [godot-rust book].  
 The book also elaborates design principles and conventions behind our API.
 
+## Architectural patterns
+
+### 🛡️ RAII Server Resources
+
+When working with Godot's low-level servers (e.g., `RenderingServer`, `PhysicsServer3D`), many methods return a `Rid` (Resource ID).
+To ensure these resources are automatically freed when they go out of scope in Rust, we use RAII wrappers.
+
+A central macro `impl_owned_rid!` in `godot-core/src/obj/raii.rs` is used to implement these wrappers. It supports:
+1. **Singleton-based servers:** Resources freed via a singleton (e.g., `RenderingServer`).
+2. **Instance-based servers:** Resources freed via a specific server instance (e.g., `TextServer`).
+3. **Complex APIs:** Support for servers with multiple arguments in their free methods (e.g., `RenderingDevice`).
+
+If you add new server methods that return `Rid`, please consider adding a corresponding `_owned` method and a RAII wrapper.
+
 [GitHub issue]: https://github.com/godot-rust/gdext/issues
 [Discord]: https://discord.gg/aKUCJ8rJsc
 [godot-rust book]: https://godot-rust.github.io/book/contribute

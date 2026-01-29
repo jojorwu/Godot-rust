@@ -26,6 +26,7 @@ mod geometry {
 }
 
 mod containers {
+    mod any_array_test;
     mod array_test;
     mod callable_test;
     mod dictionary_test;

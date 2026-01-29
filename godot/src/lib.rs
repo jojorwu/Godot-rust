@@ -233,9 +233,12 @@ pub use godot_core::possibly_docs as docs;
 #[doc(hidden)]
 pub use godot_core::sys;
 #[doc(inline)]
-pub use godot_core::{builtin, classes, global, meta, obj, physics, rendering, task, text, tools};
+pub use godot_core::{builtin, classes, global, meta, obj, rendering, task, tools};
 
-#[cfg(feature = "experimental-godot-api")]
+#[cfg(feature = "__codegen-full")]
+pub use godot_core::{physics, text};
+
+#[cfg(all(feature = "__codegen-full", feature = "experimental-godot-api"))]
 pub use godot_core::navigation;
 
 /// Entry point and global init/shutdown of the library.

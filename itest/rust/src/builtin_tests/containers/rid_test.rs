@@ -546,8 +546,8 @@ fn owned_text_server_raii() {
 fn owned_rendering_device_raii() {
     use godot::classes::RenderingServer;
 
-    let mut rs = RenderingServer::singleton();
-    let mut rd = rs.get_rendering_device();
+    let rs = RenderingServer::singleton();
+    let rd = rs.get_rendering_device();
 
     // RenderingDevice might be null if using Compatibility renderer or on unsupported platforms.
     let Some(mut rd) = rd else {
