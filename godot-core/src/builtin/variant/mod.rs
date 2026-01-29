@@ -137,8 +137,30 @@ impl Variant {
     ///
     /// See also [`get_type()`][Self::get_type].
     pub fn is_nil(&self) -> bool {
-        // Use get_type() rather than sys_type(), to also cover nullptr OBJECT as NIL
-        self.get_type() == VariantType::NIL
+        let sys_type = self.sys_type();
+        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_NIL {
+            return true;
+        }
+
+        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
+            #[cfg(since_api = "4.4")]
+            return unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
+
+            #[cfg(before_api = "4.4")]
+            {
+                let is_null_object = unsafe {
+                    let object_ptr = crate::obj::raw_object_init(|type_ptr| {
+                        let converter = sys::builtin_fn!(object_from_variant);
+                        converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
+                    });
+
+                    object_ptr.is_null()
+                };
+                return is_null_object;
+            }
+        }
+
+        false
     }
 
     /// Returns the type that is currently held by this variant.
@@ -685,6 +707,28 @@ fn get_variant_to_type_constructor(
     let c = unsafe { interface_fn!(get_variant_to_type_constructor)(to_type.sys()) };
     constructors[index] = c;
     c
+}
+
+#[cfg(since_api = "4.4")]
+pub(crate) fn get_variant_get_internal_ptr_func(
+    variant_type: VariantType,
+) -> sys::GDExtensionVariantGetInternalPtrFunc {
+    static GETTERS: sys::Global<[sys::GDExtensionVariantGetInternalPtrFunc; 40]> =
+        sys::Global::new(|| [None; 40]);
+
+    let index = variant_type.sys() as usize;
+    if index >= 40 {
+        return unsafe { interface_fn!(variant_get_ptr_internal_getter)(variant_type.sys()) };
+    }
+
+    let mut getters = GETTERS.lock();
+    if let Some(g) = getters[index] {
+        return Some(g);
+    }
+
+    let g = unsafe { interface_fn!(variant_get_ptr_internal_getter)(variant_type.sys()) };
+    getters[index] = g;
+    g
 }
 
 fn can_convert_godot_strict(from_type: VariantType, to_type: VariantType) -> bool {
