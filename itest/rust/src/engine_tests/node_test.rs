@@ -98,3 +98,19 @@ fn node_required_param_return() {
 
     parent.free();
 }
+
+#[cfg(since_api = "4.6")]
+#[itest]
+fn scene_tree_change_scene_to_node(ctx: &TestContext) {
+    let mut tree = ctx.scene_tree.clone().get_tree().unwrap();
+    let node = Node::new_alloc();
+
+    // We don't actually want to change the scene of the test runner,
+    // but we can check if the method exists and can be called.
+    // In a real scenario, this would change the scene.
+    // Here we just test the FFI call doesn't crash if we pass a valid node.
+    // Note: change_scene_to_node might fail if not in a valid state, but it shouldn't crash.
+    let _err = tree.change_scene_to_node(&node);
+
+    node.free();
+}

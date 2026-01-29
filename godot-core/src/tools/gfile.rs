@@ -325,6 +325,11 @@ impl GFile {
 
     /// Reads the whole file as UTF-8 [`GString`].
     ///
+    /// <div class="warning">
+    /// <strong>Compatibility:</strong>
+    /// Starting with Godot 4.6, <code>skip_cr</code> has been removed and this method always behaves as if <code>skip_cr</code> was <code>false</code>.
+    /// </div>
+    ///
     /// If `skip_cr` is set to `true`, carriage return (`'\r'`) will be ignored, and only line feed (`'\n'`) indicates a new line.
     ///
     /// To retrieve the file as [`String`] instead, use the [`Read`] trait method
