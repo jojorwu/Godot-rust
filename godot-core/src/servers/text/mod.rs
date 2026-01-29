@@ -18,13 +18,13 @@ impl crate::classes::TextServer {
     pub fn create_font_owned(&mut self) -> OwnedFont {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::TextServer>();
         let rid = gd.create_font();
-        OwnedFont::from_rid(rid, gd)
+        unsafe { OwnedFont::from_rid(rid, gd) }
     }
 
     /// Creates a new shaped text and returns a wrapper that will free it on drop.
     pub fn create_shaped_text_owned(&mut self) -> OwnedShapedText {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::TextServer>();
         let rid = gd.create_shaped_text();
-        OwnedShapedText::from_rid(rid, gd)
+        unsafe { OwnedShapedText::from_rid(rid, gd) }
     }
 }

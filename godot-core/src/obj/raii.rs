@@ -24,6 +24,12 @@ macro_rules! impl_owned_rid {
             pub fn server(&self) -> crate::obj::Gd<crate::classes::$server> {
                 self.server.clone()
             }
+
+            /// # Safety
+            /// The RID must have been created by the server and must not be freed elsewhere.
+            pub unsafe fn from_rid(rid: crate::builtin::Rid, server: crate::obj::Gd<crate::classes::$server>) -> Self {
+                Self { rid, server }
+            }
         }
 
         impl std::ops::Deref for $name {
@@ -49,6 +55,9 @@ macro_rules! impl_owned_rid {
         }
     };
     ($name:ident, $server:ident, $doc:literal) => {
+        crate::obj::impl_owned_rid!($name, $server, $doc, free_rid);
+    };
+    ($name:ident, $server:ident, $doc:literal, $free_method:ident) => {
         #[doc = $doc]
         #[derive(Debug, Eq, PartialEq, Hash)]
         pub struct $name {
@@ -59,6 +68,12 @@ macro_rules! impl_owned_rid {
             /// Returns the underlying RID of the resource.
             pub fn rid(&self) -> crate::builtin::Rid {
                 self.rid
+            }
+
+            /// # Safety
+            /// The RID must have been created by the server and must not be freed elsewhere.
+            pub unsafe fn from_rid(rid: crate::builtin::Rid) -> Self {
+                Self { rid }
             }
         }
 
@@ -80,7 +95,7 @@ macro_rules! impl_owned_rid {
             fn drop(&mut self) {
                 if self.rid.is_valid() {
                     use crate::obj::Singleton as _;
-                    crate::classes::$server::singleton().free_rid(self.rid);
+                    crate::classes::$server::singleton().$free_method(self.rid);
                 }
             }
         }

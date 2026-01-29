@@ -9,22 +9,26 @@
 
 pub mod owned_area_2d;
 pub mod owned_body_2d;
+pub mod owned_joint_2d;
 pub mod owned_shape_2d;
 pub mod owned_space_2d;
 
 pub mod owned_area_3d;
 pub mod owned_body_3d;
+pub mod owned_joint_3d;
 pub mod owned_shape_3d;
 pub mod owned_soft_body_3d;
 pub mod owned_space_3d;
 
 pub use owned_area_2d::OwnedArea2D;
 pub use owned_body_2d::OwnedBody2D;
+pub use owned_joint_2d::OwnedJoint2D;
 pub use owned_shape_2d::OwnedShape2D;
 pub use owned_space_2d::OwnedSpace2D;
 
 pub use owned_area_3d::OwnedArea3D;
 pub use owned_body_3d::OwnedBody3D;
+pub use owned_joint_3d::OwnedJoint3D;
 pub use owned_shape_3d::OwnedShape3D;
 pub use owned_soft_body_3d::OwnedSoftBody3D;
 pub use owned_space_3d::OwnedSpace3D;
@@ -51,6 +55,11 @@ impl crate::classes::PhysicsServer2D {
         shape_type: crate::classes::physics_server_2d::ShapeType,
     ) -> OwnedShape2D {
         OwnedShape2D::new(shape_type)
+    }
+
+    /// Creates a new joint and returns a wrapper that will free it on drop.
+    pub fn joint_create_owned(&mut self) -> OwnedJoint2D {
+        OwnedJoint2D::new()
     }
 }
 
@@ -81,5 +90,10 @@ impl crate::classes::PhysicsServer3D {
         shape_type: crate::classes::physics_server_3d::ShapeType,
     ) -> OwnedShape3D {
         OwnedShape3D::new(shape_type)
+    }
+
+    /// Creates a new joint and returns a wrapper that will free it on drop.
+    pub fn joint_create_owned(&mut self) -> OwnedJoint3D {
+        OwnedJoint3D::new()
     }
 }

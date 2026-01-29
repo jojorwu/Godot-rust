@@ -9,19 +9,23 @@
 
 pub mod owned_rd_buffer;
 pub mod owned_rd_framebuffer;
+pub mod owned_rd_index_array;
 pub mod owned_rd_pipeline;
 pub mod owned_rd_sampler;
 pub mod owned_rd_shader;
 pub mod owned_rd_texture;
 pub mod owned_rd_uniform_set;
+pub mod owned_rd_vertex_array;
 
 pub use owned_rd_buffer::OwnedRdBuffer;
 pub use owned_rd_framebuffer::OwnedRdFramebuffer;
+pub use owned_rd_index_array::OwnedRdIndexArray;
 pub use owned_rd_pipeline::OwnedRdPipeline;
 pub use owned_rd_sampler::OwnedRdSampler;
 pub use owned_rd_shader::OwnedRdShader;
 pub use owned_rd_texture::OwnedRdTexture;
 pub use owned_rd_uniform_set::OwnedRdUniformSet;
+pub use owned_rd_vertex_array::OwnedRdVertexArray;
 
 impl crate::classes::RenderingDevice {
     /// Creates a new texture and returns a wrapper that will free it on drop.
@@ -32,7 +36,7 @@ impl crate::classes::RenderingDevice {
     ) -> OwnedRdTexture {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.texture_create(format, view);
-        OwnedRdTexture::from_rid(rid, gd)
+        unsafe { OwnedRdTexture::from_rid(rid, gd) }
     }
 
     /// Creates a new sampler and returns a wrapper that will free it on drop.
@@ -42,7 +46,7 @@ impl crate::classes::RenderingDevice {
     ) -> OwnedRdSampler {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.sampler_create(state);
-        OwnedRdSampler::from_rid(rid, gd)
+        unsafe { OwnedRdSampler::from_rid(rid, gd) }
     }
 
     /// Creates a new shader from SPIR-V and returns a wrapper that will free it on drop.
@@ -52,28 +56,28 @@ impl crate::classes::RenderingDevice {
     ) -> OwnedRdShader {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.shader_create_from_spirv(spirv_data);
-        OwnedRdShader::from_rid(rid, gd)
+        unsafe { OwnedRdShader::from_rid(rid, gd) }
     }
 
     /// Creates a new uniform buffer and returns a wrapper that will free it on drop.
     pub fn uniform_buffer_create_owned(&mut self, size_bytes: u32) -> OwnedRdBuffer {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.uniform_buffer_create(size_bytes);
-        OwnedRdBuffer::from_rid(rid, gd)
+        unsafe { OwnedRdBuffer::from_rid(rid, gd) }
     }
 
     /// Creates a new storage buffer and returns a wrapper that will free it on drop.
     pub fn storage_buffer_create_owned(&mut self, size_bytes: u32) -> OwnedRdBuffer {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.storage_buffer_create(size_bytes);
-        OwnedRdBuffer::from_rid(rid, gd)
+        unsafe { OwnedRdBuffer::from_rid(rid, gd) }
     }
 
     /// Creates a new vertex buffer and returns a wrapper that will free it on drop.
     pub fn vertex_buffer_create_owned(&mut self, size_bytes: u32) -> OwnedRdBuffer {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.vertex_buffer_create(size_bytes);
-        OwnedRdBuffer::from_rid(rid, gd)
+        unsafe { OwnedRdBuffer::from_rid(rid, gd) }
     }
 
     /// Creates a new index buffer and returns a wrapper that will free it on drop.
@@ -84,7 +88,7 @@ impl crate::classes::RenderingDevice {
     ) -> OwnedRdBuffer {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.index_buffer_create(size_indices, format);
-        OwnedRdBuffer::from_rid(rid, gd)
+        unsafe { OwnedRdBuffer::from_rid(rid, gd) }
     }
 
     /// Creates a new vertex array and returns a wrapper that will free it on drop.
@@ -93,10 +97,9 @@ impl crate::classes::RenderingDevice {
         vertex_count: u32,
         vertex_format: i64,
         src_buffers: &crate::builtin::Array<crate::builtin::Rid>,
-    ) -> OwnedRdBuffer {
-        let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
-        let rid = gd.vertex_array_create(vertex_count, vertex_format, src_buffers);
-        OwnedRdBuffer::from_rid(rid, gd)
+    ) -> OwnedRdVertexArray {
+        let gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
+        OwnedRdVertexArray::new(&gd, vertex_count, vertex_format, src_buffers)
     }
 
     /// Creates a new index array and returns a wrapper that will free it on drop.
@@ -105,10 +108,9 @@ impl crate::classes::RenderingDevice {
         index_buffer: crate::builtin::Rid,
         index_offset: u32,
         index_count: u32,
-    ) -> OwnedRdBuffer {
-        let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
-        let rid = gd.index_array_create(index_buffer, index_offset, index_count);
-        OwnedRdBuffer::from_rid(rid, gd)
+    ) -> OwnedRdIndexArray {
+        let gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
+        OwnedRdIndexArray::new(&gd, index_buffer, index_offset, index_count)
     }
 
     /// Creates a new framebuffer and returns a wrapper that will free it on drop.
@@ -118,7 +120,7 @@ impl crate::classes::RenderingDevice {
     ) -> OwnedRdFramebuffer {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.framebuffer_create(textures);
-        OwnedRdFramebuffer::from_rid(rid, gd)
+        unsafe { OwnedRdFramebuffer::from_rid(rid, gd) }
     }
 
     /// Creates a new uniform set and returns a wrapper that will free it on drop.
@@ -130,7 +132,7 @@ impl crate::classes::RenderingDevice {
     ) -> OwnedRdUniformSet {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.uniform_set_create(uniforms, shader, shader_set);
-        OwnedRdUniformSet::from_rid(rid, gd)
+        unsafe { OwnedRdUniformSet::from_rid(rid, gd) }
     }
 
     /// Creates a new compute pipeline and returns a wrapper that will free it on drop.
@@ -140,7 +142,7 @@ impl crate::classes::RenderingDevice {
     ) -> OwnedRdPipeline {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::RenderingDevice>();
         let rid = gd.compute_pipeline_create(shader);
-        OwnedRdPipeline::from_rid(rid, gd)
+        unsafe { OwnedRdPipeline::from_rid(rid, gd) }
     }
 
     /// Creates a new render pipeline and returns a wrapper that will free it on drop.
@@ -175,7 +177,7 @@ impl crate::classes::RenderingDevice {
             stencil_state,
             color_blend_state,
         );
-        OwnedRdPipeline::from_rid(rid, gd)
+        unsafe { OwnedRdPipeline::from_rid(rid, gd) }
     }
 
     /// Frees the resource with the given RID.

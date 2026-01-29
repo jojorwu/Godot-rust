@@ -5,8 +5,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use crate::classes::RenderingDevice;
-use crate::obj::Gd;
 
 crate::obj::impl_owned_rid!(
     OwnedRdTexture,
@@ -14,9 +12,3 @@ crate::obj::impl_owned_rid!(
     instance,
     "A RAII wrapper for a rendering device texture RID.\nThe texture is freed when this object is dropped."
 );
-
-impl OwnedRdTexture {
-    pub(crate) fn from_rid(rid: crate::builtin::Rid, server: Gd<RenderingDevice>) -> Self {
-        Self { rid, server }
-    }
-}

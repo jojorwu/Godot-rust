@@ -40,7 +40,7 @@ pub use crate::private::{fetch_last_panic_context, set_gdext_hook};
 pub use crate::servers::navigation;
 
 #[cfg(feature = "codegen-full")]
-pub use crate::servers::{physics, text};
+pub use crate::servers::{display, physics, text};
 
 pub use crate::servers::rendering;
 

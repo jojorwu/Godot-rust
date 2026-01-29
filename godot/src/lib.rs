@@ -236,7 +236,7 @@ pub use godot_core::sys;
 pub use godot_core::{builtin, classes, global, meta, obj, rendering, task, tools};
 
 #[cfg(feature = "__codegen-full")]
-pub use godot_core::{physics, text};
+pub use godot_core::{display, physics, text};
 
 #[cfg(all(feature = "__codegen-full", feature = "experimental-godot-api"))]
 pub use godot_core::navigation;

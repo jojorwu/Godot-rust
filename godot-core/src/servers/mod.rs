@@ -9,6 +9,9 @@
 
 pub mod rendering;
 
+#[cfg(feature = "codegen-full")]
+pub mod display;
+
 #[cfg(all(feature = "codegen-full", feature = "experimental-godot-api"))]
 pub mod navigation;
 

@@ -565,3 +565,61 @@ fn owned_rendering_device_raii() {
     let buffer2 = rd.storage_buffer_create_owned(1024);
     assert_eq!(rid_buffer, *buffer2);
 }
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_physics_joints_raii() {
+    use godot::classes::{PhysicsServer2D, PhysicsServer3D};
+
+    let mut server2d = PhysicsServer2D::singleton();
+    let rid2d = {
+        let joint = server2d.joint_create_owned();
+        let rid = *joint;
+        assert!(rid.is_valid());
+        rid
+    };
+    let joint2d_2 = server2d.joint_create_owned();
+    assert_eq!(rid2d, *joint2d_2);
+
+    let mut server3d = PhysicsServer3D::singleton();
+    let rid3d = {
+        let joint = server3d.joint_create_owned();
+        let rid = *joint;
+        assert!(rid.is_valid());
+        rid
+    };
+    let joint3d_2 = server3d.joint_create_owned();
+    assert_eq!(rid3d, *joint3d_2);
+}
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_rd_vertex_index_array_raii() {
+    use godot::classes::RenderingServer;
+
+    let rs = RenderingServer::singleton();
+    let rd = rs.get_rendering_device();
+
+    let Some(mut rd) = rd else {
+        return;
+    };
+
+    let _rid_vertex = {
+        let buffer = rd.vertex_buffer_create_owned(1024);
+        let src_buffers = array![*buffer];
+        let array = rd.vertex_array_create_owned(1, 0, &src_buffers);
+        let rid = *array;
+        assert!(rid.is_valid());
+        rid
+    };
+    // Note: Godot might not reuse vertex array RIDs immediately or they might have different pooling.
+    // But dropping should at least not crash.
+
+    let _rid_index = {
+        let buffer = rd.index_buffer_create_owned(1024, godot::classes::rendering_device::IndexBufferFormat::UINT16);
+        let array = rd.index_array_create_owned(*buffer, 0, 1);
+        let rid = *array;
+        assert!(rid.is_valid());
+        rid
+    };
+}
