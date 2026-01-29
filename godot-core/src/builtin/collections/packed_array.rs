@@ -214,6 +214,20 @@ impl<T: PackedArrayElement> PackedArray<T> {
         T::op_resize(self.as_inner(), to_i64(size));
     }
 
+    /// Reserves capacity for at least `capacity` elements.
+    ///
+    /// The array may reserve more space to avoid frequent reallocations.
+    ///
+    /// _Godot equivalent: `reserve`_
+    #[cfg(since_api = "4.6")]
+    pub fn reserve(&mut self, capacity: usize) {
+        let variant = self.to_variant();
+        let method = StringName::from("reserve");
+        let arg = Variant::from(capacity as i64);
+        variant.call(&method, &[arg]);
+        *self = variant.to::<Self>();
+    }
+
     /// Appends another array at the end of this array.
     ///
     /// _Godot equivalent: `append_array`_

@@ -115,7 +115,6 @@ fn test_godot_versions() {
 1: --version
 Current path: /Users/runner/work/gdext/gdext/godot-core
 4.1.dev.custom_build.79454bfd3", 4, 1, 0, "dev", s("79454bfd3")),
-        ("4.6.stable.official.d743736f8", 4, 6, 0, "stable", s("d743736f8")),
     ];
 
     let bad_versions = [

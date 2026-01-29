@@ -173,6 +173,20 @@ impl AnyArray {
         self.array.remove(index)
     }
 
+    /// Reserves capacity for at least `capacity` elements.
+    ///
+    /// The array may reserve more space to avoid frequent reallocations.
+    ///
+    /// _Godot equivalent: `reserve`_
+    #[cfg(since_api = "4.6")]
+    pub fn reserve(&mut self, capacity: usize) {
+        self.balanced_ensure_mutable();
+
+        let method = StringName::from("reserve");
+        let arg = Variant::from(capacity as i64);
+        self.to_variant().call(&method, &[arg]);
+    }
+
     /// Removes the first occurrence of a value from the array.
     ///
     /// If the value does not exist in the array, nothing happens. To remove an element by index, use [`remove()`][Self::remove] instead.

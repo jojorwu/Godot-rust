@@ -483,6 +483,16 @@ impl<T: ArrayElement> Array<T> {
         }
     }
 
+    /// Reserves capacity for at least `capacity` elements.
+    ///
+    /// The array may reserve more space to avoid frequent reallocations.
+    ///
+    /// _Godot equivalent: `reserve`_
+    #[cfg(since_api = "4.6")]
+    pub fn reserve(&mut self, capacity: usize) {
+        self.as_any_mut().reserve(capacity)
+    }
+
     /// Appends another array at the end of this array. Equivalent of `append_array` in GDScript.
     pub fn extend_array(&mut self, other: &Array<T>) {
         self.balanced_ensure_mutable();

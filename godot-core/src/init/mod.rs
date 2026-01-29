@@ -493,6 +493,35 @@ pub enum EditorRunBehavior {
 
 pub use sys::InitLevel;
 
+/// Initializes the GDExtension binding for LibGodot (embedded Godot).
+///
+/// This function is intended to be called from a native Rust application that hosts Godot as a library.
+/// It performs the necessary initialization of the FFI interface and pre-loads all required method tables.
+///
+/// # Safety
+/// - `get_proc_address` must be a valid function pointer from Godot.
+/// - `library` must be a valid pointer to the GDExtension library (or null if not applicable).
+/// - This function must be called only once and before any other Godot-Rust APIs are used.
+#[cfg(since_api = "4.6")]
+pub unsafe fn initialize_libgodot(
+    get_proc_address: sys::GDExtensionInterfaceGetProcAddress,
+    library: sys::GDExtensionClassLibraryPtr,
+) {
+    let config = sys::GdextConfig::new(false);
+    // SAFETY: caller guarantees pointers are valid.
+    unsafe {
+        sys::initialize(get_proc_address, library, config);
+
+        for level in [InitLevel::Core, InitLevel::Servers, InitLevel::Scene] {
+            sys::load_class_method_table(level);
+            if level == InitLevel::Servers {
+                sys::discover_main_thread();
+            }
+            crate::registry::class::auto_register_classes(level);
+        }
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
 /// # Safety
