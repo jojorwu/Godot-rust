@@ -50,6 +50,8 @@ mod script {
 
 mod color_test;
 
+mod math_approx_test;
+
 mod convert_test;
 
 mod common;

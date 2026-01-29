@@ -997,7 +997,32 @@ mod test {
         "frustum aspect: input={:?} expected={:?}"
     );
 
-    // TODO: Test create_for_hmd, create_perspective_hmd
+    #[test]
+    fn test_hmd() {
+        let proj = Projection::create_for_hmd(
+            ProjectionEye::LEFT,
+            1.0,
+            0.065,
+            0.1,
+            0.05,
+            1.0,
+            0.1,
+            100.0,
+        );
+        assert!(!proj.is_orthogonal());
+
+        let proj2 = Projection::create_perspective_hmd(
+            90.0,
+            1.0,
+            0.1,
+            100.0,
+            false,
+            ProjectionEye::LEFT,
+            0.065,
+            1.0,
+        );
+        assert!(!proj2.is_orthogonal());
+    }
 
     #[test]
     fn test_is_orthogonal() {

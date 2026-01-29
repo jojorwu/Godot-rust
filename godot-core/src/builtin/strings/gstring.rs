@@ -291,6 +291,15 @@ impl GString {
     }
 }
 
+impl std::ops::Index<usize> for GString {
+    type Output = char;
+
+    #[inline]
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.chars()[index]
+    }
+}
+
 // SAFETY:
 // - `move_return_ptr`
 //   Nothing special needs to be done beyond a `std::mem::swap` when returning a String.
