@@ -540,3 +540,28 @@ fn owned_text_server_raii() {
     let shaped2 = ts.create_shaped_text_owned();
     assert_eq!(rid_shaped, *shaped2);
 }
+
+#[itest]
+#[cfg(feature = "codegen-full")]
+fn owned_rendering_device_raii() {
+    use godot::classes::RenderingServer;
+
+    let mut rs = RenderingServer::singleton();
+    let mut rd = rs.get_rendering_device();
+
+    // RenderingDevice might be null if using Compatibility renderer or on unsupported platforms.
+    let Some(mut rd) = rd else {
+        return;
+    };
+
+    let rid_buffer = {
+        let buffer = rd.storage_buffer_create_owned(1024);
+        let rid = *buffer;
+        assert!(rid.is_valid());
+        rid
+    };
+
+    // After the buffer is dropped, the RID should be freed and reused.
+    let buffer2 = rd.storage_buffer_create_owned(1024);
+    assert_eq!(rid_buffer, *buffer2);
+}

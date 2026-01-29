@@ -11,4 +11,5 @@
 pub mod navigation;
 pub mod physics;
 pub mod rendering;
+pub mod rendering_device;
 pub mod text;
