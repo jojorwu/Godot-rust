@@ -7,9 +7,16 @@
 
 //! Server-related functionality and RAII wrappers.
 
-#[cfg(feature = "experimental-godot-api")]
-pub mod navigation;
-pub mod physics;
 pub mod rendering;
+
+#[cfg(all(feature = "codegen-full", feature = "experimental-godot-api"))]
+pub mod navigation;
+
+#[cfg(feature = "codegen-full")]
+pub mod physics;
+
+#[cfg(feature = "codegen-full")]
 pub mod rendering_device;
+
+#[cfg(feature = "codegen-full")]
 pub mod text;

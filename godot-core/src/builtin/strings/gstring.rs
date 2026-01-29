@@ -407,22 +407,7 @@ impl From<&String> for GString {
 
 impl From<&GString> for String {
     fn from(string: &GString) -> Self {
-        unsafe {
-            let len =
-                interface_fn!(string_to_utf8_chars)(string.string_sys(), std::ptr::null_mut(), 0);
-
-            assert!(len >= 0);
-            let mut buf = vec![0u8; len as usize];
-
-            interface_fn!(string_to_utf8_chars)(
-                string.string_sys(),
-                buf.as_mut_ptr() as *mut std::ffi::c_char,
-                len,
-            );
-
-            // Note: could use from_utf8_unchecked() but for now prefer safety
-            String::from_utf8(buf).expect("String::from_utf8")
-        }
+        string.chars().iter().copied().collect()
     }
 }
 

@@ -36,9 +36,13 @@ pub use godot_ffi as sys;
 
 pub use crate::private::{fetch_last_panic_context, set_gdext_hook};
 
-#[cfg(feature = "experimental-godot-api")]
+#[cfg(all(feature = "codegen-full", feature = "experimental-godot-api"))]
 pub use crate::servers::navigation;
-pub use crate::servers::{physics, rendering, text};
+
+#[cfg(feature = "codegen-full")]
+pub use crate::servers::{physics, text};
+
+pub use crate::servers::rendering;
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Validations (see also godot/lib.rs)
