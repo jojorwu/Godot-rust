@@ -17,17 +17,13 @@ impl OwnedRdBuffer {
     /// Updates the buffer with the given data at the specified offset.
     pub fn update_data(&mut self, data: &[u8], offset: u32) {
         let mut rd = self.server.clone();
-        rd.buffer_update(self.rid, offset, data.len() as u32, data);
+        let packed = crate::builtin::PackedByteArray::from(data);
+        rd.buffer_update(self.rid, offset, data.len() as u32, &packed);
     }
 
-    /// Returns the buffer data at the specified offset and size.
-    pub fn get_data(&self, offset: u32, size: u32) -> crate::builtin::PackedByteArray {
+    /// Returns the buffer data.
+    pub fn get_data(&self) -> crate::builtin::PackedByteArray {
         let mut rd = self.server.clone();
-        rd.buffer_get_data(self.rid, offset, size)
-    }
-
-    /// Returns the native handle of the buffer (e.g. VkBuffer or ID3D12Resource pointer).
-    pub fn get_native_handle(&self) -> u64 {
-        self.server.clone().buffer_get_native_handle(self.rid)
+        rd.buffer_get_data(self.rid)
     }
 }
