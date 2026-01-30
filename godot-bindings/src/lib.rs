@@ -45,6 +45,17 @@ pub struct GodotVersion {
 #[cfg(test)]
 mod godot_version;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_version() {
+        let v = get_godot_version();
+        println!("GODOT VERSION: {:?}", v);
+    }
+}
+
 #[cfg(feature = "api-custom")]
 #[path = ""]
 mod depend_on_custom {

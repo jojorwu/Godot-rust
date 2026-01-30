@@ -59,9 +59,11 @@ impl<T: GodotClass> RawGd<T> {
             let instance_id = InstanceId::try_from_u64(raw_id)
                 .expect("null instance ID when constructing object; this very likely causes UB");
 
-            // TODO(bromeon): this should query dynamic type of object, which can be different from T (upcast, FromGodot, etc).
-            // See comment in ObjectRtti.
-            Some(ObjectRtti::of::<T>(instance_id))
+            #[cfg(safeguards_strict)]
+            let rtti = Some(ObjectRtti::from_obj_sys(obj, instance_id));
+            #[cfg(not(safeguards_strict))]
+            let rtti = Some(ObjectRtti::of::<T>(instance_id));
+            rtti
         };
 
         Self {
@@ -96,14 +98,17 @@ impl<T: GodotClass> RawGd<T> {
     /// Returns `true` if the object is null.
     ///
     /// This does not check if the object is dead. For that, use [`is_instance_valid()`](Self::is_instance_valid).
+    #[inline]
     pub(crate) fn is_null(&self) -> bool {
         self.obj.is_null() || self.cached_rtti.is_none()
     }
 
+    #[inline]
     pub(crate) fn instance_id_unchecked(&self) -> Option<InstanceId> {
         self.cached_rtti.as_ref().map(|rtti| rtti.instance_id())
     }
 
+    #[inline]
     pub(crate) fn is_instance_valid(&self) -> bool {
         self.cached_rtti
             .as_ref()
@@ -389,7 +394,26 @@ impl<T: GodotClass> RawGd<T> {
     /// # Panics
     /// If validation fails.
     #[cfg(safeguards_balanced)]
+    #[inline]
     pub(crate) fn check_rtti(&self, method_name: &'static str) {
+        // SAFETY: check_rtti() is only called for non-null pointers.
+        let instance_id = unsafe { self.instance_id_unchecked().unwrap_unchecked() };
+
+        let is_alive = instance_id.lookup_validity();
+
+        #[cfg(safeguards_strict)]
+        let type_ok = self.cached_rtti.as_ref().unwrap().is_type::<T>();
+        #[cfg(not(safeguards_strict))]
+        let type_ok = true;
+
+        if !is_alive || !type_ok {
+            self.check_rtti_slow(method_name);
+        }
+    }
+
+    #[cfg(safeguards_balanced)]
+    #[cold]
+    fn check_rtti_slow(&self, method_name: &'static str) {
         let call_ctx = CallContext::gd::<T>(method_name);
 
         // Type check (strict only).
@@ -470,6 +494,18 @@ where
         GdMut::from_guard(self.storage().unwrap().get_mut())
     }
 
+    pub(crate) fn try_bind(&self) -> Result<GdRef<'_, T>, Box<dyn std::error::Error>> {
+        self.check_rtti("try_bind");
+        let storage = self.storage().ok_or_else(|| "storage not found")?;
+        storage.try_get().map(GdRef::from_guard)
+    }
+
+    pub(crate) fn try_bind_mut(&mut self) -> Result<GdMut<'_, T>, Box<dyn std::error::Error>> {
+        self.check_rtti("try_bind_mut");
+        let storage = self.storage().ok_or_else(|| "storage not found")?;
+        storage.try_get_mut().map(GdMut::from_guard)
+    }
+
     /// Storage object associated with the extension instance.
     ///
     /// Returns `None` if self is null.
@@ -524,7 +560,7 @@ where
             return ptr::null_mut();
         }
 
-        let cached = self.cached_storage_ptr.get();
+        let cached = InstanceCache::get(&self.cached_storage_ptr);
         if !cached.is_null() {
             return cached;
         }
@@ -545,7 +581,7 @@ where
         #[cfg(safeguards_strict)]
         crate::classes::ensure_binding_not_null::<T>(ptr);
 
-        self.cached_storage_ptr.set(ptr);
+        InstanceCache::set(&self.cached_storage_ptr, ptr);
         ptr
     }
 }
@@ -885,3 +921,13 @@ pub(crate) fn object_as_arg_ptr<F>(_object_ptr_field: &*mut F) -> sys::GDExtensi
     // Since 4.1, argument pointers were standardized to always be `T**`.
     ptr::addr_of!(*_object_ptr_field) as sys::GDExtensionConstTypePtr
 }
+
+#[cfg(feature = "experimental-threads")]
+// SAFETY: Godot objects are internally thread-safe through atomic reference counting (for RefCounted)
+// and thread-safe internal state management. Gd<T> pointers can be safely passed between threads.
+unsafe impl<T: GodotClass> Send for RawGd<T> {}
+
+#[cfg(feature = "experimental-threads")]
+// SAFETY: Gd<T> is essentially a pointer to a Godot object. Sharing a reference to the pointer
+// across threads is safe because Godot handles internal synchronization for object access.
+unsafe impl<T: GodotClass> Sync for RawGd<T> {}

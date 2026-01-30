@@ -85,7 +85,7 @@ impl Variant {
     /// Precisely matches GDScript's behavior to converts arguments, when a function declares a parameter of different type.
     ///
     /// # Conversion diagram
-    /// Exhaustive list of all possible conversions, as of Godot 4.4. The arrow `──►` means "converts to".
+    /// Exhaustive list of all possible conversions, as of Godot 4.6. The arrow `──►` means "converts to".
     ///
     /// ```text
     ///                                                               * ───► Variant
@@ -109,8 +109,8 @@ impl Variant {
     /// ```
     ///
     /// # Godot implementation details
-    /// See [GDExtension interface](https://github.com/godotengine/godot/blob/4.4-stable/core/extension/gdextension_interface.h#L1353-L1364)
-    /// and [C++ implementation](https://github.com/godotengine/godot/blob/4.4-stable/core/variant/variant.cpp#L532) (Godot 4.4 at the time of
+    /// See [GDExtension interface](https://github.com/godotengine/godot/blob/4.6-stable/core/extension/gdextension_interface.h#L1353-L1364)
+    /// and [C++ implementation](https://github.com/godotengine/godot/blob/4.6-stable/core/variant/variant.cpp#L532) (Godot 4.6 at the time of
     /// writing). The "strict" part refers to excluding certain conversions, such as between `int` and `GString`.
     ///
     // ASCII arsenal: / ╱ ⟋ ⧸ ⁄ ╱ ↗ ╲ \ ╲ ⟍ ⧹ ∖

@@ -14,7 +14,7 @@ use crate::sys;
 #[cfg(safeguards_strict)]
 mod strict {
     pub use crate::builtin::VariantType;
-    pub use crate::classes::{ClassDb, Object};
+    pub use crate::classes::Object;
     pub use crate::meta::ClassId;
     pub use crate::obj::Singleton;
 }
@@ -276,26 +276,5 @@ where
 /// Checks if `derived` inherits from `base`, using a cache for _successful_ queries.
 #[cfg(safeguards_strict)]
 fn is_derived_base_cached(derived: ClassId, base: ClassId) -> bool {
-    use std::collections::HashSet;
-
-    use sys::Global;
-
-    static CACHE: Global<HashSet<(ClassId, ClassId)>> = Global::default();
-
-    let mut cache = CACHE.lock();
-    let key = (derived, base);
-    if cache.contains(&key) {
-        return true;
-    }
-
-    // Query Godot API (takes linear time in depth of inheritance tree).
-    let is_parent_class =
-        ClassDb::singleton().is_parent_class(&derived.to_string_name(), &base.to_string_name());
-
-    // Insert only successful queries. Those that fail are on the error path already and don't need to be fast.
-    if is_parent_class {
-        cache.insert(key);
-    }
-
-    is_parent_class
+    derived.inherits(base)
 }

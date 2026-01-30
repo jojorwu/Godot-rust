@@ -23,10 +23,6 @@ pub struct ObjectRtti {
     /// Only in Debug mode: dynamic class.
     #[cfg(safeguards_strict)]
     class_name: crate::meta::ClassId,
-    //
-    // TODO(bromeon): class_id is not always most-derived class; ObjectRtti is sometimes constructed from a base class, via RawGd::from_obj_sys_weak().
-    // Examples: after upcast, when receiving Gd<Base> from Godot, etc.
-    // Thus, dynamic lookup via Godot get_class() is needed. However, this returns a String, and ClassId is 'static + Copy right now.
 }
 
 impl ObjectRtti {
@@ -38,6 +34,35 @@ impl ObjectRtti {
 
             #[cfg(safeguards_strict)]
             class_name: T::class_id(),
+        }
+    }
+
+    /// Creates a new instance of `ObjectRtti` by querying the actual class name from Godot.
+    ///
+    /// # Safety
+    ///
+    /// - `obj` must be a valid pointer to a live Godot object.
+    /// - `instance_id` must be the ID corresponding to that object.
+    #[cfg(safeguards_strict)]
+    pub unsafe fn from_obj_sys(
+        obj: godot_ffi::GDExtensionObjectPtr,
+        instance_id: InstanceId,
+    ) -> Self {
+        use godot_ffi::SysPtr;
+
+        let class_name = crate::builtin::StringName::new_with_string_uninit(|ptr| {
+            godot_ffi::interface_fn!(object_get_class_name)(
+                obj.as_const(),
+                godot_ffi::get_library(),
+                ptr,
+            );
+        });
+
+        let class_id = crate::meta::ClassId::new_dynamic(class_name.to_string());
+
+        Self {
+            instance_id,
+            class_name: class_id,
         }
     }
 
@@ -54,6 +79,12 @@ impl ObjectRtti {
     #[inline]
     pub fn check_type<T: GodotClass>(&self) {
         crate::classes::ensure_object_inherits(self.class_name, T::class_id(), self.instance_id);
+    }
+
+    #[cfg(safeguards_strict)]
+    #[inline]
+    pub(crate) fn is_type<T: GodotClass>(&self) -> bool {
+        self.class_name.inherits(T::class_id())
     }
 
     #[inline]

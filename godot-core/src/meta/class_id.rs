@@ -16,6 +16,7 @@ use godot_ffi as sys;
 use sys::Global;
 
 use crate::builtin::*;
+use crate::obj::Singleton;
 use crate::obj::GodotClass;
 
 // Alternative optimizations:
@@ -26,6 +27,10 @@ use crate::obj::GodotClass;
 
 /// Global cache of class names.
 static CLASS_ID_CACHE: Global<ClassIdCache> = Global::new(ClassIdCache::new);
+
+/// Cache for class inheritance queries.
+static INHERITANCE_CACHE: Global<std::collections::HashSet<(ClassId, ClassId)>> =
+    Global::default();
 
 /// # Safety
 /// Must not use any `ClassId` APIs after this call.
@@ -183,6 +188,38 @@ impl ClassId {
     #[doc(hidden)]
     pub fn string_sys(&self) -> sys::GDExtensionConstStringNamePtr {
         self.with_string_name(|s| s.string_sys())
+    }
+
+    /// Returns `true` if this class inherits from `base`.
+    ///
+    /// This method is cached and fast for subsequent calls between the same two classes.
+    pub fn inherits(&self, base: ClassId) -> bool {
+        if *self == base || base.is_none() {
+            return true;
+        }
+
+        // Object is the root of everything.
+        // We avoid hardcoding "Object" string by checking if base is indeed Object's ID.
+        // But we don't have Object here. We can use ClassId::none() as a proxy or just rely on the cache.
+
+        let key = (*self, base);
+        {
+            let cache = INHERITANCE_CACHE.lock();
+            if cache.contains(&key) {
+                return true;
+            }
+        }
+
+        // Slow path: query Godot.
+        let is_parent = crate::classes::ClassDb::singleton()
+            .is_parent_class(&self.to_string_name(), &base.to_string_name());
+
+        if is_parent {
+            let mut cache = INHERITANCE_CACHE.lock();
+            cache.insert(key);
+        }
+
+        is_parent
     }
 
     // Takes a closure because the mutex guard protects the reference; so the &StringName cannot leave the scope.

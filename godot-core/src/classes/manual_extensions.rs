@@ -106,3 +106,52 @@ impl PackedScene {
         self.instantiate().and_then(|gd| gd.try_cast::<T>().ok())
     }
 }
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Manual extensions for the `WorkerThreadPool` class.
+#[cfg(feature = "codegen-full")]
+impl crate::classes::WorkerThreadPool {
+    /// Adds a Rust task to the thread pool.
+    ///
+    /// The returned task ID can be used with `wait_for_task_completion()` or `is_task_completed()`.
+    #[must_use]
+    pub fn add_rust_task<F>(&self, task: F) -> i64
+    where
+        F: FnOnce() + Send + 'static,
+    {
+        use crate::obj::Singleton;
+        let mut gd = crate::classes::WorkerThreadPool::singleton();
+
+        let callable = crate::builtin::Callable::from_once_fn("rust_task", move |_| {
+            task();
+        });
+        gd.add_task(&callable)
+    }
+
+    /// Adds a Rust group task to the thread pool.
+    ///
+    /// The returned task ID can be used with `wait_for_group_task_completion()` or `is_group_task_completed()`.
+    #[must_use]
+    pub fn add_rust_group_task<F>(&self, task: F, elements: i32) -> i64
+    where
+        F: Fn(u32) + Send + Sync + 'static,
+    {
+        use crate::obj::Singleton;
+        let mut gd = crate::classes::WorkerThreadPool::singleton();
+
+        #[cfg(feature = "experimental-threads")]
+        let callable = crate::builtin::Callable::from_sync_fn("rust_group_task", move |args| {
+            let index = args[0].to::<u32>();
+            task(index);
+        });
+
+        #[cfg(not(feature = "experimental-threads"))]
+        let callable = crate::builtin::Callable::from_fn("rust_group_task", move |args| {
+            let index = args[0].to::<u32>();
+            task(index);
+        });
+
+        gd.add_group_task(&callable, elements)
+    }
+}

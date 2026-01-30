@@ -5,9 +5,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+#[cfg(not(feature = "experimental-threads"))]
 use std::cell::Cell;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
+#[cfg(feature = "experimental-threads")]
+use std::sync::atomic::{AtomicPtr, Ordering};
 
 #[cfg(feature = "experimental-threads")]
 use godot_cell::blocking::{InaccessibleGuard, MutGuard, RefGuard};
@@ -103,6 +106,12 @@ pub unsafe trait Storage {
         &'a self,
         instance: &'b mut Self::Instance,
     ) -> InaccessibleGuard<'b, Self::Instance>;
+
+    /// Returns a shared reference to this storage's instance, if it is not already exclusively borrowed.
+    fn try_get(&self) -> Result<RefGuard<'_, Self::Instance>, Box<dyn std::error::Error>>;
+
+    /// Returns a mutable/exclusive reference to this storage's instance, if it is not already borrowed.
+    fn try_get_mut(&self) -> Result<MutGuard<'_, Self::Instance>, Box<dyn std::error::Error>>;
 
     /// Returns whether this storage is currently alive or being destroyed.
     ///
@@ -291,11 +300,14 @@ pub unsafe fn destroy_storage<T: GodotClass>(instance_ptr: sys::GDExtensionClass
     let mut leak_rust_object = false;
     if (*raw).is_bound() {
         let error = format!(
-            "Destroyed an object from Godot side, while a bind() or bind_mut() call was active.\n  \
-            This is a bug in your code that may cause UB and logic errors. Make sure that objects are not\n  \
-            destroyed while you still hold a Rust reference to them, or use Gd::free() which is safe.\n  \
-            object: {:?}",
-            (*raw).base()
+            "CRITICAL: Destroyed an object from Godot side, while a bind() or bind_mut() call was active.\n  \
+            This is a severe bug that may cause memory corruption and logic errors.\n  \
+            Make sure that objects are not destroyed while you still hold a Rust reference to them.\n  \
+            Use Gd::free() for manual destruction, which is safe.\n  \
+            Object details: {:?}\n  \
+            Thread ID: {:?}",
+            (*raw).base(),
+            std::thread::current().id()
         );
 
         // In strict+balanced level, crash which may trigger breakpoint.
@@ -325,17 +337,60 @@ pub unsafe fn destroy_storage<T: GodotClass>(instance_ptr: sys::GDExtensionClass
 
 pub(crate) trait InstanceCache: Clone {
     fn null() -> Self;
+    fn get(&self) -> sys::GDExtensionClassInstancePtr;
+    fn set(&self, ptr: sys::GDExtensionClassInstancePtr);
 }
 
 impl InstanceCache for () {
     fn null() -> Self {} // returns ()
+    fn get(&self) -> sys::GDExtensionClassInstancePtr {
+        ptr::null_mut()
+    }
+    fn set(&self, _ptr: sys::GDExtensionClassInstancePtr) {}
 }
 
+#[cfg(not(feature = "experimental-threads"))]
 impl InstanceCache for Cell<sys::GDExtensionClassInstancePtr> {
     fn null() -> Self {
         Cell::new(ptr::null_mut())
     }
+    fn get(&self) -> sys::GDExtensionClassInstancePtr {
+        self.get()
+    }
+    fn set(&self, ptr: sys::GDExtensionClassInstancePtr) {
+        self.set(ptr)
+    }
 }
+
+#[cfg(feature = "experimental-threads")]
+pub struct ThreadSafeInstanceCache(AtomicPtr<std::os::raw::c_void>);
+
+#[cfg(feature = "experimental-threads")]
+impl Clone for ThreadSafeInstanceCache {
+    fn clone(&self) -> Self {
+        // We don't share the atomic, but it's just a cache, so it's fine to re-resolve it in the clone.
+        Self(AtomicPtr::new(ptr::null_mut()))
+    }
+}
+
+#[cfg(feature = "experimental-threads")]
+impl InstanceCache for ThreadSafeInstanceCache {
+    fn null() -> Self {
+        Self(AtomicPtr::new(ptr::null_mut()))
+    }
+    fn get(&self) -> sys::GDExtensionClassInstancePtr {
+        self.0.load(Ordering::Relaxed) as sys::GDExtensionClassInstancePtr
+    }
+    fn set(&self, ptr: sys::GDExtensionClassInstancePtr) {
+        self.0.store(ptr as *mut _, Ordering::Relaxed)
+    }
+}
+
+#[cfg(not(feature = "experimental-threads"))]
+pub(crate) type InstanceCacheImpl = Cell<sys::GDExtensionClassInstancePtr>;
+
+#[cfg(feature = "experimental-threads")]
+pub(crate) type InstanceCacheImpl = ThreadSafeInstanceCache;
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Callbacks

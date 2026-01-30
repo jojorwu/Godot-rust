@@ -318,6 +318,7 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     pub fn set(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
+        self.check_bounds(index); // Explicitly check bounds for safety.
 
         let ptr_mut = self.ptr_mut(index);
 
@@ -481,6 +482,16 @@ impl<T: ArrayElement> Array<T> {
             // ptr_mut() lookup could be optimized if we know the internal layout.
             unsafe { variant.move_into_var_ptr(ptr_mut) };
         }
+    }
+
+    /// Reserves capacity for at least `capacity` elements.
+    ///
+    /// The array may reserve more space to avoid frequent reallocations.
+    ///
+    /// _Godot equivalent: `reserve`_
+    #[cfg(since_api = "4.6")]
+    pub fn reserve(&mut self, capacity: usize) {
+        self.as_any_mut().reserve(capacity)
     }
 
     /// Appends another array at the end of this array. Equivalent of `append_array` in GDScript.

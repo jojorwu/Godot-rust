@@ -173,6 +173,30 @@ impl AnyArray {
         self.array.remove(index)
     }
 
+    /// Reserves capacity for at least `capacity` elements.
+    ///
+    /// The array may reserve more space to avoid frequent reallocations.
+    ///
+    /// _Godot equivalent: `reserve`_
+    #[cfg(since_api = "4.6")]
+    pub fn reserve(&mut self, capacity: usize) {
+        self.balanced_ensure_mutable();
+
+        let method = StringName::from("reserve");
+        let arg = Variant::from(capacity as i64);
+        let variant = self.ffi_to_variant();
+        variant.call(&method, &[arg]);
+
+        // Variant::call() on an Array modifies it in-place (possibly triggering COW).
+        // To get the changes back into `self`, we need to extract the array from the variant.
+        // If the call failed (e.g. older Godot version), it might return Nil.
+        if variant.get_type() == VariantType::ARRAY {
+            // SAFETY: we verified it's still an array.
+            let array = unsafe { VarArray::from_variant_unchecked(&variant) };
+            self.array = array;
+        }
+    }
+
     /// Removes the first occurrence of a value from the array.
     ///
     /// If the value does not exist in the array, nothing happens. To remove an element by index, use [`remove()`][Self::remove] instead.
