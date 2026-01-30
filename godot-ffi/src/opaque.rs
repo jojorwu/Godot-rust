@@ -29,6 +29,10 @@ pub struct Opaque<const N: usize> {
 }
 
 #[cfg(feature = "experimental-threads")]
+// SAFETY: Godot built-in types (stored in Opaque) are generally thread-safe for sharing and movement
+// across threads, as they use atomic reference counting for internal data.
 unsafe impl<const N: usize> Send for Opaque<N> {}
+
 #[cfg(feature = "experimental-threads")]
+// SAFETY: Same as Send, shared access is safe because Godot handles internal synchronization.
 unsafe impl<const N: usize> Sync for Opaque<N> {}

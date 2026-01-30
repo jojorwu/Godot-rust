@@ -493,22 +493,38 @@ pub enum EditorRunBehavior {
 
 pub use sys::InitLevel;
 
+static LIBGODOT_INITIALIZED: AtomicBool = AtomicBool::new(false);
+
 /// Initializes the GDExtension binding for LibGodot (embedded Godot).
 ///
 /// This function is intended to be called from a native Rust application that hosts Godot as a library.
 /// It performs the necessary initialization of the FFI interface and pre-loads all required method tables.
 ///
 /// # Safety
-/// - `get_proc_address` must be a valid function pointer from Godot.
-/// - `library` must be a valid pointer to the GDExtension library (or null if not applicable).
-/// - This function must be called only once and before any other Godot-Rust APIs are used.
+///
+/// - `get_proc_address` must be a valid function pointer provided by Godot for retrieving GDExtension interface functions.
+/// - `library` must be a valid `GDExtensionClassLibraryPtr` (or null if the platform doesn't require it).
+/// - This function must be called on the main thread.
+/// - This function must be called before any other Godot-Rust APIs are used.
+///
+/// # Panics
+///
+/// - If called more than once.
 #[cfg(since_api = "4.6")]
 pub unsafe fn initialize_libgodot(
     get_proc_address: sys::GDExtensionInterfaceGetProcAddress,
     library: sys::GDExtensionClassLibraryPtr,
 ) {
+    if LIBGODOT_INITIALIZED.swap(true, Ordering::SeqCst) {
+        panic!("initialize_libgodot() must only be called once");
+    }
+
     let config = sys::GdextConfig::new(false);
-    // SAFETY: caller guarantees pointers are valid.
+
+    // SAFETY:
+    // - Caller guarantees that `get_proc_address` and `library` are valid pointers.
+    // - We just verified that this function is only called once.
+    // - Initialization is performed before any other APIs are used.
     unsafe {
         sys::initialize(get_proc_address, library, config);
 

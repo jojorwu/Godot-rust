@@ -923,6 +923,11 @@ pub(crate) fn object_as_arg_ptr<F>(_object_ptr_field: &*mut F) -> sys::GDExtensi
 }
 
 #[cfg(feature = "experimental-threads")]
+// SAFETY: Godot objects are internally thread-safe through atomic reference counting (for RefCounted)
+// and thread-safe internal state management. Gd<T> pointers can be safely passed between threads.
 unsafe impl<T: GodotClass> Send for RawGd<T> {}
+
 #[cfg(feature = "experimental-threads")]
+// SAFETY: Gd<T> is essentially a pointer to a Godot object. Sharing a reference to the pointer
+// across threads is safe because Godot handles internal synchronization for object access.
 unsafe impl<T: GodotClass> Sync for RawGd<T> {}

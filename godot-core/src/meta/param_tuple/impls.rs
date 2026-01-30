@@ -60,6 +60,11 @@ macro_rules! impl_in_param_tuple {
         impl<$($P: FromGodot + fmt::Debug),*> TupleFromGodot for ($($P,)*) {}
 
         impl<$($P),*> InParamTuple for ($($P,)*) where $($P: EngineFromGodot + fmt::Debug),* {
+            /// # Safety
+            ///
+            /// - `args_ptr` must point to an array of at least `arg_count` valid `GDExtensionConstVariantPtr`s.
+            /// - Each pointer in `args_ptr` must be borrowable as a `&Variant` for the duration of this call.
+            /// - `default_values` must contain at least `Self::LEN - arg_count` elements.
             unsafe fn from_varcall_args(
                 args_ptr: *const sys::GDExtensionConstVariantPtr,
                 arg_count: usize,

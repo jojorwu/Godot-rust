@@ -73,8 +73,11 @@ pub struct GString {
 }
 
 // SAFETY: The Godot implementation of String uses an atomic copy on write pointer, making this thread-safe as we never write to it unless we own it.
+// Sharing/moving GString instances between threads is safe because Godot handles the atomic reference counting.
 unsafe impl Send for GString {}
+
 #[cfg(feature = "experimental-threads")]
+// SAFETY: GString uses atomic reference counting for its internal buffer, making shared access across threads safe.
 unsafe impl Sync for GString {}
 
 impl GString {

@@ -189,9 +189,12 @@ impl AnyArray {
 
         // Variant::call() on an Array modifies it in-place (possibly triggering COW).
         // To get the changes back into `self`, we need to extract the array from the variant.
-        // SAFETY: we know it's still an array.
-        let array = unsafe { VarArray::from_variant_unchecked(&variant) };
-        self.array = array;
+        // If the call failed (e.g. older Godot version), it might return Nil.
+        if variant.get_type() == VariantType::ARRAY {
+            // SAFETY: we verified it's still an array.
+            let array = unsafe { VarArray::from_variant_unchecked(&variant) };
+            self.array = array;
+        }
     }
 
     /// Removes the first occurrence of a value from the array.

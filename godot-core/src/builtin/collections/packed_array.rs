@@ -224,8 +224,19 @@ impl<T: PackedArrayElement> PackedArray<T> {
         let variant = self.to_variant();
         let method = StringName::from("reserve");
         let arg = Variant::from(capacity as i64);
-        variant.call(&method, &[arg]);
-        *self = variant.to::<Self>();
+        let _result_variant = variant.call(&method, &[arg]);
+
+        // Variant::call() on a PackedArray modifies it in-place.
+        // We re-assign from the variant to ensure COW changes are picked up.
+        // If the call failed, the variant might return Nil.
+        let expected_type = match Self::VARIANT_TYPE {
+            ExtVariantType::Variant => VariantType::NIL,
+            ExtVariantType::Concrete(ty) => ty,
+        };
+
+        if variant.get_type() == expected_type {
+            *self = variant.to::<Self>();
+        }
     }
 
     /// Appends another array at the end of this array.

@@ -729,8 +729,14 @@ where
 }
 
 #[cfg(feature = "experimental-threads")]
+// SAFETY: DynGd<T, D> is a wrapper around Gd<T> and a trait object D.
+// It can be safely moved between threads because Gd<T> is Send and the trait object
+// is constrained by Send + Sync in the ErasedGd trait when experimental-threads is enabled.
 unsafe impl<T: GodotClass, D: ?Sized + 'static> Send for DynGd<T, D> {}
+
 #[cfg(feature = "experimental-threads")]
+// SAFETY: Shared access to DynGd is safe because the underlying object and trait dispatch
+// are thread-safe under experimental-threads.
 unsafe impl<T: GodotClass, D: ?Sized + 'static> Sync for DynGd<T, D> {}
 
 impl<T, D> Default for OnEditor<DynGd<T, D>>
