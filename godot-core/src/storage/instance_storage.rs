@@ -294,11 +294,14 @@ pub unsafe fn destroy_storage<T: GodotClass>(instance_ptr: sys::GDExtensionClass
     let mut leak_rust_object = false;
     if (*raw).is_bound() {
         let error = format!(
-            "Destroyed an object from Godot side, while a bind() or bind_mut() call was active.\n  \
-            This is a bug in your code that may cause UB and logic errors. Make sure that objects are not\n  \
-            destroyed while you still hold a Rust reference to them, or use Gd::free() which is safe.\n  \
-            object: {:?}",
-            (*raw).base()
+            "CRITICAL: Destroyed an object from Godot side, while a bind() or bind_mut() call was active.\n  \
+            This is a severe bug that may cause memory corruption and logic errors.\n  \
+            Make sure that objects are not destroyed while you still hold a Rust reference to them.\n  \
+            Use Gd::free() for manual destruction, which is safe.\n  \
+            Object details: {:?}\n  \
+            Thread ID: {:?}",
+            (*raw).base(),
+            std::thread::current().id()
         );
 
         // In strict+balanced level, crash which may trigger breakpoint.

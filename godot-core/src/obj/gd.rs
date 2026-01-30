@@ -783,10 +783,23 @@ where
                     if singleton.obj_sys() == self.obj_sys() {
                         return error_or_panic(format!(
                             "Called free() on a singleton object of class '{class_name}'.\n\
+                            Singletons must not be manually freed as their lifetime is managed by the engine.\n\
                             Object: {self:?}"
                         ));
                     }
                 }
+            }
+        }
+
+        #[cfg(feature = "experimental-threads")]
+        {
+            if !godot_ffi::is_main_thread() {
+                // Warning only, as some objects might be safe to free from other threads, but it's generally risky.
+                crate::global::godot_warn!(
+                    "Gd::free() called from non-main thread for object {:?}.\n\
+                    Manual destruction of Godot objects from worker threads is dangerous and should be avoided.",
+                    self
+                );
             }
         }
 

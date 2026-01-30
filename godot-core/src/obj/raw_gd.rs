@@ -59,9 +59,11 @@ impl<T: GodotClass> RawGd<T> {
             let instance_id = InstanceId::try_from_u64(raw_id)
                 .expect("null instance ID when constructing object; this very likely causes UB");
 
-            // TODO(bromeon): this should query dynamic type of object, which can be different from T (upcast, FromGodot, etc).
-            // See comment in ObjectRtti.
-            Some(ObjectRtti::of::<T>(instance_id))
+            #[cfg(safeguards_strict)]
+            let rtti = Some(ObjectRtti::from_obj_sys(obj, instance_id));
+            #[cfg(not(safeguards_strict))]
+            let rtti = Some(ObjectRtti::of::<T>(instance_id));
+            rtti
         };
 
         Self {

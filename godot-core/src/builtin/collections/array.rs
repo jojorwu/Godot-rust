@@ -318,6 +318,7 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     pub fn set(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
+        self.check_bounds(index); // Explicitly check bounds for safety.
 
         let ptr_mut = self.ptr_mut(index);
 
