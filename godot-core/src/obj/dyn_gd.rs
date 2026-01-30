@@ -707,20 +707,9 @@ where
 }
 
 #[cfg(feature = "experimental-threads")]
-unsafe impl<T, D> Send for DynGd<T, D>
-where
-    T: GodotClass,
-    D: ?Sized + 'static,
-{
-}
-
+unsafe impl<T: GodotClass, D: ?Sized + 'static> Send for DynGd<T, D> {}
 #[cfg(feature = "experimental-threads")]
-unsafe impl<T, D> Sync for DynGd<T, D>
-where
-    T: GodotClass,
-    D: ?Sized + 'static,
-{
-}
+unsafe impl<T: GodotClass, D: ?Sized + 'static> Sync for DynGd<T, D> {}
 
 impl<T, D> Default for OnEditor<DynGd<T, D>>
 where
