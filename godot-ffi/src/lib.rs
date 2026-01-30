@@ -96,6 +96,9 @@ pub use crate::godot_ffi::{
     ExtVariantType, GodotFfi, GodotNullableFfi, PrimitiveConversionError, PtrcallType,
 };
 
+/// Maximum number of arguments that are allocated on the stack before falling back to the heap.
+pub const MAX_STACK_ARGS: usize = 16;
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // API to access Godot via FFI
 

@@ -12,8 +12,8 @@
 //!
 //! See also sister module [super::type_safe_replacements].
 
-use crate::builtin::{NodePath, StringName};
-use crate::classes::{Node, PackedScene};
+use crate::builtin::{GString, NodePath, StringName};
+use crate::classes::{Node, PackedScene, Resource, ResourceLoader, ResourceSaver};
 use crate::meta::{arg_into_ref, AsArg};
 use crate::obj::{Gd, Inherits};
 
@@ -153,5 +153,53 @@ impl crate::classes::WorkerThreadPool {
         });
 
         gd.add_group_task(&callable, elements)
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Manual extensions for the `ResourceLoader` class.
+impl ResourceLoader {
+    /// ⚠️ Loads a resource from the filesystem located at `path`, panicking on error.
+    ///
+    /// # Panics
+    /// If the resource cannot be loaded, or is not of type `T` or inherited.
+    pub fn load_as<T>(&self, path: impl AsArg<GString>) -> Gd<T>
+    where
+        T: Inherits<Resource>,
+    {
+        crate::tools::load(path)
+    }
+
+    /// Loads a resource from the filesystem located at `path` (fallible).
+    pub fn try_load_as<T>(&self, path: impl AsArg<GString>) -> Result<Gd<T>, crate::meta::error::IoError>
+    where
+        T: Inherits<Resource>,
+    {
+        crate::tools::try_load(path)
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Manual extensions for the `ResourceSaver` class.
+impl ResourceSaver {
+    /// ⚠️ Saves a resource to the filesystem at `path`, panicking on error.
+    ///
+    /// # Panics
+    /// If the resource cannot be saved.
+    pub fn save_as<T>(&self, obj: &Gd<T>, path: impl AsArg<GString>)
+    where
+        T: Inherits<Resource>,
+    {
+        crate::tools::save(obj, path)
+    }
+
+    /// Saves a resource to the filesystem at `path` (fallible).
+    pub fn try_save_as<T>(&self, obj: &Gd<T>, path: impl AsArg<GString>) -> Result<(), crate::meta::error::IoError>
+    where
+        T: Inherits<Resource>,
+    {
+        crate::tools::try_save(obj, path)
     }
 }

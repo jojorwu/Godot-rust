@@ -177,11 +177,10 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
             if varargs.is_empty() {
                 // Common case: no varargs. Use stack-allocated pointers to avoid Vec.
                 // We need to collect the pointers into a stack array.
-                // Since explicit_args is small (max 14), we can use a fixed-size array on stack.
-                const MAX_EXPLICIT: usize = 14;
+                // Since explicit_args is small (max 16), we can use a fixed-size array on stack.
                 let ptrs_vec;
-                let mut ptrs_arr = [std::ptr::null(); MAX_EXPLICIT];
-                let ptrs: *const sys::GDExtensionConstVariantPtr = if explicit_args.len() <= MAX_EXPLICIT {
+                let mut ptrs_arr = [std::ptr::null(); sys::MAX_STACK_ARGS];
+                let ptrs: *const sys::GDExtensionConstVariantPtr = if explicit_args.len() <= sys::MAX_STACK_ARGS {
                     for (i, arg) in explicit_args.iter().enumerate() {
                         ptrs_arr[i] = arg.var_sys();
                     }
