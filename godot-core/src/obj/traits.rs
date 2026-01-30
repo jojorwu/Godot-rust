@@ -257,16 +257,19 @@ pub trait EngineBitfield: Copy {
     }
 
     /// Returns whether the given `flag` is set.
+    #[inline]
     fn is_set(self, flag: Self) -> bool {
         self.ord() & flag.ord() != 0
     }
 
     /// Alias for [`is_set()`][Self::is_set].
+    #[inline]
     fn has_flag(self, flag: Self) -> bool {
         self.is_set(flag)
     }
 
     /// Returns a new bitfield with the given `flag` set or cleared.
+    #[inline]
     fn with_flag(self, flag: Self, set: bool) -> Self {
         let mut ord = self.ord();
         if set {

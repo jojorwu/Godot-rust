@@ -107,6 +107,12 @@ pub unsafe trait Storage {
         instance: &'b mut Self::Instance,
     ) -> InaccessibleGuard<'b, Self::Instance>;
 
+    /// Returns a shared reference to this storage's instance, if it is not already exclusively borrowed.
+    fn try_get(&self) -> Result<RefGuard<'_, Self::Instance>, Box<dyn std::error::Error>>;
+
+    /// Returns a mutable/exclusive reference to this storage's instance, if it is not already borrowed.
+    fn try_get_mut(&self) -> Result<MutGuard<'_, Self::Instance>, Box<dyn std::error::Error>>;
+
     /// Returns whether this storage is currently alive or being destroyed.
     ///
     /// This is purely informational and cannot be relied on for safety.

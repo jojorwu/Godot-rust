@@ -156,24 +156,46 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
         let class_fn = sys::interface_fn!(object_method_bind_call);
 
         let variant = args.with_variants(|explicit_args| {
-            let mut variant_ptrs = Vec::with_capacity(explicit_args.len() + varargs.len());
-            variant_ptrs.extend(explicit_args.iter().map(Variant::var_sys));
-            variant_ptrs.extend(varargs.iter().map(Variant::var_sys));
+            let total_count = explicit_args.len() + varargs.len();
 
-            unsafe {
+            let call_with_ptrs = |ptrs: *const sys::GDExtensionConstVariantPtr| unsafe {
                 Variant::new_with_var_uninit_result(|return_ptr| {
                     let mut err = sys::default_call_error();
                     class_fn(
                         method_bind.0,
                         ValidatedObject::object_ptr(validated_obj.as_ref()),
-                        variant_ptrs.as_ptr(),
-                        variant_ptrs.len() as i64,
+                        ptrs,
+                        total_count as i64,
                         return_ptr,
                         &raw mut err,
                     );
 
                     CallError::check_out_varcall(&call_ctx, err, explicit_args, varargs)
                 })
+            };
+
+            if varargs.is_empty() {
+                // Common case: no varargs. Use stack-allocated pointers to avoid Vec.
+                // We need to collect the pointers into a stack array.
+                // Since explicit_args is small (max 14), we can use a fixed-size array on stack.
+                const MAX_EXPLICIT: usize = 14;
+                let ptrs_vec;
+                let mut ptrs_arr = [std::ptr::null(); MAX_EXPLICIT];
+                let ptrs: *const sys::GDExtensionConstVariantPtr = if explicit_args.len() <= MAX_EXPLICIT {
+                    for (i, arg) in explicit_args.iter().enumerate() {
+                        ptrs_arr[i] = arg.var_sys();
+                    }
+                    ptrs_arr.as_ptr()
+                } else {
+                    ptrs_vec = explicit_args.iter().map(|a| a.var_sys()).collect::<Vec<_>>();
+                    ptrs_vec.as_ptr()
+                };
+                call_with_ptrs(ptrs)
+            } else {
+                let mut variant_ptrs = Vec::with_capacity(total_count);
+                variant_ptrs.extend(explicit_args.iter().map(Variant::var_sys));
+                variant_ptrs.extend(varargs.iter().map(Variant::var_sys));
+                call_with_ptrs(variant_ptrs.as_ptr())
             }
         });
 

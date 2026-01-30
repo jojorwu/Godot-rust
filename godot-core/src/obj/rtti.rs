@@ -5,6 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+use crate::obj::traits::Singleton;
 use crate::obj::{GodotClass, InstanceId};
 
 // This is private; despite `pub` here it is re-exported in `crate::private` module.
@@ -74,6 +75,14 @@ impl ObjectRtti {
     #[inline]
     pub fn check_type<T: GodotClass>(&self) {
         crate::classes::ensure_object_inherits(self.class_name, T::class_id(), self.instance_id);
+    }
+
+    #[cfg(safeguards_strict)]
+    #[inline]
+    pub(crate) fn is_type<T: GodotClass>(&self) -> bool {
+        self.class_name == T::class_id()
+            || crate::classes::ClassDb::singleton()
+                .is_parent_class(&self.class_name.to_string_name(), &T::class_id().to_string_name())
     }
 
     #[inline]

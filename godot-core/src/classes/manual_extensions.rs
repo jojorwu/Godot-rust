@@ -127,11 +127,11 @@ impl crate::classes::WorkerThreadPool {
     /// Adds a Rust group task to the thread pool.
     pub fn add_rust_group_task<F>(
         &self,
-        mut task: F,
+        task: F,
         elements: i32,
     ) -> i64
     where
-        F: FnMut(u32) + Send + Sync + 'static,
+        F: Fn(u32) + Send + Sync + 'static,
     {
         let mut gd = crate::private::rebuild_gd(self).cast::<crate::classes::WorkerThreadPool>();
 

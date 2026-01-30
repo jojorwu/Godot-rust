@@ -204,6 +204,20 @@ where
     pub fn bind_mut(&mut self) -> GdMut<'_, T> {
         self.raw.bind_mut()
     }
+
+    /// Fallible version of [`bind()`][Self::bind].
+    ///
+    /// Returns `Err` if the Rust instance is already exclusively borrowed.
+    pub fn try_bind(&self) -> Result<GdRef<'_, T>, Box<dyn std::error::Error>> {
+        self.raw.try_bind()
+    }
+
+    /// Fallible version of [`bind_mut()`][Self::bind_mut].
+    ///
+    /// Returns `Err` if the Rust instance is already borrowed.
+    pub fn try_bind_mut(&mut self) -> Result<GdMut<'_, T>, Box<dyn std::error::Error>> {
+        self.raw.try_bind_mut()
+    }
 }
 
 /// _The methods in this impl block are available for any `T`._ <br><br>
@@ -242,6 +256,7 @@ impl<T: GodotClass> Gd<T> {
     }
 
     /// Returns the instance ID of this object, or `None` if the object is dead or null.
+    #[inline]
     pub(crate) fn instance_id_or_none(&self) -> Option<InstanceId> {
         let known_id = self.instance_id_unchecked();
 
@@ -258,6 +273,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// # Panics
     /// If this object is no longer alive (registered in Godot's object database).
+    #[inline]
     pub fn instance_id(&self) -> InstanceId {
         self.instance_id_or_none().unwrap_or_else(|| {
             panic!(
@@ -273,6 +289,7 @@ impl<T: GodotClass> Gd<T> {
     /// Unless performance is a problem, use [`instance_id()`][Self::instance_id] instead.
     ///
     /// This method is safe and never panics.
+    #[inline]
     pub fn instance_id_unchecked(&self) -> InstanceId {
         let instance_id = self.raw.instance_id_unchecked();
 
@@ -289,6 +306,7 @@ impl<T: GodotClass> Gd<T> {
     /// Do not use this method to check if you can safely access an object. Accessing dead objects is generally safe
     /// and will panic in a defined manner. Encountering such panics is almost always a bug you should fix, and not a
     /// runtime condition to check against.
+    #[inline]
     pub fn is_instance_valid(&self) -> bool {
         self.raw.is_instance_valid()
     }
@@ -374,6 +392,7 @@ impl<T: GodotClass> Gd<T> {
     /// let obj: Gd<MyClass> = MyClass::new_alloc();
     /// let base = obj.clone().upcast::<Node>();
     /// ```
+    #[inline]
     pub fn upcast<Base>(self) -> Gd<Base>
     where
         Base: GodotClass,
@@ -514,6 +533,7 @@ impl<T: GodotClass> Gd<T> {
 
     /// Returns `Ok(cast_obj)` on success, `Err(self)` on error.
     // Visibility: used by DynGd.
+    #[inline]
     pub(crate) fn owned_cast<U>(self) -> Result<Gd<U>, Self>
     where
         U: GodotClass,

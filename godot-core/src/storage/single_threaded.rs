@@ -61,22 +61,30 @@ unsafe impl<T: GodotClass> Storage for InstanceStorage<T> {
 
     fn get(&self) -> RefGuard<'_, T> {
         let guard = self
-            .user_instance
-            .borrow()
+            .try_get()
             .unwrap_or_else(|e| super::bind_failed::<T>(e, &self.borrow_tracker));
 
-        self.borrow_tracker.track_ref_borrow();
         guard
     }
 
     fn get_mut(&self) -> MutGuard<'_, T> {
         let guard = self
-            .user_instance
-            .borrow_mut()
+            .try_get_mut()
             .unwrap_or_else(|e| super::bind_mut_failed::<T>(e, &self.borrow_tracker));
 
-        self.borrow_tracker.track_mut_borrow();
         guard
+    }
+
+    fn try_get(&self) -> Result<RefGuard<'_, T>, Box<dyn std::error::Error>> {
+        let guard = self.user_instance.borrow()?;
+        self.borrow_tracker.track_ref_borrow();
+        Ok(guard)
+    }
+
+    fn try_get_mut(&self) -> Result<MutGuard<'_, T>, Box<dyn std::error::Error>> {
+        let guard = self.user_instance.borrow_mut()?;
+        self.borrow_tracker.track_mut_borrow();
+        Ok(guard)
     }
 
     fn get_inaccessible<'stor: 'inst, 'inst>(

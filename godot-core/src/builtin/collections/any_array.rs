@@ -184,7 +184,14 @@ impl AnyArray {
 
         let method = StringName::from("reserve");
         let arg = Variant::from(capacity as i64);
-        self.to_variant().call(&method, &[arg]);
+        let variant = self.ffi_to_variant();
+        variant.call(&method, &[arg]);
+
+        // Variant::call() on an Array modifies it in-place (possibly triggering COW).
+        // To get the changes back into `self`, we need to extract the array from the variant.
+        // SAFETY: we know it's still an array.
+        let array = unsafe { VarArray::from_variant_unchecked(&variant) };
+        self.array = array;
     }
 
     /// Removes the first occurrence of a value from the array.

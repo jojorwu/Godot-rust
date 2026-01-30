@@ -318,6 +318,16 @@ where
         self.erased_obj.dyn_bind_mut()
     }
 
+    /// Fallible version of [`dyn_bind()`][Self::dyn_bind].
+    pub fn try_dyn_bind(&self) -> Result<DynGdRef<'_, D>, Box<dyn std::error::Error>> {
+        self.erased_obj.try_dyn_bind()
+    }
+
+    /// Fallible version of [`dyn_bind_mut()`][Self::dyn_bind_mut].
+    pub fn try_dyn_bind_mut(&mut self) -> Result<DynGdMut<'_, D>, Box<dyn std::error::Error>> {
+        self.erased_obj.try_dyn_bind_mut()
+    }
+
     // Certain methods "overridden" from deref'ed Gd here, so they're more idiomatic to use.
     // Those taking self by value, like free(), must be overridden.
 
@@ -553,6 +563,8 @@ where
 {
     fn dyn_bind(&self) -> DynGdRef<'_, D>;
     fn dyn_bind_mut(&mut self) -> DynGdMut<'_, D>;
+    fn try_dyn_bind(&self) -> Result<DynGdRef<'_, D>, Box<dyn std::error::Error>>;
+    fn try_dyn_bind_mut(&mut self) -> Result<DynGdMut<'_, D>, Box<dyn std::error::Error>>;
 
     fn clone_box(&self) -> Box<dyn ErasedGd<D>>;
 }
@@ -564,6 +576,8 @@ where
 {
     fn dyn_bind(&self) -> DynGdRef<'_, D>;
     fn dyn_bind_mut(&mut self) -> DynGdMut<'_, D>;
+    fn try_dyn_bind(&self) -> Result<DynGdRef<'_, D>, Box<dyn std::error::Error>>;
+    fn try_dyn_bind_mut(&mut self) -> Result<DynGdMut<'_, D>, Box<dyn std::error::Error>>;
 
     fn clone_box(&self) -> Box<dyn ErasedGd<D>>;
 }
@@ -579,6 +593,14 @@ where
 
     fn dyn_bind_mut(&mut self) -> DynGdMut<'_, D> {
         DynGdMut::from_guard::<T>(Gd::bind_mut(self))
+    }
+
+    fn try_dyn_bind(&self) -> Result<DynGdRef<'_, D>, Box<dyn std::error::Error>> {
+        self.try_bind().map(DynGdRef::from_guard::<T>)
+    }
+
+    fn try_dyn_bind_mut(&mut self) -> Result<DynGdMut<'_, D>, Box<dyn std::error::Error>> {
+        self.try_bind_mut().map(DynGdMut::from_guard::<T>)
     }
 
     fn clone_box(&self) -> Box<dyn ErasedGd<D>> {

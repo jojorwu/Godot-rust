@@ -98,14 +98,17 @@ impl<T: GodotClass> RawGd<T> {
     /// Returns `true` if the object is null.
     ///
     /// This does not check if the object is dead. For that, use [`is_instance_valid()`](Self::is_instance_valid).
+    #[inline]
     pub(crate) fn is_null(&self) -> bool {
         self.obj.is_null() || self.cached_rtti.is_none()
     }
 
+    #[inline]
     pub(crate) fn instance_id_unchecked(&self) -> Option<InstanceId> {
         self.cached_rtti.as_ref().map(|rtti| rtti.instance_id())
     }
 
+    #[inline]
     pub(crate) fn is_instance_valid(&self) -> bool {
         self.cached_rtti
             .as_ref()
@@ -391,7 +394,26 @@ impl<T: GodotClass> RawGd<T> {
     /// # Panics
     /// If validation fails.
     #[cfg(safeguards_balanced)]
+    #[inline]
     pub(crate) fn check_rtti(&self, method_name: &'static str) {
+        // SAFETY: check_rtti() is only called for non-null pointers.
+        let instance_id = unsafe { self.instance_id_unchecked().unwrap_unchecked() };
+
+        let is_alive = instance_id.lookup_validity();
+
+        #[cfg(safeguards_strict)]
+        let type_ok = self.cached_rtti.as_ref().unwrap().is_type::<T>();
+        #[cfg(not(safeguards_strict))]
+        let type_ok = true;
+
+        if !is_alive || !type_ok {
+            self.check_rtti_slow(method_name);
+        }
+    }
+
+    #[cfg(safeguards_balanced)]
+    #[cold]
+    fn check_rtti_slow(&self, method_name: &'static str) {
         let call_ctx = CallContext::gd::<T>(method_name);
 
         // Type check (strict only).
@@ -470,6 +492,18 @@ where
     pub(crate) fn bind_mut(&mut self) -> GdMut<'_, T> {
         self.check_rtti("bind_mut");
         GdMut::from_guard(self.storage().unwrap().get_mut())
+    }
+
+    pub(crate) fn try_bind(&self) -> Result<GdRef<'_, T>, Box<dyn std::error::Error>> {
+        self.check_rtti("try_bind");
+        let storage = self.storage().ok_or_else(|| "storage not found")?;
+        storage.try_get().map(GdRef::from_guard)
+    }
+
+    pub(crate) fn try_bind_mut(&mut self) -> Result<GdMut<'_, T>, Box<dyn std::error::Error>> {
+        self.check_rtti("try_bind_mut");
+        let storage = self.storage().ok_or_else(|| "storage not found")?;
+        storage.try_get_mut().map(GdMut::from_guard)
     }
 
     /// Storage object associated with the extension instance.
