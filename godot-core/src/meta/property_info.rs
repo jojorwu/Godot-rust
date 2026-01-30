@@ -170,6 +170,35 @@ impl PropertyInfo {
         Self { hint_info, ..self }
     }
 
+    /// Returns a copy of this `PropertyInfo` with the `READ_ONLY` flag set.
+    pub fn read_only(mut self) -> Self {
+        self.usage = self.usage.with_flag(PropertyUsageFlags::READ_ONLY, true);
+        self
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the `EDITOR` flag cleared.
+    pub fn no_editor(mut self) -> Self {
+        self.usage = self.usage.with_flag(PropertyUsageFlags::EDITOR, false);
+        self
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the `STORAGE` flag cleared.
+    pub fn no_storage(mut self) -> Self {
+        self.usage = self.usage.with_flag(PropertyUsageFlags::STORAGE, false);
+        self
+    }
+
+    /// Returns a copy of this `PropertyInfo` with both `EDITOR` and `STORAGE` flags set.
+    ///
+    /// This is the same as the default [`PropertyUsageFlags::DEFAULT`].
+    pub fn persisted(mut self) -> Self {
+        self.usage = self
+            .usage
+            .with_flag(PropertyUsageFlags::EDITOR, true)
+            .with_flag(PropertyUsageFlags::STORAGE, true);
+        self
+    }
+
     /// Create a new `PropertyInfo` representing a group in Godot.
     ///
     /// See [`EditorInspector`](https://docs.godotengine.org/en/latest/classes/class_editorinspector.html#class-editorinspector) in Godot for

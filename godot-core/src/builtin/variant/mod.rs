@@ -264,12 +264,11 @@ impl Variant {
     }
 
     fn call_inner(&self, method: &StringName, args: &[Variant]) -> Variant {
-        const STACK_ARGS: usize = 16;
         let mut error = sys::default_call_error();
 
-        let mut args_stack = [ptr::null(); STACK_ARGS];
+        let mut args_stack = [ptr::null(); sys::MAX_STACK_ARGS];
 
-        let (args_ptr, _args_heap) = if args.len() <= STACK_ARGS {
+        let (args_ptr, _args_heap) = if args.len() <= sys::MAX_STACK_ARGS {
             for (i, arg) in args.iter().enumerate() {
                 args_stack[i] = arg.var_sys();
             }
