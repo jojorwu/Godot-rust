@@ -124,6 +124,62 @@ impl Node {
     {
         self.get_owner().and_then(|owner| owner.try_cast::<T>().ok())
     }
+
+    /// ⚠️ Retrieves the child node at index `index`, panicking if out of bounds or bad type.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the node does not have type `T` or inherited.
+    pub fn get_child_as<T>(&self, index: usize) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.try_get_child_as::<T>(index)
+            .unwrap_or_else(|| panic!("Node::get_child_as(): index {index} out of bounds or bad type"))
+    }
+
+    /// Retrieves the child node at index `index` (fallible).
+    ///
+    /// If `index` is out of bounds, or if the node does not have type `T` or inherited,
+    /// `None` will be returned.
+    pub fn try_get_child_as<T>(&self, index: usize) -> Option<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_child(index as i32)
+            .and_then(|node| node.try_cast::<T>().ok())
+    }
+
+    /// Retrieves all children, cast to type `T`.
+    ///
+    /// Children that cannot be cast to `T` are ignored.
+    pub fn get_children_as<T>(&self) -> Vec<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_children()
+            .iter_shared()
+            .filter_map(|node| node.try_cast::<T>().ok())
+            .collect()
+    }
+
+    /// Finds the first child whose name matches `pattern`, cast to type `T`.
+    ///
+    /// If no child is found or if it cannot be cast to `T`, `None` is returned.
+    pub fn find_child_as<T>(
+        &self,
+        pattern: impl AsArg<GString>,
+        recursive: bool,
+        owned: bool,
+    ) -> Option<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.find_child_ex(pattern)
+            .recursive(recursive)
+            .owned(owned)
+            .done()
+            .and_then(|node| node.try_cast::<T>().ok())
+    }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -10,7 +10,7 @@ use godot_ffi::VariantType;
 use crate::builtin::{GString, StringName};
 use crate::global::{PropertyHint, PropertyUsageFlags};
 use crate::meta::{element_godot_type_name, ArrayElement, ClassId, GodotType, PackedArrayElement};
-use crate::obj::{bounds, Bounds, EngineBitfield, EngineEnum, GodotClass};
+use crate::obj::{bounds, Bounds, EngineBitfield, EngineEnum, GodotClass, Inherits};
 use crate::registry::class::get_dyn_property_hint_string;
 use crate::registry::property::{Export, Var};
 use crate::{classes, sys};
@@ -132,6 +132,29 @@ impl PropertyInfo {
     /// This will generate property info equivalent to what an `#[export]` attribute would produce.
     pub fn new_export<T: Export>(property_name: impl AsRef<str>) -> Self {
         T::Via::property_info(property_name.as_ref()).with_hint_info(T::export_hint())
+    }
+
+    /// Create a new `PropertyInfo` for an object of type `T`.
+    pub fn new_object<T: GodotClass>(property_name: impl Into<StringName>) -> Self {
+        Self {
+            variant_type: VariantType::OBJECT,
+            class_id: T::class_id(),
+            property_name: property_name.into(),
+            ..Self::default()
+        }
+    }
+
+    /// Create a new `PropertyInfo` for a resource of type `T`.
+    ///
+    /// This also sets the hint to [`PropertyHint::RESOURCE_TYPE`].
+    pub fn new_resource<T>(property_name: impl Into<StringName>) -> Self
+    where
+        T: GodotClass + Inherits<classes::Resource>,
+    {
+        Self::new_object::<T>(property_name).with_hint_info(PropertyHintInfo {
+            hint: PropertyHint::RESOURCE_TYPE,
+            hint_string: T::class_id().to_gstring(),
+        })
     }
 
     /// Returns a copy of this `PropertyInfo` with the given `usage`.

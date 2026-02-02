@@ -170,6 +170,11 @@ impl Variant {
         self.is_nil()
     }
 
+    /// Returns true if the variant currently holds a value of type `ty`.
+    pub fn is_type(&self, ty: VariantType) -> bool {
+        self.get_type() == ty
+    }
+
     /// Returns the type that is currently held by this variant.
     ///
     /// If this variant holds a type `Object` but no instance (represented as a null object pointer), then `Nil` will be returned for
