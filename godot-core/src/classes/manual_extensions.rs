@@ -78,6 +78,52 @@ impl Node {
             None => Err(GetNodeError::NotFound),
         }
     }
+
+    /// ⚠️ Retrieves the parent node, panicking if not found or bad type.
+    ///
+    /// # Panics
+    /// If the parent is not found, or if it does not have type `T` or inherited.
+    pub fn get_parent_as<T>(&self) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.try_get_parent_as::<T>()
+            .unwrap_or_else(|| panic!("Node::get_parent_as(): parent not found or bad type"))
+    }
+
+    /// Retrieves the parent node (fallible).
+    ///
+    /// If the parent is not found, or if it does not have type `T` or inherited,
+    /// `None` will be returned.
+    pub fn try_get_parent_as<T>(&self) -> Option<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_parent().and_then(|parent| parent.try_cast::<T>().ok())
+    }
+
+    /// ⚠️ Retrieves the owner node, panicking if not found or bad type.
+    ///
+    /// # Panics
+    /// If the owner is not found, or if it does not have type `T` or inherited.
+    pub fn get_owner_as<T>(&self) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.try_get_owner_as::<T>()
+            .unwrap_or_else(|| panic!("Node::get_owner_as(): owner not found or bad type"))
+    }
+
+    /// Retrieves the owner node (fallible).
+    ///
+    /// If the owner is not found, or if it does not have type `T` or inherited,
+    /// `None` will be returned.
+    pub fn try_get_owner_as<T>(&self) -> Option<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_owner().and_then(|owner| owner.try_cast::<T>().ok())
+    }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

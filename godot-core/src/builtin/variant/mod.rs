@@ -163,6 +163,13 @@ impl Variant {
         false
     }
 
+    /// Alias for [`is_nil()`][Self::is_nil].
+    ///
+    /// This method is provided for clarity when working with object-typed variants that may be `null`.
+    pub fn is_null(&self) -> bool {
+        self.is_nil()
+    }
+
     /// Returns the type that is currently held by this variant.
     ///
     /// If this variant holds a type `Object` but no instance (represented as a null object pointer), then `Nil` will be returned for

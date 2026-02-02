@@ -199,6 +199,48 @@ impl PropertyInfo {
         self
     }
 
+    /// Sets the property hint to a range.
+    pub fn range(self, min: f64, max: f64) -> Self {
+        self.with_hint_info(PropertyHintInfo::range(min, max))
+    }
+
+    /// Sets the property hint to an enum.
+    pub fn enum_names(self, names: &[&str]) -> Self {
+        self.with_hint_info(PropertyHintInfo::enum_names(names))
+    }
+
+    /// Sets the property hint to bit flags.
+    pub fn flags(self, names: &[&str]) -> Self {
+        self.with_hint_info(PropertyHintInfo::flags(names))
+    }
+
+    /// Sets the property hint to a file path.
+    pub fn file(self, filter: &str) -> Self {
+        self.with_hint_info(PropertyHintInfo::file(filter))
+    }
+
+    /// Sets the property hint to a directory path.
+    pub fn dir(self) -> Self {
+        self.with_hint_info(PropertyHintInfo::dir())
+    }
+
+    /// Sets the property hint to a multiline string.
+    pub fn multiline(self) -> Self {
+        self.with_hint_info(PropertyHintInfo::multiline())
+    }
+
+    /// Sets the step for a range hint.
+    pub fn with_step(self, step: f64) -> Self {
+        let hint_info = self.hint_info.clone().with_step(step);
+        self.with_hint_info(hint_info)
+    }
+
+    /// Sets the suffix for a range hint.
+    pub fn with_suffix(self, suffix: &str) -> Self {
+        let hint_info = self.hint_info.clone().with_suffix(suffix);
+        self.with_hint_info(hint_info)
+    }
+
     /// Create a new `PropertyInfo` representing a group in Godot.
     ///
     /// See [`EditorInspector`](https://docs.godotengine.org/en/latest/classes/class_editorinspector.html#class-editorinspector) in Godot for
