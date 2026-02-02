@@ -115,13 +115,18 @@ impl<T: GodotClass> RawGd<T> {
             .is_some_and(|rtti| rtti.instance_id().lookup_validity())
     }
 
+    /// Returns true if the object's dynamic type is `U` or a subclass of `U`.
+    pub(crate) fn is_instance_of<U: GodotClass>(&self) -> bool {
+        self.is_null() // Null can be cast to anything.
+            || self.as_object_ref().is_class(&U::class_id().to_gstring())
+    }
+
     // See use-site for explanation.
     fn is_cast_valid<U>(&self) -> bool
     where
         U: GodotClass,
     {
-        self.is_null() // Null can be cast to anything.
-            || self.as_object_ref().is_class(&U::class_id().to_gstring())
+        self.is_instance_of::<U>()
     }
 
     /// Returns `Ok(cast_obj)` on success, `Err(self)` on error

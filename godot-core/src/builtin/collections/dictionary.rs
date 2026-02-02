@@ -315,6 +315,19 @@ impl VarDictionary {
         unsafe { out_array.assume_type() }
     }
 
+    /// Returns a `Vec` containing all the keys in the dictionary.
+    pub fn keys(&self) -> Vec<Variant> {
+        Vec::from(&self.keys_array())
+    }
+
+    /// Returns a `Vec` containing all the keys in the dictionary, converted to `K`.
+    ///
+    /// # Panics
+    /// If any key cannot be converted to `K`.
+    pub fn typed_keys<K: FromGodot>(&self) -> Vec<K> {
+        self.keys_array().iter_shared().map(|k| k.to::<K>()).collect()
+    }
+
     /// Creates a new `Array` containing all the values currently in the dictionary.
     ///
     /// _Godot equivalent: `values`_
@@ -323,6 +336,19 @@ impl VarDictionary {
         // SAFETY: values() returns an untyped array with element type Variant.
         let out_array = self.as_inner().values();
         unsafe { out_array.assume_type() }
+    }
+
+    /// Returns a `Vec` containing all the values in the dictionary.
+    pub fn values(&self) -> Vec<Variant> {
+        Vec::from(&self.values_array())
+    }
+
+    /// Returns a `Vec` containing all the values in the dictionary, converted to `V`.
+    ///
+    /// # Panics
+    /// If any value cannot be converted to `V`.
+    pub fn typed_values<V: FromGodot>(&self) -> Vec<V> {
+        self.values_array().iter_shared().map(|v| v.to::<V>()).collect()
     }
 
     /// Copies all keys and values from `other` into `self`.

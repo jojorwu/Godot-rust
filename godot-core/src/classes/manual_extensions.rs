@@ -13,8 +13,10 @@
 //! See also sister module [super::type_safe_replacements].
 
 use crate::builtin::{GString, NodePath, StringName};
-use crate::classes::{Engine, Node, PackedScene, Resource, ResourceLoader, ResourceSaver};
+use crate::classes::{Node, PackedScene, Resource, ResourceLoader, ResourceSaver};
 use crate::meta::{arg_into_ref, AsArg};
+#[cfg(feature = "codegen-full")]
+use crate::meta::FromGodot;
 use crate::obj::{Gd, Inherits};
 
 /// Error returned by [`Node::try_get_node_as`].
@@ -192,8 +194,32 @@ impl Node {
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
+/// Manual extensions for the `ProjectSettings` class.
+#[cfg(feature = "codegen-full")]
+impl crate::classes::ProjectSettings {
+    /// ⚠️ Retrieves a setting value, panicking if not found or cannot be converted to `T`.
+    ///
+    /// # Panics
+    /// If the setting is not found, or if its value cannot be converted to `T`.
+    pub fn get_setting_as<T: FromGodot>(&self, name: impl AsArg<GString>) -> T {
+        self.try_get_setting_as::<T>(name)
+            .unwrap_or_else(|| panic!("ProjectSettings::get_setting_as(): setting not found or wrong type"))
+    }
+
+    /// Retrieves a setting value (fallible).
+    ///
+    /// If the setting is not found, or if its value cannot be converted to `T`,
+    /// `None` will be returned.
+    pub fn try_get_setting_as<T: FromGodot>(&self, name: impl AsArg<GString>) -> Option<T> {
+        self.get_setting(name).try_to::<T>().ok()
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
 /// Manual extensions for the `Engine` class.
-impl Engine {
+#[cfg(feature = "codegen-full")]
+impl crate::classes::Engine {
     /// ⚠️ Retrieves a singleton instance by name, panicking if not found or bad type.
     ///
     /// # Panics

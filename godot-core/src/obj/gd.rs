@@ -311,6 +311,11 @@ impl<T: GodotClass> Gd<T> {
         self.raw.is_instance_valid()
     }
 
+    /// Returns true if the object's dynamic type is `U` or a subclass of `U`.
+    pub fn is_instance_of<U: GodotClass>(&self) -> bool {
+        self.raw.is_instance_of::<U>()
+    }
+
     /// Returns the dynamic class name of the object as `StringName`.
     ///
     /// This method retrieves the class name of the object at runtime, which can be different from [`T::class_id()`][GodotClass::class_id]
