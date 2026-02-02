@@ -13,7 +13,7 @@
 //! See also sister module [super::type_safe_replacements].
 
 use crate::builtin::{GString, NodePath, StringName};
-use crate::classes::{Node, PackedScene, Resource, ResourceLoader, ResourceSaver};
+use crate::classes::{Engine, Node, PackedScene, Resource, ResourceLoader, ResourceSaver};
 use crate::meta::{arg_into_ref, AsArg};
 use crate::obj::{Gd, Inherits};
 
@@ -77,6 +77,14 @@ impl Node {
             }),
             None => Err(GetNodeError::NotFound),
         }
+    }
+
+    /// Retrieves the node at path `path`, returning `None` if not found or bad type.
+    pub fn get_node_or_none<T>(&self, path: impl AsArg<NodePath>) -> Option<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.try_get_node_as::<T>(path).ok()
     }
 
     /// ⚠️ Retrieves the parent node, panicking if not found or bad type.
@@ -179,6 +187,35 @@ impl Node {
             .owned(owned)
             .done()
             .and_then(|node| node.try_cast::<T>().ok())
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Manual extensions for the `Engine` class.
+impl Engine {
+    /// ⚠️ Retrieves a singleton instance by name, panicking if not found or bad type.
+    ///
+    /// # Panics
+    /// If the singleton is not found, or if it does not have type `T` or inherited.
+    pub fn get_singleton_as<T>(&self, name: impl AsArg<StringName>) -> Gd<T>
+    where
+        T: Inherits<crate::classes::Object>,
+    {
+        self.try_get_singleton_as::<T>(name)
+            .unwrap_or_else(|| panic!("Engine::get_singleton_as(): singleton not found or bad type"))
+    }
+
+    /// Retrieves a singleton instance by name (fallible).
+    ///
+    /// If the singleton is not found, or if it does not have type `T` or inherited,
+    /// `None` will be returned.
+    pub fn try_get_singleton_as<T>(&self, name: impl AsArg<StringName>) -> Option<Gd<T>>
+    where
+        T: Inherits<crate::classes::Object>,
+    {
+        arg_into_ref!(name);
+        self.get_singleton(name).and_then(|obj| obj.try_cast::<T>().ok())
     }
 }
 

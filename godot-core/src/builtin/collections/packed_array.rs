@@ -404,6 +404,14 @@ impl<T: PackedArrayElement> PackedArray<T> {
         self.as_slice().iter().cloned().collect()
     }
 
+    /// Alias for [`to_typed_array()`][Self::to_typed_array].
+    pub fn to_array(&self) -> Array<T>
+    where
+        T: meta::ArrayElement,
+    {
+        self.to_typed_array()
+    }
+
     /// Converts this packed array to an untyped `VarArray`.
     ///
     /// To create a typed `Array<T>`, use [`to_typed_array()`][Self::to_typed_array].
@@ -974,6 +982,11 @@ impl PackedByteArray {
     /// If the original data can't be converted to 64-bit integers, the resulting data is undefined.
     pub fn to_int64_array(&self) -> PackedInt64Array {
         self.as_inner().to_int64_array()
+    }
+
+    /// Returns a copy of the data converted to a `GString`, using UTF-8 encoding.
+    pub fn get_string_utf8(&self) -> GString {
+        self.get_string_from_utf8()
     }
 }
 
