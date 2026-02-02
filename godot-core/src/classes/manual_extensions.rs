@@ -194,6 +194,58 @@ impl Node {
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
+/// Manual extensions for the `ClassDB` class.
+#[cfg(feature = "codegen-full")]
+impl crate::classes::ClassDB {
+    /// ⚠️ Instantiates a class by name, panicking if it cannot be created or bad type.
+    pub fn instantiate_as<T>(&self, class: impl AsArg<StringName>) -> Gd<T>
+    where
+        T: Inherits<crate::classes::Object>,
+    {
+        arg_into_ref!(class);
+        self.try_instantiate_as::<T>(class).unwrap_or_else(|| {
+            panic!(
+                "ClassDB::instantiate_as(): failed to instantiate {class} as {to}",
+                to = T::class_id()
+            )
+        })
+    }
+
+    /// Instantiates a class by name (fallible).
+    pub fn try_instantiate_as<T>(&self, class: impl AsArg<StringName>) -> Option<Gd<T>>
+    where
+        T: Inherits<crate::classes::Object>,
+    {
+        arg_into_ref!(class);
+        self.instantiate(class)
+            .and_then(|obj| obj.try_cast::<T>().ok())
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Manual extensions for the `EditorInterface` class.
+#[cfg(feature = "codegen-full")]
+impl crate::classes::EditorInterface {
+    /// Retrieves the editor main screen control, cast to type `T`.
+    pub fn get_editor_main_screen_as<T>(&self) -> Gd<T>
+    where
+        T: Inherits<crate::classes::Control>,
+    {
+        self.get_editor_main_screen().cast::<T>()
+    }
+
+    /// Retrieves the editor base control, cast to type `T`.
+    pub fn get_base_control_as<T>(&self) -> Gd<T>
+    where
+        T: Inherits<crate::classes::Control>,
+    {
+        self.get_base_control().cast::<T>()
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
 /// Manual extensions for the `ProjectSettings` class.
 #[cfg(feature = "codegen-full")]
 impl crate::classes::ProjectSettings {

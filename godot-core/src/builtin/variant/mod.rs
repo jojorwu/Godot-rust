@@ -175,6 +175,27 @@ impl Variant {
         self.get_type() == ty
     }
 
+    /// Returns true if the variant holds an object.
+    ///
+    /// Alias for `self.is_type(VariantType::OBJECT)`.
+    pub fn is_object(&self) -> bool {
+        self.is_type(VariantType::OBJECT)
+    }
+
+    /// Returns true if the variant holds an array.
+    ///
+    /// Alias for `self.is_type(VariantType::ARRAY)`.
+    pub fn is_array(&self) -> bool {
+        self.is_type(VariantType::ARRAY)
+    }
+
+    /// Returns true if the variant holds a dictionary.
+    ///
+    /// Alias for `self.is_type(VariantType::DICTIONARY)`.
+    pub fn is_dictionary(&self) -> bool {
+        self.is_type(VariantType::DICTIONARY)
+    }
+
     /// Returns the type that is currently held by this variant.
     ///
     /// If this variant holds a type `Object` but no instance (represented as a null object pointer), then `Nil` will be returned for
