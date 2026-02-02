@@ -85,6 +85,19 @@ impl AnyArray {
         self.array.get(index)
     }
 
+    /// Returns the value at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
+        self.at(index).to::<U>()
+    }
+
+    /// Returns the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
+    pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
+        self.get(index).and_then(|v| v.try_to::<U>().ok())
+    }
+
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
     pub fn contains(&self, value: &Variant) -> bool {
         self.array.contains(value)

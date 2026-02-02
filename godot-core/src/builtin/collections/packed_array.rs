@@ -119,6 +119,14 @@ impl<T: PackedArrayElement> PackedArray<T> {
         unsafe { Some((*ptr).clone()) }
     }
 
+    /// ⚠️ Returns the value at the specified index.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds.
+    pub fn at(&self, index: usize) -> T {
+        self.get(index).unwrap_or_else(|| self.panic_out_of_bounds(index))
+    }
+
     /// Returns `true` if the array contains the given value.
     ///
     /// _Godot equivalent: `has`_

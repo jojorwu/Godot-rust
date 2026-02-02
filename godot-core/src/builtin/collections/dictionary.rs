@@ -143,6 +143,19 @@ impl VarDictionary {
         }
     }
 
+    /// Returns the value for the given key, converted to `V`.
+    ///
+    /// # Panics
+    /// If there is no value for the given key, or if the value cannot be converted to `V`.
+    pub fn at_as<K: ToGodot, V: FromGodot>(&self, key: K) -> V {
+        self.at(key).to::<V>()
+    }
+
+    /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
+    pub fn get_as<K: ToGodot, V: FromGodot>(&self, key: K) -> Option<V> {
+        self.get(key).and_then(|v| v.try_to::<V>().ok())
+    }
+
     /// Returns the value at the key in the dictionary, or `NIL` otherwise.
     ///
     /// This method does not let you differentiate `NIL` values stored as values from absent keys.
