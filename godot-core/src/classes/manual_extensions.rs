@@ -14,9 +14,7 @@
 
 use crate::builtin::{GString, NodePath, StringName};
 use crate::classes::{Node, PackedScene, Resource, ResourceLoader, ResourceSaver};
-use crate::meta::{arg_into_ref, AsArg};
-#[cfg(feature = "codegen-full")]
-use crate::meta::FromGodot;
+use crate::meta::{arg_into_ref, AsArg, FromGodot, ToGodot};
 use crate::obj::{Gd, Inherits};
 
 /// Error returned by [`Node::try_get_node_as`].
@@ -205,6 +203,43 @@ impl Node {
             .owned(owned)
             .done()
             .and_then(|node| node.try_cast::<T>().ok())
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Manual extensions for the `Object` class.
+impl crate::classes::Object {
+    /// ⚠️ Retrieves a property value, panicking if it cannot be converted to `T`.
+    pub fn get_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
+        self.try_get_as::<T>(name)
+            .unwrap_or_else(|| panic!("Object::get_as(): property not found or wrong type"))
+    }
+
+    /// Retrieves a property value (fallible).
+    pub fn try_get_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> Option<T> {
+        self.get(name).try_to::<T>().ok()
+    }
+
+    /// Sets a property value from `T`.
+    pub fn set_as<T: ToGodot>(&mut self, name: impl AsArg<StringName>, value: T) {
+        self.set(name, &value.to_variant());
+    }
+
+    /// ⚠️ Retrieves a metadata value, panicking if not found or cannot be converted to `T`.
+    pub fn get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
+        self.try_get_meta_as::<T>(name)
+            .unwrap_or_else(|| panic!("Object::get_meta_as(): meta not found or wrong type"))
+    }
+
+    /// Retrieves a metadata value (fallible).
+    pub fn try_get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> Option<T> {
+        self.get_meta(name).try_to::<T>().ok()
+    }
+
+    /// Sets a metadata value from `T`.
+    pub fn set_meta_as<T: ToGodot>(&mut self, name: impl AsArg<StringName>, value: T) {
+        self.set_meta(name, &value.to_variant());
     }
 }
 

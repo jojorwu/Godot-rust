@@ -15,7 +15,8 @@ use crate::builtin::*;
 use crate::meta;
 use crate::meta::error::ConvertError;
 use crate::meta::{
-    ArrayElement, ElementType, FromGodot, GodotConvert, GodotFfiVariant, GodotType, ToGodot,
+    arg_into_ref, ArrayElement, AsArg, ElementType, FromGodot, GodotConvert, GodotFfiVariant,
+    GodotType, ToGodot,
 };
 use crate::registry::property::SimpleVar;
 
@@ -337,6 +338,14 @@ impl AnyArray {
     /// Calling `bsearch` on an unsorted array results in unspecified behavior.
     pub fn bsearch(&self, value: &Variant) -> usize {
         self.array.bsearch(value)
+    }
+
+    /// Returns a string which is the result of joining the elements of the array with the given `delimiter`.
+    pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
+        arg_into_ref!(delimiter);
+        let variant = self.ffi_to_variant();
+        let method = StringName::from("join");
+        variant.call(&method, &[delimiter.to_variant()]).to::<GString>()
     }
 
     /// Reverses the order of the elements in the array.

@@ -196,6 +196,23 @@ impl Variant {
         self.is_type(VariantType::DICTIONARY)
     }
 
+    /// Returns the variant as an `Array<Variant>`, or `Err` if it is not an array.
+    pub fn try_to_array(&self) -> Result<crate::builtin::Array<Variant>, ConvertError> {
+        self.try_to()
+    }
+
+    /// Returns the variant as a `VarDictionary`, or `Err` if it is not a dictionary.
+    pub fn try_to_dictionary(&self) -> Result<crate::builtin::VarDictionary, ConvertError> {
+        self.try_to()
+    }
+
+    /// Returns the variant as a `Gd<T>`, or `Err` if it is not an object of type `T`.
+    pub fn try_to_object<T: crate::obj::Inherits<crate::classes::Object> + crate::obj::GodotClass>(
+        &self,
+    ) -> Result<crate::obj::Gd<T>, ConvertError> {
+        self.try_to()
+    }
+
     /// Returns the type that is currently held by this variant.
     ///
     /// If this variant holds a type `Object` but no instance (represented as a null object pointer), then `Nil` will be returned for

@@ -11,7 +11,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
-use godot::builtin::{Array, GString, StringName, Variant, Vector3};
+use godot::builtin::{Array, GString, StringName, Variant, Vector2, Vector3};
 use godot::classes::{
     file_access, Engine, FileAccess, IRefCounted, Node, Node2D, Node3D, Object, RefCounted,
 };
@@ -882,6 +882,20 @@ fn object_get_scene_tree(ctx: &TestContext) {
     let nodes: Array<Gd<Node>> = tree.get_children();
     assert_eq!(nodes.len(), 1);
 } // implicitly tested: node does not leak
+
+#[itest]
+fn object_as_helpers() {
+    let mut node = Node2D::new_alloc();
+    let pos = Vector2::new(1.0, 2.0);
+    node.set_as("position", pos);
+    assert_eq!(node.get_as::<Vector2>("position"), pos);
+
+    node.set_meta_as("my_meta", 42i64);
+    assert_eq!(node.get_meta_as::<i64>("my_meta"), 42);
+    assert_eq!(node.try_get_meta_as::<i64>("my_meta"), Some(42));
+
+    node.free();
+}
 
 #[itest]
 fn object_try_to_unique() {
