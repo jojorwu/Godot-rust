@@ -616,3 +616,39 @@ impl<'a> Iterator for Iter<'a> {
         self.inner.size_hint()
     }
 }
+
+impl IntoIterator for AnyArray {
+    type Item = Variant;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter {
+            inner: self.array.into_iter(),
+        }
+    }
+}
+
+impl<'a> IntoIterator for &'a AnyArray {
+    type Item = Variant;
+    type IntoIter = Iter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_shared()
+    }
+}
+
+pub struct IntoIter {
+    inner: crate::builtin::collections::array::IntoIter<Variant>,
+}
+
+impl Iterator for IntoIter {
+    type Item = Variant;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.inner.size_hint()
+    }
+}

@@ -89,6 +89,14 @@ impl Node {
         self.try_get_node_as::<T>(path).ok()
     }
 
+    /// Alias for [`get_node_as()`][Self::get_node_as].
+    pub fn get_node_typed<T>(&self, path: impl AsArg<NodePath>) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_node_as::<T>(path)
+    }
+
     /// ⚠️ Retrieves the parent node, panicking if not found or bad type.
     ///
     /// # Panics
@@ -157,6 +165,14 @@ impl Node {
     {
         self.get_child(index as i32)
             .and_then(|node| node.try_cast::<T>().ok())
+    }
+
+    /// Alias for [`get_child_as()`][Self::get_child_as].
+    pub fn get_child_typed<T>(&self, index: usize) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_child_as::<T>(index)
     }
 
     /// Retrieves all children, cast to type `T`.

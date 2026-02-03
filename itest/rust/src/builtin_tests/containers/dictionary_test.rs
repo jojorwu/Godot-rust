@@ -22,6 +22,37 @@ fn dictionary_default() {
 }
 
 #[itest]
+fn dictionary_into_iter() {
+    let d = vdict! { "a": 1, "b": 2 };
+    let mut count = 0;
+    for (k, v) in d {
+        count += 1;
+        if k == "a".to_variant() {
+            assert_eq!(v, 1.to_variant());
+        } else if k == "b".to_variant() {
+            assert_eq!(v, 2.to_variant());
+        } else {
+            panic!("unexpected key: {k:?}");
+        }
+    }
+    assert_eq!(count, 2);
+
+    let d = vdict! { "a": 1, "b": 2 };
+    let mut count = 0;
+    for (k, v) in &d {
+        count += 1;
+        if k == "a".to_variant() {
+            assert_eq!(v, 1.to_variant());
+        } else if k == "b".to_variant() {
+            assert_eq!(v, 2.to_variant());
+        } else {
+            panic!("unexpected key: {k:?}");
+        }
+    }
+    assert_eq!(count, 2);
+}
+
+#[itest]
 fn dictionary_new() {
     assert_eq!(VarDictionary::new().len(), 0);
 }

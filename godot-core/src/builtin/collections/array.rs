@@ -1456,6 +1456,49 @@ impl<T: ArrayElement + FromGodot> From<&Array<T>> for Vec<T> {
     }
 }
 
+impl<T: ArrayElement + FromGodot> IntoIterator for Array<T> {
+    type Item = T;
+    type IntoIter = IntoIter<T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter { array: self, next_idx: 0 }
+    }
+}
+
+impl<'a, T: ArrayElement + FromGodot> IntoIterator for &'a Array<T> {
+    type Item = T;
+    type IntoIter = Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_shared()
+    }
+}
+
+/// An iterator that consumes an [`Array`] and yields its elements.
+pub struct IntoIter<T: ArrayElement> {
+    array: Array<T>,
+    next_idx: usize,
+}
+
+impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.next_idx < self.array.len() {
+            let item = self.array.at(self.next_idx);
+            self.next_idx += 1;
+            Some(item)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.array.len() - self.next_idx;
+        (remaining, Some(remaining))
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Iterators
 

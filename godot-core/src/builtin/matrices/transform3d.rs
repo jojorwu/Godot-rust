@@ -264,6 +264,7 @@ impl Transform3D {
             origin: self.origin + (self.basis * offset),
         }
     }
+
 }
 
 impl Display for Transform3D {

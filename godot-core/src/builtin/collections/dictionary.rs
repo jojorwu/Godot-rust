@@ -634,6 +634,76 @@ impl<K: ToGodot, V: ToGodot> FromIterator<(K, V)> for VarDictionary {
     }
 }
 
+impl IntoIterator for VarDictionary {
+    type Item = (Variant, Variant);
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter::new(self)
+    }
+}
+
+impl<'a> IntoIterator for &'a VarDictionary {
+    type Item = (Variant, Variant);
+    type IntoIter = Iter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_shared()
+    }
+}
+
+/// An iterator that consumes a [`VarDictionary`] and yields its key-value pairs.
+pub struct IntoIter {
+    last_key: Option<Variant>,
+    dictionary: VarDictionary,
+    is_first: bool,
+    next_idx: usize,
+}
+
+impl IntoIter {
+    fn new(dictionary: VarDictionary) -> Self {
+        Self {
+            last_key: None,
+            dictionary,
+            is_first: true,
+            next_idx: 0,
+        }
+    }
+
+    fn next_key(&mut self) -> Option<Variant> {
+        let new_key = if self.is_first {
+            self.is_first = false;
+            DictionaryIter::call_init(&self.dictionary)
+        } else {
+            DictionaryIter::call_next(&self.dictionary, self.last_key.take()?)
+        };
+
+        if self.next_idx < self.dictionary.len() {
+            self.next_idx += 1;
+        }
+
+        self.last_key.clone_from(&new_key);
+        new_key
+    }
+}
+
+impl Iterator for IntoIter {
+    type Item = (Variant, Variant);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let key = self.next_key()?;
+
+        // Use as_inner().get() directly to avoid recursive into_iter() issues if we had them.
+        let value = self.dictionary.as_inner().get(&key, &Variant::nil());
+        Some((key, value))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = usize::saturating_sub(self.dictionary.len(), self.next_idx);
+        (remaining, Some(remaining))
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Internal helper for different iterator impls -- not an iterator itself

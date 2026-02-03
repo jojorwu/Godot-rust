@@ -47,3 +47,24 @@ fn any_array_typed_untyped_ops() {
     shared_any.reverse();
     assert_eq!(typed.at(0), 3);
 }
+
+#[itest]
+fn any_array_into_iter() {
+    let typed = array![1, 2];
+    let any = typed.upcast_any_array();
+    let mut count = 0;
+    for (i, val) in any.into_iter().enumerate() {
+        count += 1;
+        assert_eq!(val, ((i + 1) as i64).to_variant());
+    }
+    assert_eq!(count, 2);
+
+    let typed = array![1, 2];
+    let any = typed.upcast_any_array();
+    let mut count = 0;
+    for (i, val) in (&any).into_iter().enumerate() {
+        count += 1;
+        assert_eq!(val, ((i + 1) as i64).to_variant());
+    }
+    assert_eq!(count, 2);
+}

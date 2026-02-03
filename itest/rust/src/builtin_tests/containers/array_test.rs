@@ -87,6 +87,25 @@ fn array_iter_shared() {
 }
 
 #[itest]
+fn array_into_iter() {
+    let array = array![1, 2];
+    let mut count = 0;
+    for (i, val) in array.into_iter().enumerate() {
+        count += 1;
+        assert_eq!(val, (i + 1) as i64);
+    }
+    assert_eq!(count, 2);
+
+    let array = array![1, 2];
+    let mut count = 0;
+    for (i, val) in (&array).into_iter().enumerate() {
+        count += 1;
+        assert_eq!(val, (i + 1) as i64);
+    }
+    assert_eq!(count, 2);
+}
+
+#[itest]
 fn array_hash() {
     let array = array![1, 2];
     // Just testing that it converts successfully from i64 to u32.
