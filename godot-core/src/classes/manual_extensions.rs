@@ -13,7 +13,7 @@
 //! See also sister module [super::type_safe_replacements].
 
 use crate::builtin::{GString, NodePath, StringName};
-use crate::classes::{Node, PackedScene, Resource, ResourceLoader, ResourceSaver};
+use crate::classes::{Node, Object, PackedScene, Resource, ResourceLoader, ResourceSaver};
 use crate::meta::{arg_into_ref, AsArg, FromGodot, ToGodot};
 use crate::obj::{Gd, Inherits};
 
@@ -41,6 +41,43 @@ impl std::fmt::Display for GetNodeError {
 }
 
 impl std::error::Error for GetNodeError {}
+
+/// Manual extensions for the `Object` class.
+impl Object {
+    /// ⚠️ Retrieves a property value, panicking if not found or cannot be converted to `T`.
+    pub fn get_as<T: FromGodot>(&self, property: impl AsArg<StringName>) -> T {
+        self.try_get_as::<T>(property)
+            .unwrap_or_else(|| panic!("Object::get_as(): property not found or wrong type"))
+    }
+
+    /// Retrieves a property value (fallible).
+    pub fn try_get_as<T: FromGodot>(&self, property: impl AsArg<StringName>) -> Option<T> {
+        self.get(property).try_to::<T>().ok()
+    }
+
+    /// Sets a property value.
+    pub fn set_as<T: ToGodot>(&mut self, property: impl AsArg<StringName>, value: T) {
+        self.set(property, &value.to_variant());
+    }
+
+    /// ⚠️ Retrieves a metadata value, panicking if not found or cannot be converted to `T`.
+    pub fn get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
+        self.try_get_meta_as::<T>(name)
+            .unwrap_or_else(|| panic!("Object::get_meta_as(): meta not found or wrong type"))
+    }
+
+    /// Retrieves a metadata value (fallible).
+    pub fn try_get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> Option<T> {
+        self.get_meta(name).try_to::<T>().ok()
+    }
+
+    /// Sets a metadata value.
+    pub fn set_meta_as<T: ToGodot>(&mut self, name: impl AsArg<StringName>, value: T) {
+        self.set_meta(name, &value.to_variant());
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Manual extensions for the `Node` class.
 impl Node {
@@ -208,43 +245,6 @@ impl Node {
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
-/// Manual extensions for the `Object` class.
-impl crate::classes::Object {
-    /// ⚠️ Retrieves a property value, panicking if it cannot be converted to `T`.
-    pub fn get_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
-        self.try_get_as::<T>(name)
-            .unwrap_or_else(|| panic!("Object::get_as(): property not found or wrong type"))
-    }
-
-    /// Retrieves a property value (fallible).
-    pub fn try_get_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> Option<T> {
-        self.get(name).try_to::<T>().ok()
-    }
-
-    /// Sets a property value from `T`.
-    pub fn set_as<T: ToGodot>(&mut self, name: impl AsArg<StringName>, value: T) {
-        self.set(name, &value.to_variant());
-    }
-
-    /// ⚠️ Retrieves a metadata value, panicking if not found or cannot be converted to `T`.
-    pub fn get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
-        self.try_get_meta_as::<T>(name)
-            .unwrap_or_else(|| panic!("Object::get_meta_as(): meta not found or wrong type"))
-    }
-
-    /// Retrieves a metadata value (fallible).
-    pub fn try_get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> Option<T> {
-        self.get_meta(name).try_to::<T>().ok()
-    }
-
-    /// Sets a metadata value from `T`.
-    pub fn set_meta_as<T: ToGodot>(&mut self, name: impl AsArg<StringName>, value: T) {
-        self.set_meta(name, &value.to_variant());
-    }
-}
-
-// ----------------------------------------------------------------------------------------------------------------------------------------------
-
 /// Manual extensions for the `ClassDB` class.
 #[cfg(feature = "codegen-full")]
 impl crate::classes::ClassDB {
@@ -270,6 +270,14 @@ impl crate::classes::ClassDB {
         arg_into_ref!(class);
         self.instantiate(class)
             .and_then(|obj| obj.try_cast::<T>().ok())
+    }
+
+    /// Alias for [`instantiate_as()`][Self::instantiate_as].
+    pub fn instantiate_typed<T>(&self, class: impl AsArg<StringName>) -> Gd<T>
+    where
+        T: Inherits<crate::classes::Object>,
+    {
+        self.instantiate_as::<T>(class)
     }
 }
 
@@ -345,6 +353,14 @@ impl crate::classes::Engine {
     {
         arg_into_ref!(name);
         self.get_singleton(name).and_then(|obj| obj.try_cast::<T>().ok())
+    }
+
+    /// Alias for [`get_singleton_as()`][Self::get_singleton_as].
+    pub fn get_singleton_typed<T>(&self, name: impl AsArg<StringName>) -> Gd<T>
+    where
+        T: Inherits<crate::classes::Object>,
+    {
+        self.get_singleton_as::<T>(name)
     }
 }
 
@@ -446,11 +462,43 @@ impl ResourceLoader {
     {
         crate::tools::try_load(path)
     }
+
+    /// Alias for [`load_as()`][Self::load_as].
+    pub fn load_typed<T>(&self, path: impl AsArg<GString>) -> Gd<T>
+    where
+        T: Inherits<Resource>,
+    {
+        self.load_as::<T>(path)
+    }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
-/// Manual extensions for the `ResourceSaver` class.
+/// Manual extensions for the `Resource` class.
+impl Resource {
+    /// ⚠️ Duplicates the resource, panicking if the duplicate is not of type `T` or inherited.
+    pub fn duplicate_as<T>(&self, subresources: bool) -> Gd<T>
+    where
+        T: Inherits<Resource>,
+    {
+        self.duplicate_ex()
+            .deep(subresources)
+            .done()
+            .expect("Resource::duplicate() failed")
+            .cast::<T>()
+    }
+
+    /// Alias for [`duplicate_as()`][Self::duplicate_as].
+    pub fn duplicate_typed<T>(&self, subresources: bool) -> Gd<T>
+    where
+        T: Inherits<Resource>,
+    {
+        self.duplicate_as::<T>(subresources)
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
 impl ResourceSaver {
     /// ⚠️ Saves a resource to the filesystem at `path`, panicking on error.
     ///

@@ -182,6 +182,26 @@ impl Variant {
         self.is_type(VariantType::OBJECT)
     }
 
+    /// Returns true if the variant holds an integer.
+    pub fn is_int(&self) -> bool {
+        self.is_type(VariantType::INT)
+    }
+
+    /// Returns true if the variant holds a float.
+    pub fn is_float(&self) -> bool {
+        self.is_type(VariantType::FLOAT)
+    }
+
+    /// Returns true if the variant holds a boolean.
+    pub fn is_bool(&self) -> bool {
+        self.is_type(VariantType::BOOL)
+    }
+
+    /// Returns true if the variant holds a string.
+    pub fn is_string(&self) -> bool {
+        self.is_type(VariantType::STRING)
+    }
+
     /// Returns true if the variant holds an array.
     ///
     /// Alias for `self.is_type(VariantType::ARRAY)`.
@@ -210,6 +230,11 @@ impl Variant {
     pub fn try_to_object<T: crate::obj::Inherits<crate::classes::Object> + crate::obj::GodotClass>(
         &self,
     ) -> Result<crate::obj::Gd<T>, ConvertError> {
+        self.try_to()
+    }
+
+    /// Returns the variant as a `GString`, or `Err` if it is not a string.
+    pub fn try_to_gstring(&self) -> Result<GString, ConvertError> {
         self.try_to()
     }
 

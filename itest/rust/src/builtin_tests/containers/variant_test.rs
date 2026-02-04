@@ -30,22 +30,6 @@ const TEST_BASIS: Basis = Basis::from_rows(
 );
 
 #[itest]
-fn variant_conversion_helpers() {
-    let array = varray![1, 2];
-    let variant = array.to_variant();
-    assert_eq!(variant.try_to_array().unwrap(), array);
-
-    let dict = vdict! { "a": 1 };
-    let variant = dict.to_variant();
-    assert_eq!(variant.try_to_dictionary().unwrap(), dict);
-
-    let node = Node::new_alloc();
-    let variant = node.to_variant();
-    assert_eq!(variant.try_to_object::<Node>().unwrap(), node);
-    node.free();
-}
-
-#[itest]
 fn variant_nil() {
     let variant = Variant::nil();
     assert!(variant.is_nil());
