@@ -990,6 +990,19 @@ impl PackedByteArray {
     }
 }
 
+/// Specialized API for [`PackedStringArray`].
+impl PackedStringArray {
+    /// Returns a string which is the concatenation of the array elements with the given `delimiter`.
+    pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
+        use meta::GodotFfiVariant;
+        let variant = self.ffi_to_variant();
+        let method = StringName::from("join");
+        meta::arg_into_ref!(delimiter);
+        let result = variant.call(&method, &[delimiter.to_variant()]);
+        result.to::<GString>()
+    }
+}
+
 /// Adds `to_byte_array()` method to other packed array types.
 macro_rules! impl_to_byte_array {
     ($ArrayType:ident) => {

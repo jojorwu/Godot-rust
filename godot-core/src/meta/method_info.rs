@@ -9,7 +9,7 @@ use godot_ffi::conv::u32_to_usize;
 
 use crate::builtin::{StringName, Variant};
 use crate::global::MethodFlags;
-use crate::meta::{ClassId, PropertyInfo};
+use crate::meta::{AsArg, ClassId, PropertyInfo, ToGodot};
 use crate::sys;
 
 /// Describes a method's signature and metadata required by the Godot engine.
@@ -105,6 +105,67 @@ pub struct MethodInfo {
 }
 
 impl MethodInfo {
+    /// Creates a new `MethodInfo` with the given name.
+    pub fn new(method_name: impl AsArg<StringName>) -> Self {
+        Self {
+            id: 0,
+            method_name: method_name.into_arg().to_owned(),
+            class_id: ClassId::none(),
+            return_type: PropertyInfo::default(),
+            arguments: vec![],
+            default_arguments: vec![],
+            flags: MethodFlags::DEFAULT,
+        }
+    }
+
+    /// Sets the method's unique ID.
+    pub fn with_id(mut self, id: i32) -> Self {
+        self.id = id;
+        self
+    }
+
+    /// Sets the class ID this method belongs to.
+    pub fn with_class_id(mut self, class_id: ClassId) -> Self {
+        self.class_id = class_id;
+        self
+    }
+
+    /// Sets the method's return type.
+    pub fn with_return_type(mut self, return_type: PropertyInfo) -> Self {
+        self.return_type = return_type;
+        self
+    }
+
+    /// Adds a parameter to the method signature.
+    pub fn with_argument(mut self, argument: PropertyInfo) -> Self {
+        self.arguments.push(argument);
+        self
+    }
+
+    /// Sets all method parameters.
+    pub fn with_arguments(mut self, arguments: Vec<PropertyInfo>) -> Self {
+        self.arguments = arguments;
+        self
+    }
+
+    /// Adds a default value for the last parameter.
+    pub fn with_default_argument(mut self, default_argument: impl ToGodot) -> Self {
+        self.default_arguments.push(default_argument.to_variant());
+        self
+    }
+
+    /// Sets all default arguments.
+    pub fn with_default_arguments(mut self, default_arguments: Vec<Variant>) -> Self {
+        self.default_arguments = default_arguments;
+        self
+    }
+
+    /// Sets method flags.
+    pub fn with_flags(mut self, flags: MethodFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
     /// Consumes self and turns it into a `sys::GDExtensionMethodInfo`, should be used together with
     /// [`free_owned_method_sys`](Self::free_owned_method_sys).
     ///

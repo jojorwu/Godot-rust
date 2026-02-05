@@ -30,6 +30,7 @@ mod containers {
     mod array_test;
     mod callable_test;
     mod dictionary_test;
+    mod join_test;
     mod packed_array_test;
     mod rid_test;
     mod signal_disconnect_test;

@@ -15,7 +15,7 @@ use crate::builtin::*;
 use crate::meta;
 use crate::meta::error::ConvertError;
 use crate::meta::{
-    ArrayElement, ElementType, FromGodot, GodotConvert, GodotFfiVariant, GodotType, ToGodot,
+    ArrayElement, AsArg, ElementType, FromGodot, GodotConvert, GodotFfiVariant, GodotType, ToGodot,
 };
 use crate::registry::property::SimpleVar;
 
@@ -472,6 +472,17 @@ impl AnyArray {
     }
 
     // If we add direct-conversion methods that panic, we can use meta::element_godot_type_name::<T>() to mention type in case of mismatch.
+
+    /// Returns a string which is the concatenation of the array elements with the given `delimiter`.
+    ///
+    /// This method is dynamic and can be used on any array. Each element is converted to a string before joining.
+    pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
+        let variant = self.ffi_to_variant();
+        let method = StringName::from("join");
+        meta::arg_into_ref!(delimiter);
+        let result = variant.call(&method, &[delimiter.to_variant()]);
+        result.to::<GString>()
+    }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

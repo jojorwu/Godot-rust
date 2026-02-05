@@ -12,7 +12,7 @@
 //!
 //! See also sister module [super::type_safe_replacements].
 
-use crate::builtin::{GString, NodePath, StringName};
+use crate::builtin::{GString, NodePath, StringName, Variant};
 use crate::classes::{Node, Object, PackedScene, Resource, ResourceLoader, ResourceSaver};
 use crate::meta::{arg_into_ref, AsArg, FromGodot, ToGodot};
 use crate::obj::{Gd, Inherits};
@@ -74,6 +74,25 @@ impl Object {
     /// Sets a metadata value.
     pub fn set_meta_as<T: ToGodot>(&mut self, name: impl AsArg<StringName>, value: T) {
         self.set_meta(name, &value.to_variant());
+    }
+
+    /// ⚠️ Calls a method and converts the return value to `T`, panicking if it fails.
+    pub fn call_as<T: FromGodot>(
+        &mut self,
+        method: impl AsArg<StringName>,
+        args: &[Variant],
+    ) -> T {
+        self.try_call_as::<T>(method, args)
+            .unwrap_or_else(|| panic!("Object::call_as(): method call failed or wrong return type"))
+    }
+
+    /// Calls a method and converts the return value to `T` (fallible).
+    pub fn try_call_as<T: FromGodot>(
+        &mut self,
+        method: impl AsArg<StringName>,
+        args: &[Variant],
+    ) -> Option<T> {
+        self.call(method, args).try_to::<T>().ok()
     }
 }
 
@@ -240,6 +259,19 @@ impl Node {
             .owned(owned)
             .done()
             .and_then(|node| node.try_cast::<T>().ok())
+    }
+
+    /// Alias for [`find_child_as()`][Self::find_child_as].
+    pub fn find_child_typed<T>(
+        &self,
+        pattern: impl AsArg<GString>,
+        recursive: bool,
+        owned: bool,
+    ) -> Option<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.find_child_as::<T>(pattern, recursive, owned)
     }
 }
 

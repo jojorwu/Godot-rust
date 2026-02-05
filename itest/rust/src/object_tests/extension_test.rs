@@ -63,3 +63,38 @@ fn test_resource_duplication() {
     let dup_typed: Gd<Resource> = res.duplicate_typed::<Resource>(false);
     assert!(dup_typed.is_instance_valid());
 }
+
+#[itest]
+fn test_object_call_as() {
+    let mut node = Node::new_alloc();
+
+    // Test call_as
+    let name: GString = node.call_as("get_name", &[]);
+    assert!(!name.is_empty());
+
+    // Test try_call_as
+    let name_opt: Option<GString> = node.try_call_as("get_name", &[]);
+    assert!(name_opt.is_some());
+
+    let bad_opt: Option<i64> = node.try_call_as("get_name", &[]);
+    assert_eq!(bad_opt, None);
+
+    node.free();
+}
+
+#[itest]
+fn test_node_find_child_typed() {
+    let mut parent = Node::new_alloc();
+    let mut child = Node::new_alloc();
+    let child_name = "MyChild";
+    child.set_name(child_name);
+    parent.add_child(&child);
+
+    let found = parent.find_child_typed::<Node>(child_name, false, true);
+    assert!(found.is_some());
+    assert_eq!(found.unwrap().instance_id(), child.instance_id());
+
+    parent.remove_child(&child);
+    child.free();
+    parent.free();
+}
