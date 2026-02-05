@@ -500,6 +500,17 @@ impl Callable {
     pub fn as_inner(&self) -> inner::InnerCallable<'_> {
         inner::InnerCallable::from_outer(self)
     }
+
+    /// ⚠️ Calls the method represented by this callable and converts the return value to `T`, panicking if it fails.
+    pub fn call_as<T: meta::FromGodot>(&self, args: &[Variant]) -> T {
+        self.try_call_as::<T>(args)
+            .unwrap_or_else(|| panic!("Callable::call_as(): method call failed or wrong return type"))
+    }
+
+    /// Calls the method represented by this callable and converts the return value to `T` (fallible).
+    pub fn try_call_as<T: meta::FromGodot>(&self, args: &[Variant]) -> Option<T> {
+        self.call(args).try_to::<T>().ok()
+    }
 }
 
 impl_builtin_traits! {

@@ -415,6 +415,21 @@ impl VarDictionary {
         Keys::new(self)
     }
 
+    /// Returns a typed iterator over key-value pairs.
+    pub fn iter_typed<K: FromGodot, V: FromGodot>(&self) -> TypedIter<'_, K, V> {
+        self.iter_shared().typed::<K, V>()
+    }
+
+    /// Returns a typed iterator over keys.
+    pub fn keys_typed<K: FromGodot>(&self) -> TypedKeys<'_, K> {
+        self.keys_shared().typed::<K>()
+    }
+
+    /// Returns a typed iterator over values.
+    pub fn values_typed<V: FromGodot>(&self) -> TypedValues<'_, V> {
+        TypedValues::new(self)
+    }
+
     /// Turns the dictionary into a shallow-immutable dictionary.
     ///
     /// Makes the dictionary read-only and returns the original dictionary. Disables modification of the dictionary's contents.
@@ -842,6 +857,37 @@ impl Iterator for Iter<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next_key_value()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// [`VarDictionary`] iterator that converts each value into a typed `V`.
+///
+/// See [`VarDictionary::iter_shared()`] for more information about iteration over dictionaries.
+pub struct TypedValues<'a, V> {
+    iter: DictionaryIter<'a>,
+    _v: PhantomData<V>,
+}
+
+impl<'a, V> TypedValues<'a, V> {
+    fn new(dictionary: &'a VarDictionary) -> Self {
+        Self {
+            iter: DictionaryIter::new(dictionary),
+            _v: PhantomData,
+        }
+    }
+}
+
+impl<V: FromGodot> Iterator for TypedValues<'_, V> {
+    type Item = V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next_key_value().map(|(_k, v)| V::from_variant(&v))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

@@ -12,7 +12,7 @@ use godot::builtin::{
     array, varray, vdict, vslice, Array, Callable, Color, GString, NodePath, StringName, VarArray,
     Variant, Vector2,
 };
-use godot::classes::{Node2D, Object, RefCounted};
+use godot::classes::{Node, Node2D, Object, RefCounted};
 use godot::init::GdextBuild;
 use godot::meta::ToGodot;
 use godot::obj::{Gd, NewAlloc, NewGd};
@@ -42,6 +42,25 @@ impl CallableTestObj {
     fn concat_array(a: i32, b: GString, c: Array<NodePath>, d: Gd<RefCounted>) -> VarArray {
         varray![a, b, c, d]
     }
+}
+
+#[itest]
+fn test_callable_call_as() {
+    let obj = Node::new_alloc();
+    let callable = obj.callable("get_name");
+
+    // call_as
+    let name: GString = callable.call_as(&[]);
+    assert!(!name.is_empty());
+
+    // try_call_as
+    let name_opt: Option<GString> = callable.try_call_as(&[]);
+    assert!(name_opt.is_some());
+
+    let bad_opt: Option<i64> = callable.try_call_as(&[]);
+    assert_eq!(bad_opt, None);
+
+    obj.free();
 }
 
 #[itest]
