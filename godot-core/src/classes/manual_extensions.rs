@@ -14,7 +14,7 @@
 
 use crate::builtin::{GString, NodePath, StringName, Variant};
 use crate::classes::{Node, Object, PackedScene, Resource, ResourceLoader, ResourceSaver};
-use crate::meta::{arg_into_ref, AsArg, FromGodot, ToGodot};
+use crate::meta::{arg_into_ref, AsArg, FromGodot, PropertyInfo, ToGodot};
 use crate::obj::{Gd, Inherits};
 
 /// Error returned by [`Node::try_get_node_as`].
@@ -93,6 +93,14 @@ impl Object {
         args: &[Variant],
     ) -> Option<T> {
         self.call(method, args).try_to::<T>().ok()
+    }
+
+    /// Returns the list of properties for this object as a `Vec<PropertyInfo>`.
+    pub fn get_property_list_typed(&self) -> Vec<PropertyInfo> {
+        self.get_property_list()
+            .iter_shared()
+            .map(|dict| PropertyInfo::from_dictionary(&dict))
+            .collect()
     }
 }
 

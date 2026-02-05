@@ -68,3 +68,24 @@ fn any_array_into_iter() {
     }
     assert_eq!(count, 2);
 }
+
+#[itest]
+fn any_array_at_get_as() {
+    let typed = array![10, 20];
+    let any = typed.upcast_any_array();
+
+    assert_eq!(any.at_as::<i64>(0), 10);
+    assert_eq!(any.at_as::<f64>(1), 20.0);
+    assert_eq!(any.get_as::<i64>(0), Some(10));
+    assert_eq!(any.get_as::<i64>(2), None);
+    assert_eq!(any.get_as::<GString>(0), None);
+}
+
+#[itest]
+fn any_array_join() {
+    let typed: Array<GString> = array!["a", "b", "c"];
+    let any = typed.upcast_any_array();
+
+    assert_eq!(any.join(", "), GString::from("a, b, c"));
+    assert_eq!(any.join("-"), GString::from("a-b-c"));
+}

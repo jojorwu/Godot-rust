@@ -142,6 +142,24 @@ impl FromGodot for ConvertedStruct {
 }
 
 #[itest]
+fn test_variant_relaxed_shorthands() {
+    let v_int = Variant::from(42i64);
+    let v_float = Variant::from(3.14f64);
+    let v_bool = Variant::from(true);
+    let v_string = Variant::from("hello");
+
+    assert_eq!(v_int.to_int(), 42);
+    assert_eq!(v_float.to_float(), 3.14);
+    assert_eq!(v_bool.to_bool(), true);
+    assert_eq!(v_string.to_gstring(), GString::from("hello"));
+
+    // Relaxed
+    assert_eq!(v_int.to_float(), 42.0);
+    assert_eq!(v_float.to_int(), 3);
+    assert_eq!(v_int.to_gstring(), GString::from("42"));
+}
+
+#[itest]
 fn custom_convert_roundtrip() {
     let m = ConvertedStruct { a: 10, b: 12.34 };
 

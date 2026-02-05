@@ -238,6 +238,30 @@ impl Variant {
         self.try_to()
     }
 
+    /// ⚠️ Returns the variant as an integer, using relaxed conversion rules, panicking if it fails.
+    pub fn to_int(&self) -> i64 {
+        self.try_to_relaxed::<i64>()
+            .unwrap_or_else(|err| panic!("Variant::to_int(): {err}"))
+    }
+
+    /// ⚠️ Returns the variant as a float, using relaxed conversion rules, panicking if it fails.
+    pub fn to_float(&self) -> f64 {
+        self.try_to_relaxed::<f64>()
+            .unwrap_or_else(|err| panic!("Variant::to_float(): {err}"))
+    }
+
+    /// ⚠️ Returns the variant as a boolean, using relaxed conversion rules, panicking if it fails.
+    pub fn to_bool(&self) -> bool {
+        self.try_to_relaxed::<bool>()
+            .unwrap_or_else(|err| panic!("Variant::to_bool(): {err}"))
+    }
+
+    /// ⚠️ Returns the variant as a `GString`, using relaxed conversion rules, panicking if it fails.
+    pub fn to_gstring(&self) -> GString {
+        self.try_to_relaxed::<GString>()
+            .unwrap_or_else(|err| panic!("Variant::to_gstring(): {err}"))
+    }
+
     /// Returns the type that is currently held by this variant.
     ///
     /// If this variant holds a type `Object` but no instance (represented as a null object pointer), then `Nil` will be returned for

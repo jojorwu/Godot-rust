@@ -7,7 +7,7 @@
 
 use std::collections::{HashMap, HashSet};
 
-use godot::builtin::{varray, vdict, VarDictionary, Variant, VariantType};
+use godot::builtin::{varray, vdict, Callable, VarDictionary, Variant, VariantType};
 use godot::classes::RefCounted;
 use godot::meta::{ElementType, FromGodot, ToGodot};
 use godot::obj::NewGd;
@@ -861,4 +861,26 @@ func variant_script_dict() -> Dictionary[Variant, CustomScriptForDictionaries]:
     let script = script.script().expect("script object should be alive");
     assert_eq!(script, gdscript.upcast());
     assert_eq!(script.get_global_name(), "CustomScriptForDictionaries");
+}
+
+#[itest]
+fn dictionary_functional_ops() {
+    let d = vdict! { "a": 1, "b": 2, "c": 3 };
+
+    // Filter
+    let even = d.functional_ops().filter(&Callable::from_fn("is_even", |args| {
+        args[1].to::<i64>() % 2 == 0
+    }));
+    assert_eq!(even.len(), 1);
+    assert_eq!(even.get("b"), Some(2.to_variant()));
+
+    // Map
+    let squared = d.functional_ops().map(&Callable::from_fn("square", |args| {
+        let val = args[1].to::<i64>();
+        (val * val).to_variant()
+    }));
+    assert_eq!(squared.len(), 3);
+    assert_eq!(squared.get("a"), Some(1.to_variant()));
+    assert_eq!(squared.get("b"), Some(4.to_variant()));
+    assert_eq!(squared.get("c"), Some(9.to_variant()));
 }

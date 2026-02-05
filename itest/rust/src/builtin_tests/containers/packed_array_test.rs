@@ -61,7 +61,6 @@ fn packed_array_from_iterator() {
     assert_eq!(array[1], 2);
 }
 
-/* Enable once IntoIterator is implemented.
 #[itest]
 fn packed_array_into_iterator() {
     let array = PackedByteArray::from(&[1, 2]);
@@ -70,7 +69,6 @@ fn packed_array_into_iterator() {
     assert_eq!(iter.next(), Some(2));
     assert_eq!(iter.next(), None);
 }
-*/
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Element access and query tests
@@ -804,6 +802,18 @@ fn packed_array_array_conversions_gstring() {
         typed.element_type(),
         ElementType::Builtin(VariantType::STRING)
     );
+}
+
+#[itest]
+fn packed_string_array_join() {
+    let array = PackedStringArray::from([
+        GString::from("a"),
+        GString::from("b"),
+        GString::from("c"),
+    ]);
+
+    assert_eq!(array.join(", "), GString::from("a, b, c"));
+    assert_eq!(array.join("-"), GString::from("a-b-c"));
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -130,6 +130,11 @@ impl GFile {
         }
     }
 
+    /// Opens a file at `path`, reads its entire content as a Rust [`String`], and closes the file.
+    pub fn read_to_string(path: impl AsArg<GString>) -> std::io::Result<String> {
+        Self::read_to_gstring(path).map(String::from)
+    }
+
     /// Creates (or truncates) a file at `path`, writes the [`GString`] `contents` into it, and closes the file.
     pub fn write_gstring_to_file(
         path: impl AsArg<GString>,

@@ -29,6 +29,7 @@ mod containers {
     mod any_array_test;
     mod array_test;
     mod callable_test;
+    mod dictionary_functional_test;
     mod dictionary_test;
     mod dictionary_typed_test;
     mod join_test;

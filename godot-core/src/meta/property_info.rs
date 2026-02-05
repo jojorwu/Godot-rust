@@ -7,7 +7,7 @@
 
 use godot_ffi::VariantType;
 
-use crate::builtin::{GString, StringName};
+use crate::builtin::{GString, StringName, VarDictionary};
 use crate::global::{PropertyHint, PropertyUsageFlags};
 use crate::meta::{element_godot_type_name, ArrayElement, ClassId, GodotType, PackedArrayElement};
 use crate::obj::{bounds, Bounds, EngineBitfield, EngineEnum, GodotClass, Inherits};
@@ -120,6 +120,47 @@ impl Default for PropertyInfo {
 }
 
 impl PropertyInfo {
+    /// Create a `PropertyInfo` from a dictionary.
+    pub fn from_dictionary(dict: &VarDictionary) -> Self {
+        use crate::obj::EngineEnum;
+
+        let variant_type = dict
+            .get_as::<&str, i64>("type")
+            .map(|ty| VariantType::from_sys(ty as sys::GDExtensionVariantType))
+            .unwrap_or(VariantType::NIL);
+
+        let property_name = dict
+            .get_as::<&str, StringName>("name")
+            .unwrap_or_default();
+
+        let class_id = dict
+            .get_as::<&str, StringName>("class_name")
+            .map(|name| ClassId::new_dynamic(name.to_string()))
+            .unwrap_or(ClassId::none());
+
+        let hint = dict
+            .get_as::<&str, i64>("hint")
+            .map(|h| PropertyHint::from_ord(h as i32))
+            .unwrap_or(PropertyHint::NONE);
+
+        let hint_string = dict
+            .get_as::<&str, GString>("hint_string")
+            .unwrap_or_default();
+
+        let usage = dict
+            .get_as::<&str, i64>("usage")
+            .map(|u| PropertyUsageFlags::from_ord(u as u64))
+            .unwrap_or(PropertyUsageFlags::DEFAULT);
+
+        Self {
+            variant_type,
+            class_id,
+            property_name,
+            hint_info: PropertyHintInfo { hint, hint_string },
+            usage,
+        }
+    }
+
     /// Create a new `PropertyInfo` representing a property named `property_name` with type `T` automatically.
     ///
     /// This will generate property info equivalent to what a `#[var]` attribute would produce.

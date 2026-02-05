@@ -98,3 +98,14 @@ fn test_node_find_child_typed() {
     child.free();
     parent.free();
 }
+
+#[itest]
+fn test_object_get_property_list_typed() {
+    let node = Node::new_alloc();
+    let props = node.get_property_list_typed();
+
+    assert!(!props.is_empty());
+    assert!(props.iter().any(|p| p.property_name == StringName::from("name")));
+
+    node.free();
+}

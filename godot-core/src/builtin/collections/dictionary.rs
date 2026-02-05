@@ -16,6 +16,8 @@ use sys::{ffi_methods, interface_fn, GodotFfi};
 use crate::builtin::{inner, VarArray, Variant};
 use crate::meta::{ElementType, ExtVariantType, FromGodot, ToGodot};
 
+use super::dictionary_functional_ops::DictionaryFunctionalOps;
+
 #[deprecated = "Renamed to `VarDictionary`; `Dictionary` will be reserved for typed dictionaries in the future."]
 pub type Dictionary = VarDictionary;
 
@@ -428,6 +430,11 @@ impl VarDictionary {
     /// Returns a typed iterator over values.
     pub fn values_typed<V: FromGodot>(&self) -> TypedValues<'_, V> {
         TypedValues::new(self)
+    }
+
+    /// Access to Godot's functional-programming APIs based on callables.
+    pub fn functional_ops(&self) -> DictionaryFunctionalOps<'_> {
+        DictionaryFunctionalOps::new(self)
     }
 
     /// Turns the dictionary into a shallow-immutable dictionary.
