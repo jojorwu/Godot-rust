@@ -536,6 +536,66 @@ fn enums_as_signal_args() {
     object.signals().game_event().emit(event);
 }
 
+#[itest]
+fn signal_new_ergonomics() {
+    let mut emitter = Emitter::new_alloc();
+    let mut sig = emitter.signals().signal_int();
+
+    // connect_once
+    let tracker = Rc::new(Cell::new(0));
+    {
+        let tracker = tracker.clone();
+        sig.connect_once(move |(i,)| {
+            tracker.set(i);
+        });
+    }
+    sig.emit(100);
+    assert_eq!(tracker.get(), 100);
+
+    tracker.set(0);
+    sig.emit(200);
+    assert_eq!(tracker.get(), 0); // Should not be called again
+
+    // is_connected and disconnect
+    let receiver = Receiver::new_alloc();
+    let callable = receiver.callable("receive_int");
+
+    assert!(!sig.is_connected(&callable));
+    drop(sig);
+    emitter.connect("signal_int", &callable);
+
+    let mut sig = emitter.signals().signal_int();
+    assert!(sig.is_connected(&callable));
+
+    sig.disconnect(&callable);
+    assert!(!sig.is_connected(&callable));
+
+    receiver.free();
+    emitter.free();
+}
+
+#[itest]
+fn signal_connect_deferred() {
+    let emitter = Emitter::new_alloc();
+    let mut sig = emitter.signals().signal_unit();
+
+    let tracker = Rc::new(Cell::new(false));
+    {
+        let tracker = tracker.clone();
+        sig.connect_deferred(move || {
+            tracker.set(true);
+        });
+    }
+
+    sig.emit();
+    assert!(!tracker.get()); // Should not be called yet
+
+    // We can't easily test that it WILL be called in this sync itest without yielding,
+    // but at least we verified it's not called immediately.
+
+    emitter.free();
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Helper types
 
@@ -560,7 +620,7 @@ mod emitter {
     #[godot_api]
     impl Emitter {
         #[signal]
-        fn signal_unit();
+        pub fn signal_unit();
 
         // Public to demonstrate usage inside module.
         #[signal]

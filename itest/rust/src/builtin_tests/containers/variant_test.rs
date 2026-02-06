@@ -724,6 +724,48 @@ fn variant_hash() {
     assert_ne!(vdict! { 0: vdict! { 0: 0 } }, vdict! { 0: vdict! { 0: 1 } });
 }
 
+#[itest]
+fn variant_operators() {
+    let a = Variant::from(10);
+    let b = Variant::from(20);
+
+    // Comparison
+    assert!(a < b);
+    assert!(a <= b);
+    assert!(b > a);
+    assert!(b >= a);
+    assert!(a != b);
+    assert_eq!(a.partial_cmp(&b), Some(Ordering::Less));
+
+    // Arithmetic
+    assert_eq!(a.clone() + b.clone(), Variant::from(30));
+    assert_eq!(b.clone() - a.clone(), Variant::from(10));
+    assert_eq!(a.clone() * b.clone(), Variant::from(200));
+    assert_eq!(b.clone() / a.clone(), Variant::from(2));
+    assert_eq!(Variant::from(7) % Variant::from(3), Variant::from(1));
+
+    // Assignment
+    let mut c = a.clone();
+    c += b.clone();
+    assert_eq!(c, Variant::from(30));
+
+    c -= Variant::from(5);
+    assert_eq!(c, Variant::from(25));
+
+    // Unary
+    assert_eq!(-a.clone(), Variant::from(-10));
+    assert_eq!(!Variant::from(true), Variant::from(false));
+
+    // Bitwise
+    let x = Variant::from(0b1010);
+    let y = Variant::from(0b1100);
+    assert_eq!(x.clone() & y.clone(), Variant::from(0b1000));
+    assert_eq!(x.clone() | y.clone(), Variant::from(0b1110));
+    assert_eq!(x.clone() ^ y.clone(), Variant::from(0b0110));
+    assert_eq!(Variant::from(1) << Variant::from(2), Variant::from(4));
+    assert_eq!(Variant::from(8) >> Variant::from(2), Variant::from(2));
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
 fn convert_relaxed_to<T, U>(from: T, expected_to: U)

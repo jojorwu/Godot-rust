@@ -166,6 +166,20 @@ impl<'c, C: WithSignals, Ps: meta::ParamTuple> TypedSignal<'c, C, Ps> {
         object.cast()
     }
 
+    /// Returns `true` if the signal is connected to the given callable.
+    pub fn is_connected(&self, callable: &Callable) -> bool {
+        let signal_name = self.name.as_ref();
+        self.object.to_owned_object().is_connected(signal_name, callable)
+    }
+
+    /// Disconnects the signal from the given callable.
+    pub fn disconnect(&mut self, callable: &Callable) {
+        let signal_name = self.name.as_ref();
+        self.object.with_object_mut(|obj| {
+            obj.disconnect(signal_name, callable);
+        });
+    }
+
     /// Fully customizable connection setup.
     ///
     /// The returned builder provides several methods to configure how to connect the signal. It needs to be finalized with a call
@@ -236,6 +250,39 @@ impl<'c, C: WithSignals, Ps: meta::ParamTuple> TypedSignal<'c, C, Ps> {
 }
 
 impl<C: WithSignals, Ps: InParamTuple + 'static> TypedSignal<'_, C, Ps> {
+    /// Connect a function or closure that is called only once.
+    ///
+    /// The provided function can be a `FnOnce`, and the connection is automatically created with the `CONNECT_ONE_SHOT` flag.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use godot::prelude::*;
+    /// # #[derive(GodotClass)]
+    /// # #[class(init, base=Node)]
+    /// # struct MyNode { base: Base<Node> }
+    /// # #[godot_api] impl MyNode {
+    /// #   #[signal] fn my_signal(arg: i64);
+    /// #   fn test(&mut self) {
+    /// self.signals().my_signal().connect_once(|arg| {
+    ///     godot_print!("Signal received with arg: {arg:?}");
+    ///     // This closure is consumed and can only be called once.
+    /// });
+    /// #   }
+    /// # }
+    /// ```
+    pub fn connect_once<F>(&self, function: F) -> ConnectHandle
+    where
+        // Use a wrapper to handle variadic FnOnce. Since we don't have SignalReceiver for FnOnce yet,
+        // we use a simplified approach for global/closure FnOnce.
+        F: FnOnce(Ps) + 'static,
+    {
+        let callable = Callable::from_once_fn(make_callable_name::<F>(), move |args| {
+            let params = Ps::from_variant_array(args);
+            function(params);
+        });
+        self.inner_connect_untyped(callable, Some(ConnectFlags::ONE_SHOT))
+    }
+
     /// Connect a non-member function (global function, associated function or closure).
     ///
     /// Example usages:
@@ -259,6 +306,17 @@ impl<C: WithSignals, Ps: InParamTuple + 'static> TypedSignal<'_, C, Ps> {
         });
 
         self.inner_connect_godot_fn::<F>(godot_fn, &self.receiver_object())
+    }
+
+    /// Connect a non-member function or closure that is called deferred.
+    ///
+    /// The connection is automatically created with the `CONNECT_DEFERRED` flag.
+    pub fn connect_deferred<F>(&self, function: F) -> ConnectHandle
+    where
+        for<'c_rcv> F: SignalReceiver<(), Ps> + 'static,
+        for<'c_rcv> IndirectSignalReceiver<'c_rcv, (), Ps, F>: From<&'c_rcv mut F>,
+    {
+        self.builder().flags(ConnectFlags::DEFERRED).connect(function)
     }
 
     /// Connect a method (member function) with `&mut self` as the first parameter.

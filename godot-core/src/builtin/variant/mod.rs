@@ -710,6 +710,109 @@ impl PartialEq for Variant {
     }
 }
 
+impl PartialOrd for Variant {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        if self == other {
+            return Some(std::cmp::Ordering::Equal);
+        }
+
+        if self
+            .evaluate(other, VariantOperator::LESS)
+            .is_some_and(|v| v.to::<bool>())
+        {
+            return Some(std::cmp::Ordering::Less);
+        }
+
+        if self
+            .evaluate(other, VariantOperator::GREATER)
+            .is_some_and(|v| v.to::<bool>())
+        {
+            return Some(std::cmp::Ordering::Greater);
+        }
+
+        None
+    }
+}
+
+macro_rules! impl_variant_bin_op {
+    ($trait:ident, $method:ident, $op:expr) => {
+        impl std::ops::$trait for Variant {
+            type Output = Self;
+            fn $method(self, rhs: Self) -> Self::Output {
+                self.evaluate(&rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"))
+            }
+        }
+
+        impl std::ops::$trait<&Variant> for Variant {
+            type Output = Self;
+            fn $method(self, rhs: &Variant) -> Self::Output {
+                self.evaluate(rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"))
+            }
+        }
+    };
+}
+
+macro_rules! impl_variant_assign_op {
+    ($trait:ident, $method:ident, $op:expr) => {
+        impl std::ops::$trait for Variant {
+            fn $method(&mut self, rhs: Self) {
+                *self = self.evaluate(&rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"));
+            }
+        }
+
+        impl std::ops::$trait<&Variant> for Variant {
+            fn $method(&mut self, rhs: &Variant) {
+                *self = self.evaluate(rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"));
+            }
+        }
+    };
+}
+
+impl_variant_bin_op!(Add, add, VariantOperator::ADD);
+impl_variant_bin_op!(Sub, sub, VariantOperator::SUBTRACT);
+impl_variant_bin_op!(Mul, mul, VariantOperator::MULTIPLY);
+impl_variant_bin_op!(Div, div, VariantOperator::DIVIDE);
+impl_variant_bin_op!(Rem, rem, VariantOperator::MODULO);
+
+impl_variant_assign_op!(AddAssign, add_assign, VariantOperator::ADD);
+impl_variant_assign_op!(SubAssign, sub_assign, VariantOperator::SUBTRACT);
+impl_variant_assign_op!(MulAssign, mul_assign, VariantOperator::MULTIPLY);
+impl_variant_assign_op!(DivAssign, div_assign, VariantOperator::DIVIDE);
+impl_variant_assign_op!(RemAssign, rem_assign, VariantOperator::MODULO);
+
+impl std::ops::Neg for Variant {
+    type Output = Self;
+    fn neg(self) -> Self::Output {
+        self.evaluate(&Variant::nil(), VariantOperator::NEGATE)
+            .expect("Variant neg failed")
+    }
+}
+
+impl std::ops::Not for Variant {
+    type Output = Self;
+    fn not(self) -> Self::Output {
+        let op = if self.get_type() == VariantType::BOOL {
+            VariantOperator::NOT
+        } else {
+            VariantOperator::BIT_NEGATE
+        };
+        self.evaluate(&Variant::nil(), op)
+            .expect("Variant not failed")
+    }
+}
+
+impl_variant_bin_op!(BitAnd, bitand, VariantOperator::BIT_AND);
+impl_variant_bin_op!(BitOr, bitor, VariantOperator::BIT_OR);
+impl_variant_bin_op!(BitXor, bitxor, VariantOperator::BIT_XOR);
+impl_variant_bin_op!(Shl, shl, VariantOperator::SHIFT_LEFT);
+impl_variant_bin_op!(Shr, shr, VariantOperator::SHIFT_RIGHT);
+
+impl_variant_assign_op!(BitAndAssign, bitand_assign, VariantOperator::BIT_AND);
+impl_variant_assign_op!(BitOrAssign, bitor_assign, VariantOperator::BIT_OR);
+impl_variant_assign_op!(BitXorAssign, bitxor_assign, VariantOperator::BIT_XOR);
+impl_variant_assign_op!(ShlAssign, shl_assign, VariantOperator::SHIFT_LEFT);
+impl_variant_assign_op!(ShrAssign, shr_assign, VariantOperator::SHIFT_RIGHT);
+
 impl fmt::Display for Variant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = self.stringify();
