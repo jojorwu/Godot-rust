@@ -435,6 +435,171 @@ impl Variant {
         }
     }
 
+    /// Gets the value of a key from this variant.
+    ///
+    /// # Panics
+    /// If the operation is invalid for this variant type.
+    pub fn get_keyed(&self, key: &Variant) -> Variant {
+        let mut valid = false as sys::GDExtensionBool;
+        let mut ret = Variant::nil();
+        unsafe {
+            interface_fn!(variant_get_keyed)(
+                self.var_sys(),
+                key.var_sys(),
+                ret.var_sys_mut().cast(),
+                ptr::addr_of_mut!(valid),
+            );
+        }
+        assert!(
+            sys::conv::bool_from_sys(valid),
+            "Variant::get_keyed(): operation invalid"
+        );
+        ret
+    }
+
+    /// Sets the value of a key in this variant.
+    ///
+    /// # Panics
+    /// If the operation is invalid for this variant type.
+    pub fn set_keyed(&mut self, key: &Variant, value: &Variant) {
+        let mut valid = false as sys::GDExtensionBool;
+        unsafe {
+            interface_fn!(variant_set_keyed)(
+                self.var_sys_mut(),
+                key.var_sys(),
+                value.var_sys(),
+                ptr::addr_of_mut!(valid),
+            );
+        }
+        assert!(
+            sys::conv::bool_from_sys(valid),
+            "Variant::set_keyed(): operation invalid"
+        );
+    }
+
+    /// Gets the value of a named key from this variant.
+    ///
+    /// # Panics
+    /// If the operation is invalid for this variant type.
+    pub fn get_named(&self, name: &StringName) -> Variant {
+        let mut valid = false as sys::GDExtensionBool;
+        let mut ret = Variant::nil();
+        unsafe {
+            interface_fn!(variant_get_named)(
+                self.var_sys(),
+                name.string_sys(),
+                ret.var_sys_mut().cast(),
+                ptr::addr_of_mut!(valid),
+            );
+        }
+        assert!(
+            sys::conv::bool_from_sys(valid),
+            "Variant::get_named(): operation invalid"
+        );
+        ret
+    }
+
+    /// Sets the value of a named key in this variant.
+    ///
+    /// # Panics
+    /// If the operation is invalid for this variant type.
+    pub fn set_named(&mut self, name: &StringName, value: &Variant) {
+        let mut valid = false as sys::GDExtensionBool;
+        unsafe {
+            interface_fn!(variant_set_named)(
+                self.var_sys_mut(),
+                name.string_sys(),
+                value.var_sys(),
+                ptr::addr_of_mut!(valid),
+            );
+        }
+        assert!(
+            sys::conv::bool_from_sys(valid),
+            "Variant::set_named(): operation invalid"
+        );
+    }
+
+    /// Gets the value at the specified index from this variant.
+    ///
+    /// # Panics
+    /// * If the operation is invalid for this variant type.
+    /// * If the index is out of bounds.
+    pub fn get_indexed(&self, index: i64) -> Variant {
+        let mut valid = false as sys::GDExtensionBool;
+        let mut oob = false as sys::GDExtensionBool;
+        let mut ret = Variant::nil();
+        unsafe {
+            interface_fn!(variant_get_indexed)(
+                self.var_sys(),
+                index,
+                ret.var_sys_mut().cast(),
+                ptr::addr_of_mut!(valid),
+                ptr::addr_of_mut!(oob),
+            );
+        }
+        assert!(
+            sys::conv::bool_from_sys(valid),
+            "Variant::get_indexed(): operation invalid"
+        );
+        assert!(
+            !sys::conv::bool_from_sys(oob),
+            "Variant::get_indexed(): index {index} out of bounds"
+        );
+        ret
+    }
+
+    /// Sets the value at the specified index in this variant.
+    ///
+    /// # Panics
+    /// * If the operation is invalid for this variant type.
+    /// * If the index is out of bounds.
+    pub fn set_indexed(&mut self, index: i64, value: &Variant) {
+        let mut valid = false as sys::GDExtensionBool;
+        let mut oob = false as sys::GDExtensionBool;
+        unsafe {
+            interface_fn!(variant_set_indexed)(
+                self.var_sys_mut(),
+                index,
+                value.var_sys(),
+                ptr::addr_of_mut!(valid),
+                ptr::addr_of_mut!(oob),
+            );
+        }
+        assert!(
+            sys::conv::bool_from_sys(valid),
+            "Variant::set_indexed(): operation invalid"
+        );
+        assert!(
+            !sys::conv::bool_from_sys(oob),
+            "Variant::set_indexed(): index {index} out of bounds"
+        );
+    }
+
+    /// ⚠️ Gets the value of a key and converts it to `T`, panicking on failure.
+    pub fn at_as<K: ToGodot, T: FromGodot>(&self, key: K) -> T {
+        self.get_keyed(&key.to_variant()).to::<T>()
+    }
+
+    /// Gets the value of a key and converts it to `T` (fallible).
+    pub fn get_as<K: ToGodot, T: FromGodot>(&self, key: K) -> Option<T> {
+        let key = key.to_variant();
+        let mut valid = false as sys::GDExtensionBool;
+        let mut ret = Variant::nil();
+        unsafe {
+            interface_fn!(variant_get_keyed)(
+                self.var_sys(),
+                key.var_sys(),
+                ret.var_sys_mut().cast(),
+                ptr::addr_of_mut!(valid),
+            );
+        }
+        if sys::conv::bool_from_sys(valid) {
+            ret.try_to::<T>().ok()
+        } else {
+            None
+        }
+    }
+
     /// Return Godot's string representation of the variant.
     ///
     /// See also `Display` impl.

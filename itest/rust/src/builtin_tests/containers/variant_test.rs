@@ -725,6 +725,40 @@ fn variant_hash() {
 }
 
 #[itest]
+fn variant_keyed_indexed_named_access() {
+    // Keyed (Dictionary)
+    let mut dict_var = vdict! { "a": 1 }.to_variant();
+    assert_eq!(dict_var.get_keyed(&"a".to_variant()), 1.to_variant());
+
+    dict_var.set_keyed(&"b".to_variant(), &2.to_variant());
+    assert_eq!(dict_var.get_keyed(&"b".to_variant()), 2.to_variant());
+
+    assert_eq!(dict_var.at_as::<&str, i64>("a"), 1);
+    assert_eq!(dict_var.get_as::<&str, i64>("b"), Some(2));
+    assert_eq!(dict_var.get_as::<&str, i64>("c"), None);
+
+    // Named (Dictionary or Object)
+    let mut dict_var = vdict! { "name": "Godot" }.to_variant();
+    let name_sn = StringName::from("name");
+    assert_eq!(dict_var.get_named(&name_sn), "Godot".to_variant());
+
+    dict_var.set_named(&name_sn, &"Rust".to_variant());
+    assert_eq!(dict_var.get_named(&name_sn), "Rust".to_variant());
+
+    // Indexed (Array)
+    let mut array_var = varray![10, 20].to_variant();
+    assert_eq!(array_var.get_indexed(0), 10.to_variant());
+    assert_eq!(array_var.get_indexed(1), 20.to_variant());
+
+    array_var.set_indexed(1, &30.to_variant());
+    assert_eq!(array_var.get_indexed(1), 30.to_variant());
+
+    expect_panic("indexed access out of bounds", || {
+        array_var.get_indexed(2);
+    });
+}
+
+#[itest]
 fn variant_operators() {
     let a = Variant::from(10);
     let b = Variant::from(20);

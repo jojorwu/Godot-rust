@@ -46,8 +46,13 @@ impl std::error::Error for GetNodeError {}
 impl Object {
     /// ⚠️ Retrieves a property value, panicking if not found or cannot be converted to `T`.
     pub fn get_as<T: FromGodot>(&self, property: impl AsArg<StringName>) -> T {
-        self.try_get_as::<T>(property)
-            .unwrap_or_else(|| panic!("Object::get_as(): property not found or wrong type"))
+        arg_into_ref!(property);
+        self.try_get_as::<T>(property).unwrap_or_else(|| {
+            panic!(
+                "Object::get_as(): property '{property}' not found or cannot be converted to {to}",
+                to = std::any::type_name::<T>()
+            )
+        })
     }
 
     /// Retrieves a property value (fallible).
@@ -62,8 +67,13 @@ impl Object {
 
     /// ⚠️ Retrieves a metadata value, panicking if not found or cannot be converted to `T`.
     pub fn get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
-        self.try_get_meta_as::<T>(name)
-            .unwrap_or_else(|| panic!("Object::get_meta_as(): meta not found or wrong type"))
+        arg_into_ref!(name);
+        self.try_get_meta_as::<T>(name).unwrap_or_else(|| {
+            panic!(
+                "Object::get_meta_as(): meta '{name}' not found or cannot be converted to {to}",
+                to = std::any::type_name::<T>()
+            )
+        })
     }
 
     /// Retrieves a metadata value (fallible).
@@ -82,8 +92,13 @@ impl Object {
         method: impl AsArg<StringName>,
         args: &[Variant],
     ) -> T {
-        self.try_call_as::<T>(method, args)
-            .unwrap_or_else(|| panic!("Object::call_as(): method call failed or wrong return type"))
+        arg_into_ref!(method);
+        self.try_call_as::<T>(method, args).unwrap_or_else(|| {
+            panic!(
+                "Object::call_as(): method '{method}' call failed or cannot convert return value to {to}",
+                to = std::any::type_name::<T>()
+            )
+        })
     }
 
     /// Calls a method and converts the return value to `T` (fallible).
