@@ -115,6 +115,7 @@ impl VarDictionary {
     /// # Panics
     ///
     /// If there is no value for the given key. Note that this is distinct from a `NIL` value, which is returned as `Variant::nil()`.
+    #[inline]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
         // Code duplication with get(), to avoid third clone (since K: ToGodot takes ownership).
 
@@ -134,6 +135,7 @@ impl VarDictionary {
     /// When you are certain that a key is present, use [`at()`][`Self::at`] instead.
     ///
     /// This can be combined with Rust's `Option` methods, e.g. `dict.get(key).unwrap_or(default)`.
+    #[inline]
     pub fn get<K: ToGodot>(&self, key: K) -> Option<Variant> {
         // If implementation is changed, make sure to update at().
 
@@ -149,11 +151,13 @@ impl VarDictionary {
     ///
     /// # Panics
     /// If there is no value for the given key, or if the value cannot be converted to `V`.
+    #[inline]
     pub fn at_as<K: ToGodot, V: FromGodot>(&self, key: K) -> V {
         self.at(key).to::<V>()
     }
 
     /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
+    #[inline]
     pub fn get_as<K: ToGodot, V: FromGodot>(&self, key: K) -> Option<V> {
         self.get(key).and_then(|v| v.try_to::<V>().ok())
     }
@@ -225,11 +229,13 @@ impl VarDictionary {
     ///
     /// _Godot equivalent: `size`_
     #[doc(alias = "size")]
+    #[inline]
     pub fn len(&self) -> usize {
         self.as_inner().size().try_into().unwrap()
     }
 
     /// Returns true if the dictionary is empty.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.as_inner().is_empty()
     }
@@ -265,6 +271,7 @@ impl VarDictionary {
     /// If you are interested in the previous value, use [`insert()`][Self::insert] instead.
     ///
     /// _Godot equivalent: `dict[key] = value`_
+    #[inline]
     pub fn set<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) {
         self.balanced_ensure_mutable();
 
@@ -280,6 +287,7 @@ impl VarDictionary {
     ///
     /// If you don't need the previous value, use [`set()`][Self::set] instead.
     #[must_use]
+    #[inline]
     pub fn insert<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -294,6 +302,7 @@ impl VarDictionary {
     ///
     /// _Godot equivalent: `erase`_
     #[doc(alias = "erase")]
+    #[inline]
     pub fn remove<K: ToGodot>(&mut self, key: K) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -464,6 +473,7 @@ impl VarDictionary {
     ///
     /// See [`into_read_only()`][Self::into_read_only].
     /// In GDScript, dictionaries are automatically read-only if declared with the `const` keyword.
+    #[inline]
     pub fn is_read_only(&self) -> bool {
         self.as_inner().is_read_only()
     }

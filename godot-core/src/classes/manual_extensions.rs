@@ -300,9 +300,9 @@ impl Node {
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
-/// Manual extensions for the `ClassDB` class.
+/// Manual extensions for the `ClassDb` class.
 #[cfg(feature = "codegen-full")]
-impl crate::classes::ClassDB {
+impl crate::classes::ClassDb {
     /// ⚠️ Instantiates a class by name, panicking if it cannot be created or bad type.
     pub fn instantiate_as<T>(&self, class: impl AsArg<StringName>) -> Gd<T>
     where
@@ -324,7 +324,10 @@ impl crate::classes::ClassDB {
     {
         arg_into_ref!(class);
         self.instantiate(class)
-            .and_then(|obj| obj.try_cast::<T>().ok())
+            .try_to::<Gd<Object>>()
+            .ok()?
+            .try_cast::<T>()
+            .ok()
     }
 
     /// Alias for [`instantiate_as()`][Self::instantiate_as].
@@ -346,7 +349,10 @@ impl crate::classes::EditorInterface {
     where
         T: Inherits<crate::classes::Control>,
     {
-        self.get_editor_main_screen().cast::<T>()
+        self.get_editor_main_screen()
+            .expect("Editor main screen not found")
+            .upcast::<crate::classes::Control>()
+            .cast::<T>()
     }
 
     /// Retrieves the editor base control, cast to type `T`.
@@ -354,7 +360,10 @@ impl crate::classes::EditorInterface {
     where
         T: Inherits<crate::classes::Control>,
     {
-        self.get_base_control().cast::<T>()
+        self.get_base_control()
+            .expect("Editor base control not found")
+            .upcast::<crate::classes::Control>()
+            .cast::<T>()
     }
 }
 

@@ -258,6 +258,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds. To handle out-of-bounds access fallibly, use [`get()`](Self::get) instead.
+    #[inline]
     pub fn at(&self, index: usize) -> T {
         // Panics on out-of-bounds.
         let ptr = self.ptr(index);
@@ -270,6 +271,7 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the value at the specified index, or `None` if the index is out-of-bounds.
     ///
     /// If you know the index is correct, use [`at()`](Self::at) instead.
+    #[inline]
     pub fn get(&self, index: usize) -> Option<T> {
         let ptr = self.ptr_or_null(index);
         if ptr.is_null() {
@@ -295,6 +297,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the first element in the array, or `None` if the array is empty.
     #[doc(alias = "first")]
+    #[inline]
     pub fn front(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().front();
@@ -304,6 +307,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
+    #[inline]
     pub fn back(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().back();
@@ -316,6 +320,7 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     ///
     /// If `index` is out of bounds.
+    #[inline]
     pub fn set(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
         self.check_bounds(index); // Explicitly check bounds for safety.
@@ -334,6 +339,7 @@ impl<T: ArrayElement> Array<T> {
     /// _Godot equivalents: `append` and `push_back`_
     #[doc(alias = "append")]
     #[doc(alias = "push_back")]
+    #[inline]
     pub fn push(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -362,6 +368,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// _Godot equivalent: `pop_back`_
     #[doc(alias = "pop_back")]
+    #[inline]
     pub fn pop(&mut self) -> Option<T> {
         self.balanced_ensure_mutable();
 
@@ -417,6 +424,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If `index` is out of bounds.
     #[doc(alias = "pop_at")]
+    #[inline]
     pub fn remove(&mut self, index: usize) -> T {
         self.balanced_ensure_mutable();
         self.check_bounds(index);
@@ -782,6 +790,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// See [`into_read_only()`][Self::into_read_only].
     /// In GDScript, arrays are automatically read-only if declared with the `const` keyword.
+    #[inline]
     pub fn is_read_only(&self) -> bool {
         self.as_inner().is_read_only()
     }

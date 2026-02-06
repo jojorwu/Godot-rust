@@ -136,6 +136,7 @@ impl Variant {
     /// Checks whether the variant is empty (`null` value in GDScript).
     ///
     /// See also [`get_type()`][Self::get_type].
+    #[inline]
     pub fn is_nil(&self) -> bool {
         let sys_type = self.sys_type();
         if sys_type == sys::GDEXTENSION_VARIANT_TYPE_NIL {
@@ -166,11 +167,13 @@ impl Variant {
     /// Alias for [`is_nil()`][Self::is_nil].
     ///
     /// This method is provided for clarity when working with object-typed variants that may be `null`.
+    #[inline]
     pub fn is_null(&self) -> bool {
         self.is_nil()
     }
 
     /// Returns true if the variant currently holds a value of type `ty`.
+    #[inline]
     pub fn is_type(&self, ty: VariantType) -> bool {
         self.get_type() == ty
     }
@@ -178,26 +181,31 @@ impl Variant {
     /// Returns true if the variant holds an object.
     ///
     /// Alias for `self.is_type(VariantType::OBJECT)`.
+    #[inline]
     pub fn is_object(&self) -> bool {
         self.is_type(VariantType::OBJECT)
     }
 
     /// Returns true if the variant holds an integer.
+    #[inline]
     pub fn is_int(&self) -> bool {
         self.is_type(VariantType::INT)
     }
 
     /// Returns true if the variant holds a float.
+    #[inline]
     pub fn is_float(&self) -> bool {
         self.is_type(VariantType::FLOAT)
     }
 
     /// Returns true if the variant holds a boolean.
+    #[inline]
     pub fn is_bool(&self) -> bool {
         self.is_type(VariantType::BOOL)
     }
 
     /// Returns true if the variant holds a string.
+    #[inline]
     pub fn is_string(&self) -> bool {
         self.is_type(VariantType::STRING)
     }
@@ -205,6 +213,7 @@ impl Variant {
     /// Returns true if the variant holds an array.
     ///
     /// Alias for `self.is_type(VariantType::ARRAY)`.
+    #[inline]
     pub fn is_array(&self) -> bool {
         self.is_type(VariantType::ARRAY)
     }
@@ -212,6 +221,7 @@ impl Variant {
     /// Returns true if the variant holds a dictionary.
     ///
     /// Alias for `self.is_type(VariantType::DICTIONARY)`.
+    #[inline]
     pub fn is_dictionary(&self) -> bool {
         self.is_type(VariantType::DICTIONARY)
     }
@@ -267,6 +277,7 @@ impl Variant {
     /// If this variant holds a type `Object` but no instance (represented as a null object pointer), then `Nil` will be returned for
     /// consistency. This may deviate from Godot behavior -- for example, calling [`Node::get_node_or_null()`][crate::classes::Node::get_node_or_null]
     ///  with an invalid path returns a variant that has type `Object` but acts like `Nil` for all practical purposes.
+    #[inline]
     pub fn get_type(&self) -> VariantType {
         let sys_type = self.sys_type();
 
@@ -306,6 +317,7 @@ impl Variant {
     /// If you want to detect this case, use [`try_to::<Gd<...>>()`](Self::try_to). If you want to retrieve the previous instance ID of a
     /// freed object for whatever reason, use [`object_id_unchecked()`][Self::object_id_unchecked]. This method is only available from
     /// Godot 4.4 onwards.
+    #[inline]
     pub fn object_id(&self) -> Option<crate::obj::InstanceId> {
         #[cfg(since_api = "4.4")]
         {
@@ -428,6 +440,7 @@ impl Variant {
         }
     }
 
+    #[inline]
     pub(crate) fn sys_type(&self) -> sys::GDExtensionVariantType {
         unsafe {
             let ty: sys::GDExtensionVariantType = interface_fn!(variant_get_type)(self.var_sys());
@@ -633,6 +646,7 @@ impl Variant {
     /// - empty string
     /// - empty container (array, packed array, dictionary)
     /// - default-constructed other builtins (e.g. zero vector, degenerate plane, zero RID, etc...)
+    #[inline]
     pub fn booleanize(&self) -> bool {
         // See Variant::is_zero(), roughly https://github.com/godotengine/godot/blob/master/core/variant/variant.cpp#L859.
 

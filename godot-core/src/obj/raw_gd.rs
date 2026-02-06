@@ -48,6 +48,7 @@ impl<T: GodotClass> RawGd<T> {
     /// # Safety
     ///
     /// `obj` must be a valid object pointer or a null pointer.
+    #[inline]
     pub(super) unsafe fn from_obj_sys_weak(obj: sys::GDExtensionObjectPtr) -> Self {
         let rtti = if obj.is_null() {
             None
@@ -82,11 +83,13 @@ impl<T: GodotClass> RawGd<T> {
     /// # Safety
     ///
     /// `obj` must be a valid object pointer or a null pointer.
+    #[inline]
     pub(super) unsafe fn from_obj_sys(obj: sys::GDExtensionObjectPtr) -> Self {
         Self::from_obj_sys_weak(obj).with_inc_refcount()
     }
 
     /// Returns `self` but with initialized ref-count.
+    #[inline]
     fn with_inc_refcount(mut self) -> Self {
         // Note: use init_ref and not inc_ref, since this might be the first reference increment.
         // Godot expects RefCounted::init_ref to be called instead of RefCounted::reference in that case.
@@ -116,6 +119,7 @@ impl<T: GodotClass> RawGd<T> {
     }
 
     /// Returns true if the object's dynamic type is `U` or a subclass of `U`.
+    #[inline]
     pub(crate) fn is_instance_of<U: GodotClass>(&self) -> bool {
         self.is_null() // Null can be cast to anything.
             || self.as_object_ref().is_class(&U::class_id().to_gstring())
@@ -261,11 +265,13 @@ impl<T: GodotClass> RawGd<T> {
         unsafe { std::mem::transmute::<&RawGd<T>, &Gd<T>>(self) }
     }
 
+    #[inline]
     pub(crate) fn as_object_ref(&self) -> &classes::Object {
         // SAFETY: Object is always a valid upcast target.
         unsafe { self.as_upcast_ref() }
     }
 
+    #[inline]
     pub(crate) fn as_object_mut(&mut self) -> &mut classes::Object {
         // SAFETY: Object is always a valid upcast target.
         unsafe { self.as_upcast_mut() }
@@ -466,6 +472,7 @@ impl<T: GodotClass> RawGd<T> {
     }
 
     // Not pub(super) because used by godot::meta::args::ObjectArg.
+    #[inline]
     pub(crate) fn obj_sys(&self) -> sys::GDExtensionObjectPtr {
         self.obj as sys::GDExtensionObjectPtr
     }

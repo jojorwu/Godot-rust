@@ -74,6 +74,7 @@ impl AnyArray {
     ///
     /// # Panics
     /// If `index` is out of bounds. To handle out-of-bounds access fallibly, use [`get()`](Self::get) instead.
+    #[inline]
     pub fn at(&self, index: usize) -> Variant {
         self.array.at(index)
     }
@@ -81,6 +82,7 @@ impl AnyArray {
     /// Returns the value at the specified index, or `None` if the index is out-of-bounds.
     ///
     /// If you know the index is correct, use [`at()`](Self::at) instead.
+    #[inline]
     pub fn get(&self, index: usize) -> Option<Variant> {
         self.array.get(index)
     }
@@ -89,11 +91,13 @@ impl AnyArray {
     ///
     /// # Panics
     /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    #[inline]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
         self.at(index).to::<U>()
     }
 
     /// Returns the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
+    #[inline]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
         self.get(index).and_then(|v| v.try_to::<U>().ok())
     }
@@ -113,6 +117,7 @@ impl AnyArray {
     /// Retrieving the size incurs an FFI call. If you know the size hasn't changed, you may consider storing
     /// it in a variable. For loops, prefer iterators.
     #[doc(alias = "size")]
+    #[inline]
     pub fn len(&self) -> usize {
         to_usize(self.array.as_inner().size())
     }
@@ -121,6 +126,7 @@ impl AnyArray {
     ///
     /// Checking for emptiness incurs an FFI call. If you know the size hasn't changed, you may consider storing
     /// it in a variable. For loops, prefer iterators.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.array.as_inner().is_empty()
     }
@@ -139,12 +145,14 @@ impl AnyArray {
 
     /// Returns the first element in the array, or `None` if the array is empty.
     #[doc(alias = "first")]
+    #[inline]
     pub fn front(&self) -> Option<Variant> {
         self.array.front()
     }
 
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
+    #[inline]
     pub fn back(&self) -> Option<Variant> {
         self.array.back()
     }
@@ -412,6 +420,7 @@ impl AnyArray {
     }
 
     /// Returns `true` if the array is read-only. See [`make_read_only`][crate::builtin::Array::make_read_only].
+    #[inline]
     pub fn is_read_only(&self) -> bool {
         self.array.as_inner().is_read_only()
     }
