@@ -30,6 +30,43 @@ fn test_object_property_accessors() {
 }
 
 #[itest]
+fn test_metadata_dictionary_conversions() {
+    use godot::meta::{PropertyInfo, MethodInfo, ClassId};
+    use godot::builtin::VariantType;
+    use godot::global::PropertyUsageFlags;
+
+    // PropertyInfo round-trip
+    let prop = PropertyInfo {
+        variant_type: VariantType::INT,
+        class_id: ClassId::none(),
+        property_name: StringName::from("test_prop"),
+        hint_info: godot::meta::PropertyHintInfo::none(),
+        usage: PropertyUsageFlags::DEFAULT,
+    };
+
+    let dict = prop.to_dictionary();
+    let prop_back = PropertyInfo::from_dictionary(&dict);
+
+    assert_eq!(prop_back.property_name, prop.property_name);
+    assert_eq!(prop_back.variant_type, prop.variant_type);
+    assert_eq!(prop_back.usage, prop.usage);
+
+    // MethodInfo round-trip
+    let method = MethodInfo::new("test_method")
+        .with_id(42)
+        .with_return_type(PropertyInfo::new_var::<i64>(""))
+        .with_argument(PropertyInfo::new_var::<GString>("arg1"));
+
+    let m_dict = method.to_dictionary();
+    let method_back = MethodInfo::from_dictionary(&m_dict);
+
+    assert_eq!(method_back.method_name, method.method_name);
+    assert_eq!(method_back.id, method.id);
+    assert_eq!(method_back.arguments.len(), method.arguments.len());
+    assert_eq!(method_back.arguments[0].property_name, method.arguments[0].property_name);
+}
+
+#[itest]
 fn test_object_meta_accessors() {
     let mut node = Node::new_alloc();
     let meta_key = "my_meta";

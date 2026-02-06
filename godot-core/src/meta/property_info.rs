@@ -161,6 +161,21 @@ impl PropertyInfo {
         }
     }
 
+    /// Convert `PropertyInfo` to a dictionary.
+    pub fn to_dictionary(&self) -> VarDictionary {
+        use crate::builtin::vdict;
+        use crate::obj::EngineEnum;
+
+        vdict! {
+            "type": self.variant_type.ord() as i64,
+            "name": self.property_name.clone(),
+            "class_name": self.class_id.to_string_name(),
+            "hint": self.hint_info.hint.ord() as i64,
+            "hint_string": self.hint_info.hint_string.clone(),
+            "usage": self.usage.ord() as i64,
+        }
+    }
+
     /// Create a new `PropertyInfo` representing a property named `property_name` with type `T` automatically.
     ///
     /// This will generate property info equivalent to what a `#[var]` attribute would produce.

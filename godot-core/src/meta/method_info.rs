@@ -7,7 +7,7 @@
 
 use godot_ffi::conv::u32_to_usize;
 
-use crate::builtin::{StringName, Variant};
+use crate::builtin::{StringName, VarDictionary, Variant};
 use crate::global::MethodFlags;
 use crate::meta::{AsArg, ClassId, PropertyInfo, ToGodot};
 use crate::sys;
@@ -105,6 +105,75 @@ pub struct MethodInfo {
 }
 
 impl MethodInfo {
+    /// Create a `MethodInfo` from a dictionary.
+    pub fn from_dictionary(dict: &VarDictionary) -> Self {
+        use crate::builtin::VarArray;
+        use crate::obj::EngineBitfield;
+
+        let method_name = dict
+            .get_as::<&str, StringName>("name")
+            .unwrap_or_default();
+
+        let id = dict.get_as::<&str, i64>("id").unwrap_or(0) as i32;
+
+        let return_type = dict
+            .get_as::<&str, VarDictionary>("return")
+            .map(|d| PropertyInfo::from_dictionary(&d))
+            .unwrap_or_default();
+
+        let arguments = dict
+            .get_as::<&str, VarArray>("args")
+            .map(|arr: VarArray| {
+                arr.iter_shared()
+                    .map(|v| PropertyInfo::from_dictionary(&v.to::<VarDictionary>()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        let default_arguments = dict
+            .get_as::<&str, VarArray>("default_args")
+            .map(|arr: VarArray| arr.iter_shared().collect::<Vec<_>>())
+            .unwrap_or_default();
+
+        let flags = dict
+            .get_as::<&str, i64>("flags")
+            .map(|f| MethodFlags::from_ord(f as u64))
+            .unwrap_or(MethodFlags::DEFAULT);
+
+        Self {
+            id,
+            method_name,
+            class_id: ClassId::none(), // Class ID usually not in the dict.
+            return_type,
+            arguments,
+            default_arguments,
+            flags,
+        }
+    }
+
+    /// Convert `MethodInfo` to a dictionary.
+    pub fn to_dictionary(&self) -> VarDictionary {
+        use crate::builtin::{vdict, VarArray};
+        use crate::obj::EngineBitfield;
+
+        let args: VarArray = self
+            .arguments
+            .iter()
+            .map(|arg| arg.to_dictionary().to_variant())
+            .collect();
+
+        let default_args: VarArray = self.default_arguments.iter().cloned().collect();
+
+        vdict! {
+            "name": self.method_name.clone(),
+            "args": args,
+            "default_args": default_args,
+            "return": self.return_type.to_dictionary(),
+            "flags": self.flags.ord() as i64,
+            "id": self.id as i64,
+        }
+    }
+
     /// Creates a new `MethodInfo` with the given name.
     pub fn new(method_name: impl AsArg<StringName>) -> Self {
         Self {
