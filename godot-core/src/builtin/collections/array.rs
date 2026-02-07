@@ -583,9 +583,17 @@ impl<T: ArrayElement> Array<T> {
     /// Notice that it's possible to modify the `Array` through another reference while iterating over it. This will not result
     /// in unsoundness or crashes, but will cause the iterator to behave in an unspecified way.
     pub fn iter_shared(&self) -> Iter<'_, T> {
+        let slice = if self.is_empty() {
+            &[]
+        } else {
+            // SAFETY: Array elements are stored contiguously in Godot's Vector<Variant>.
+            // Since we hold a shared reference to the Array, the COW handle ensures the data is stable.
+            unsafe { Variant::borrow_slice(self.ptr(0), self.len()) }
+        };
+
         Iter {
-            array: self,
-            next_idx: 0,
+            slice_iter: slice.iter(),
+            _phantom: PhantomData,
         }
     }
 
@@ -1437,13 +1445,31 @@ impl<T: ArrayElement + ToGodot> FromIterator<T> for Array<T> {
 /// Extends a `Array` with the contents of an iterator.
 impl<T: ArrayElement> Extend<T> for Array<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        // Unfortunately the GDExtension API does not offer the equivalent of `Vec::reserve`.
-        // Otherwise, we could use it to pre-allocate based on `iter.size_hint()`.
-        //
-        // A faster implementation using `resize()` and direct pointer writes might still be possible.
-        // Note that this could technically also use iter(), since no moves need to happen (however Extend requires IntoIterator).
-        for item in iter.into_iter() {
-            // self.push(AsArg::into_arg(&item));
+        let mut iter = iter.into_iter();
+        let (lower, _upper) = iter.size_hint();
+
+        if lower > 0 {
+            let old_len = self.len();
+            let new_len = old_len + lower;
+
+            self.balanced_ensure_mutable();
+
+            // SAFETY: resize() on typed array fills with default values of T.
+            // We then overwrite them with actual values from the iterator.
+            unsafe { self.as_inner_mut() }.resize(to_i64(new_len));
+
+            // SAFETY: Array elements are stored contiguously in Godot's Vector<Variant>.
+            let elements = unsafe { Variant::borrow_slice_mut(self.ptr_mut(old_len), lower) };
+            for array_slot in elements.iter_mut() {
+                let item = iter
+                    .next()
+                    .expect("iterator returned fewer than size_hint().0 elements");
+                *array_slot = item.to_variant();
+            }
+        }
+
+        // Handle remaining elements.
+        for item in iter {
             self.push(meta::owned_into_arg(item));
         }
     }
@@ -1470,7 +1496,12 @@ impl<T: ArrayElement + FromGodot> IntoIterator for Array<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter { array: self, next_idx: 0 }
+        let len = self.len();
+        IntoIter {
+            array: self,
+            len,
+            next_idx: 0,
+        }
     }
 }
 
@@ -1486,6 +1517,7 @@ impl<'a, T: ArrayElement + FromGodot> IntoIterator for &'a Array<T> {
 /// An iterator that consumes an [`Array`] and yields its elements.
 pub struct IntoIter<T: ArrayElement> {
     array: Array<T>,
+    len: usize,
     next_idx: usize,
 }
 
@@ -1493,7 +1525,7 @@ impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.next_idx < self.array.len() {
+        if self.next_idx < self.len {
             let item = self.array.at(self.next_idx);
             self.next_idx += 1;
             Some(item)
@@ -1503,7 +1535,7 @@ impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.array.len() - self.next_idx;
+        let remaining = self.len - self.next_idx;
         (remaining, Some(remaining))
     }
 }
@@ -1513,33 +1545,19 @@ impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
 
 /// An iterator over typed elements of an [`Array`].
 pub struct Iter<'a, T: ArrayElement> {
-    array: &'a Array<T>,
-    next_idx: usize,
+    slice_iter: std::slice::Iter<'a, Variant>,
+    _phantom: PhantomData<T>,
 }
 
 impl<T: ArrayElement + FromGodot> Iterator for Iter<'_, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.next_idx < self.array.len() {
-            let idx = self.next_idx;
-            self.next_idx += 1;
-
-            let element_ptr = self.array.ptr_or_null(idx);
-
-            // SAFETY: We just checked that the index is not out of bounds, so the pointer won't be null.
-            // We immediately convert this to the right element, so barring `experimental-threads` the pointer won't be invalidated in time.
-            let variant = unsafe { Variant::borrow_var_sys(element_ptr) };
-            let element = T::from_variant(variant);
-            Some(element)
-        } else {
-            None
-        }
+        self.slice_iter.next().map(T::from_variant)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.array.len() - self.next_idx;
-        (remaining, Some(remaining))
+        self.slice_iter.size_hint()
     }
 }
 

@@ -718,15 +718,18 @@ impl<'a> IntoIterator for &'a VarDictionary {
 pub struct IntoIter {
     last_key: Option<Variant>,
     dictionary: VarDictionary,
+    variant_dict: Variant,
     is_first: bool,
     next_idx: usize,
 }
 
 impl IntoIter {
     fn new(dictionary: VarDictionary) -> Self {
+        let variant_dict = dictionary.to_variant();
         Self {
             last_key: None,
             dictionary,
+            variant_dict,
             is_first: true,
             next_idx: 0,
         }
@@ -735,9 +738,9 @@ impl IntoIter {
     fn next_key(&mut self) -> Option<Variant> {
         let new_key = if self.is_first {
             self.is_first = false;
-            DictionaryIter::call_init(&self.dictionary)
+            DictionaryIter::call_init_internal(&self.variant_dict)
         } else {
-            DictionaryIter::call_next(&self.dictionary, self.last_key.take()?)
+            DictionaryIter::call_next_internal(&self.variant_dict, self.last_key.take()?)
         };
 
         if self.next_idx < self.dictionary.len() {
@@ -772,15 +775,18 @@ impl Iterator for IntoIter {
 struct DictionaryIter<'a> {
     last_key: Option<Variant>,
     dictionary: &'a VarDictionary,
+    variant_dict: Variant,
     is_first: bool,
     next_idx: usize,
 }
 
 impl<'a> DictionaryIter<'a> {
     fn new(dictionary: &'a VarDictionary) -> Self {
+        let variant_dict = dictionary.to_variant();
         Self {
             last_key: None,
             dictionary,
+            variant_dict,
             is_first: true,
             next_idx: 0,
         }
@@ -789,9 +795,9 @@ impl<'a> DictionaryIter<'a> {
     fn next_key(&mut self) -> Option<Variant> {
         let new_key = if self.is_first {
             self.is_first = false;
-            Self::call_init(self.dictionary)
+            Self::call_init_internal(&self.variant_dict)
         } else {
-            Self::call_next(self.dictionary, self.last_key.take()?)
+            Self::call_next_internal(&self.variant_dict, self.last_key.take()?)
         };
 
         if self.next_idx < self.dictionary.len() {
@@ -820,21 +826,21 @@ impl<'a> DictionaryIter<'a> {
         (remaining, Some(remaining))
     }
 
-    fn call_init(dictionary: &VarDictionary) -> Option<Variant> {
+    fn call_init_internal(variant_dict: &Variant) -> Option<Variant> {
         let variant: Variant = Variant::nil();
         let iter_fn = |dictionary, next_value: sys::GDExtensionVariantPtr, valid| unsafe {
             interface_fn!(variant_iter_init)(dictionary, sys::SysPtr::as_uninit(next_value), valid)
         };
 
-        Self::ffi_iterate(iter_fn, dictionary, variant)
+        Self::ffi_iterate(iter_fn, variant_dict, variant)
     }
 
-    fn call_next(dictionary: &VarDictionary, last_key: Variant) -> Option<Variant> {
+    fn call_next_internal(variant_dict: &Variant, last_key: Variant) -> Option<Variant> {
         let iter_fn = |dictionary, next_value, valid| unsafe {
             interface_fn!(variant_iter_next)(dictionary, next_value, valid)
         };
 
-        Self::ffi_iterate(iter_fn, dictionary, last_key)
+        Self::ffi_iterate(iter_fn, variant_dict, last_key)
     }
 
     /// Calls the provided Godot FFI function, in order to iterate the current state.
@@ -847,10 +853,9 @@ impl<'a> DictionaryIter<'a> {
             sys::GDExtensionVariantPtr,
             *mut sys::GDExtensionBool,
         ) -> sys::GDExtensionBool,
-        dictionary: &VarDictionary,
+        variant_dict: &Variant,
         mut next_value: Variant,
     ) -> Option<Variant> {
-        let dictionary = dictionary.to_variant();
         let mut valid_u8: u8 = 0;
 
         // SAFETY:
@@ -859,7 +864,7 @@ impl<'a> DictionaryIter<'a> {
         // `last_key` is an initialized and valid `Variant`, since we own a copy of it.
         let has_next = unsafe {
             iter_fn(
-                dictionary.var_sys(),
+                variant_dict.var_sys(),
                 next_value.var_sys_mut(),
                 ptr::addr_of_mut!(valid_u8),
             )
