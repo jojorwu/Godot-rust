@@ -61,7 +61,7 @@ pub fn make_core_central_code(api: &ExtensionApi, ctx: &mut Context) -> TokenStr
     let (global_enum_defs, global_reexported_enum_defs) = make_global_enums(api);
     let variant_type_traits = make_variant_type_enum(api, false);
 
-    // TODO impl Clone, Debug, PartialEq, PartialOrd, Hash for VariantDispatch
+    // TODO impl PartialOrd, Hash for VariantDispatch
     // TODO could use try_to().unwrap_unchecked(), since type is already verified. Also directly overload from_variant().
     // But this requires that all the variant types support this.
     quote! {
@@ -73,6 +73,7 @@ pub fn make_core_central_code(api: &ExtensionApi, ctx: &mut Context) -> TokenStr
         #variant_type_traits
 
         #[allow(dead_code)]
+        #[derive(Clone, PartialEq)]
         // Exhaustive, because only new Godot minor versions add new variants, which need either godot-rust minor bump or `api-*` feature.
         pub enum VariantDispatch {
             Nil,

@@ -15,8 +15,8 @@
 
 // Re-export generated enums.
 pub use crate::gen::central::global_reexported_enums::{Corner, EulerOrder, Side, VariantOperator};
-// Not yet public.
-pub(crate) use crate::gen::central::VariantDispatch;
+/// Enumerator to match on a [`Variant`]'s dynamic type.
+pub use crate::gen::central::VariantDispatch;
 pub use crate::sys::VariantType;
 // Re-export macros.
 #[allow(deprecated)] // dict

@@ -12,8 +12,8 @@ use std::fmt::Display;
 use godot::builtin::{
     array, varray, vdict, vslice, Array, Basis, Callable, Color, GString, NodePath,
     PackedInt32Array, PackedStringArray, Projection, Quaternion, Signal, StringName, Transform2D,
-    Transform3D, VarArray, VarDictionary, Variant, VariantOperator, VariantType, Vector2,
-    Vector2i, Vector3, Vector3i,
+    Transform3D, VarArray, VarDictionary, Variant, VariantDispatch, VariantOperator, VariantType,
+    Vector2, Vector2i, Vector3, Vector3i,
 };
 use godot::classes::{Node, Node2D, Resource};
 use godot::meta::{FromGodot, ToGodot};
@@ -457,6 +457,34 @@ fn variant_object_id_unchecked() {
 
     // When freed, unchecked function will still return old ID.
     assert_eq!(variant.object_id_unchecked(), Some(id));
+}
+
+#[itest]
+fn variant_dispatch_traits() {
+    let v1 = Variant::from(42);
+    let d1 = VariantDispatch::from_variant(&v1);
+    let d1_clone = d1.clone();
+    assert_eq!(d1, d1_clone);
+
+    let v2 = Variant::from("hello");
+    let d2 = VariantDispatch::from_variant(&v2);
+    assert_ne!(d1, d2);
+
+    let d_nil = VariantDispatch::Nil;
+    assert_eq!(d_nil, d_nil.clone());
+    assert_ne!(d_nil, d1);
+
+    let node = Node::new_alloc();
+    let v_node = node.to_variant();
+    let d_obj = VariantDispatch::from_variant(&v_node);
+    assert_eq!(d_obj, d_obj.clone());
+    assert_ne!(d_obj, d1);
+
+    node.free();
+    let d_freed = VariantDispatch::from_variant(&v_node);
+    assert_eq!(d_freed, VariantDispatch::FreedObject);
+    assert_eq!(d_freed, d_freed.clone());
+    assert_ne!(d_freed, d_nil);
 }
 
 #[itest]
