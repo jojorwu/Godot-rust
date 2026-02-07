@@ -337,10 +337,9 @@ where
 /// If you use the `disengaged` [safeguard level], you accept that UB becomes possible even **in safe Rust APIs**, if you use them wrong
 /// (e.g. accessing a destroyed object).
 ///
-/// [gdextension]: attr.gdextension.html
+/// [gdextension]: crate::init::gdextension
 /// [safety]: https://godot-rust.github.io/book/gdext/advanced/safety.html
 /// [safeguard level]: ../index.html#safeguard-levels
-// FIXME intra-doc link
 #[doc(alias = "entry_symbol", alias = "entry_point")]
 pub unsafe trait ExtensionLibrary {
     /// Determines if and how an extension's code is run in the editor.
