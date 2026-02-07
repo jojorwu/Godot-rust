@@ -7,9 +7,10 @@
 
 use godot_ffi::conv::u32_to_usize;
 
-use crate::builtin::{StringName, Variant};
+use crate::builtin::{StringName, VarDictionary, Variant};
 use crate::global::MethodFlags;
-use crate::meta::{ClassId, PropertyInfo};
+use crate::meta::{AsArg, ClassId, PropertyInfo, ToGodot};
+use crate::obj::EngineBitfield;
 use crate::sys;
 
 /// Describes a method's signature and metadata required by the Godot engine.
@@ -105,6 +106,166 @@ pub struct MethodInfo {
 }
 
 impl MethodInfo {
+    /// Create a `MethodInfo` from a dictionary.
+    pub fn from_dictionary(dict: &VarDictionary) -> Self {
+        use crate::builtin::VarArray;
+        use crate::obj::EngineBitfield;
+
+        let method_name = dict
+            .get_as::<&str, StringName>("name")
+            .unwrap_or_default();
+
+        let id = dict.get_as::<&str, i64>("id").unwrap_or(0) as i32;
+
+        let return_type = dict
+            .get_as::<&str, VarDictionary>("return")
+            .map(|d| PropertyInfo::from_dictionary(&d))
+            .unwrap_or_default();
+
+        let arguments = dict
+            .get_as::<&str, VarArray>("args")
+            .map(|arr: VarArray| {
+                arr.iter_shared()
+                    .map(|v| PropertyInfo::from_dictionary(&v.to::<VarDictionary>()))
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+
+        let default_arguments = dict
+            .get_as::<&str, VarArray>("default_args")
+            .map(|arr: VarArray| arr.iter_shared().collect::<Vec<_>>())
+            .unwrap_or_default();
+
+        let flags = dict
+            .get_as::<&str, i64>("flags")
+            .map(|f| MethodFlags::from_ord(f as u64))
+            .unwrap_or(MethodFlags::DEFAULT);
+
+        Self {
+            id,
+            method_name,
+            class_id: ClassId::none(), // Class ID usually not in the dict.
+            return_type,
+            arguments,
+            default_arguments,
+            flags,
+        }
+    }
+
+    /// Convert `MethodInfo` to a dictionary.
+    pub fn to_dictionary(&self) -> VarDictionary {
+        use crate::builtin::{vdict, VarArray};
+        use crate::obj::EngineBitfield;
+
+        let args: VarArray = self
+            .arguments
+            .iter()
+            .map(|arg| arg.to_dictionary().to_variant())
+            .collect();
+
+        let default_args: VarArray = self.default_arguments.iter().cloned().collect();
+
+        vdict! {
+            "name": self.method_name.clone(),
+            "args": args,
+            "default_args": default_args,
+            "return": self.return_type.to_dictionary(),
+            "flags": self.flags.ord() as i64,
+            "id": self.id as i64,
+        }
+    }
+
+    /// Creates a new `MethodInfo` with the given name.
+    pub fn new(method_name: impl AsArg<StringName>) -> Self {
+        Self {
+            id: 0,
+            method_name: method_name.into_arg().to_owned(),
+            class_id: ClassId::none(),
+            return_type: PropertyInfo::default(),
+            arguments: vec![],
+            default_arguments: vec![],
+            flags: MethodFlags::DEFAULT,
+        }
+    }
+
+    /// Sets the method's unique ID.
+    pub fn with_id(mut self, id: i32) -> Self {
+        self.id = id;
+        self
+    }
+
+    /// Sets the class ID this method belongs to.
+    pub fn with_class_id(mut self, class_id: ClassId) -> Self {
+        self.class_id = class_id;
+        self
+    }
+
+    /// Sets the method's return type.
+    pub fn with_return_type(mut self, return_type: PropertyInfo) -> Self {
+        self.return_type = return_type;
+        self
+    }
+
+    /// Adds a parameter to the method signature.
+    pub fn with_argument(mut self, argument: PropertyInfo) -> Self {
+        self.arguments.push(argument);
+        self
+    }
+
+    /// Sets all method parameters.
+    pub fn with_arguments(mut self, arguments: Vec<PropertyInfo>) -> Self {
+        self.arguments = arguments;
+        self
+    }
+
+    /// Adds a default value for the last parameter.
+    pub fn with_default_argument(mut self, default_argument: impl ToGodot) -> Self {
+        self.default_arguments.push(default_argument.to_variant());
+        self
+    }
+
+    /// Sets all default arguments.
+    pub fn with_default_arguments(mut self, default_arguments: Vec<Variant>) -> Self {
+        self.default_arguments = default_arguments;
+        self
+    }
+
+    /// Sets method flags.
+    pub fn with_flags(mut self, flags: MethodFlags) -> Self {
+        self.flags = flags;
+        self
+    }
+
+    /// Sets the `VARARG` flag.
+    pub fn vararg(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::VARARG, true);
+        self
+    }
+
+    /// Sets the `STATIC` flag.
+    pub fn static_method(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::STATIC, true);
+        self
+    }
+
+    /// Sets the `VIRTUAL` flag.
+    pub fn virtual_method(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::VIRTUAL, true);
+        self
+    }
+
+    /// Sets the `CONST` flag.
+    pub fn const_method(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::CONST, true);
+        self
+    }
+
+    /// Sets the `EDITOR` flag.
+    pub fn editor_method(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::EDITOR, true);
+        self
+    }
+
     /// Consumes self and turns it into a `sys::GDExtensionMethodInfo`, should be used together with
     /// [`free_owned_method_sys`](Self::free_owned_method_sys).
     ///

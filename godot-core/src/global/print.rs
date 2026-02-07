@@ -139,6 +139,37 @@ macro_rules! godot_print_rich {
     };
 }
 
+/// Prints and returns the value of a given expression for quick and dirty debugging to the Godot console.
+///
+/// Similar to Rust's standard [`dbg!`] macro, but uses [`godot_print!`] for output.
+///
+/// # Example
+/// ```no_run
+/// # use godot::global::godot_dbg;
+/// let a = 2;
+/// let b = godot_dbg!(a * 2) + 1;
+/// // Prints "[src/main.rs:2] a * 2 = 4" to Godot console.
+/// assert_eq!(b, 5);
+/// ```
+#[macro_export]
+macro_rules! godot_dbg {
+    () => {
+        $crate::godot_print!("[{}:{}]", file!(), line!());
+    };
+    ($val:expr $(,)?) => {
+        // Use match to avoid moving the value twice.
+        match $val {
+            tmp => {
+                $crate::godot_print!("[{}:{}] {} = {:?}", file!(), line!(), stringify!($val), &tmp);
+                tmp
+            }
+        }
+    };
+    ($($val:expr),+ $(,)?) => {
+        ($($crate::godot_dbg!($val)),+,)
+    };
+}
+
 /// Concatenates format-style arguments into a `GString`.
 ///
 /// Works similar to Rust's standard [`format!`] macro but returns a Godot `GString`.

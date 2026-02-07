@@ -278,6 +278,12 @@ impl GString {
         inner::InnerString::from_outer(self)
     }
 
+    /// Alias for [`begins_with()`][Self::begins_with].
+    #[inline]
+    pub fn starts_with(&self, text: impl AsArg<GString>) -> bool {
+        self.begins_with(text)
+    }
+
     /// Sets the Unicode code point ("character") at position `index`.
     ///
     /// # Panics (safeguards-balanced)

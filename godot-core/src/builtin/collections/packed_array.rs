@@ -119,6 +119,14 @@ impl<T: PackedArrayElement> PackedArray<T> {
         unsafe { Some((*ptr).clone()) }
     }
 
+    /// ⚠️ Returns the value at the specified index.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds.
+    pub fn at(&self, index: usize) -> T {
+        self.get(index).unwrap_or_else(|| self.panic_out_of_bounds(index))
+    }
+
     /// Returns `true` if the array contains the given value.
     ///
     /// _Godot equivalent: `has`_
@@ -394,6 +402,14 @@ impl<T: PackedArrayElement> PackedArray<T> {
         T: meta::ArrayElement, // Could technically be a subtrait of PackedArrayElement; for now they're unrelated.
     {
         self.as_slice().iter().cloned().collect()
+    }
+
+    /// Alias for [`to_typed_array()`][Self::to_typed_array].
+    pub fn to_array(&self) -> Array<T>
+    where
+        T: meta::ArrayElement,
+    {
+        self.to_typed_array()
     }
 
     /// Converts this packed array to an untyped `VarArray`.
@@ -966,6 +982,24 @@ impl PackedByteArray {
     /// If the original data can't be converted to 64-bit integers, the resulting data is undefined.
     pub fn to_int64_array(&self) -> PackedInt64Array {
         self.as_inner().to_int64_array()
+    }
+
+    /// Returns a copy of the data converted to a `GString`, using UTF-8 encoding.
+    pub fn get_string_utf8(&self) -> GString {
+        self.get_string_from_utf8()
+    }
+}
+
+/// Specialized API for [`PackedStringArray`].
+impl PackedStringArray {
+    /// Returns a string which is the concatenation of the array elements with the given `delimiter`.
+    pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
+        use meta::GodotFfiVariant;
+        let variant = self.ffi_to_variant();
+        let method = StringName::from("join");
+        meta::arg_into_ref!(delimiter);
+        let result = variant.call(&method, &[delimiter.to_variant()]);
+        result.to::<GString>()
     }
 }
 

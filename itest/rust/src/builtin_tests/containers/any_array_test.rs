@@ -47,3 +47,45 @@ fn any_array_typed_untyped_ops() {
     shared_any.reverse();
     assert_eq!(typed.at(0), 3);
 }
+
+#[itest]
+fn any_array_into_iter() {
+    let typed = array![1, 2];
+    let any = typed.upcast_any_array();
+    let mut count = 0;
+    for (i, val) in any.into_iter().enumerate() {
+        count += 1;
+        assert_eq!(val, ((i + 1) as i64).to_variant());
+    }
+    assert_eq!(count, 2);
+
+    let typed = array![1, 2];
+    let any = typed.upcast_any_array();
+    let mut count = 0;
+    for (i, val) in (&any).into_iter().enumerate() {
+        count += 1;
+        assert_eq!(val, ((i + 1) as i64).to_variant());
+    }
+    assert_eq!(count, 2);
+}
+
+#[itest]
+fn any_array_at_get_as() {
+    let typed = array![10, 20];
+    let any = typed.upcast_any_array();
+
+    assert_eq!(any.at_as::<i64>(0), 10);
+    assert_eq!(any.at_as::<f64>(1), 20.0);
+    assert_eq!(any.get_as::<i64>(0), Some(10));
+    assert_eq!(any.get_as::<i64>(2), None);
+    assert_eq!(any.get_as::<GString>(0), None);
+}
+
+#[itest]
+fn any_array_join() {
+    let typed: Array<GString> = array!["a", "b", "c"];
+    let any = typed.upcast_any_array();
+
+    assert_eq!(any.join(", "), GString::from("a, b, c"));
+    assert_eq!(any.join("-"), GString::from("a-b-c"));
+}

@@ -7,10 +7,10 @@
 
 use godot_ffi::VariantType;
 
-use crate::builtin::{GString, StringName};
+use crate::builtin::{GString, StringName, VarDictionary};
 use crate::global::{PropertyHint, PropertyUsageFlags};
 use crate::meta::{element_godot_type_name, ArrayElement, ClassId, GodotType, PackedArrayElement};
-use crate::obj::{bounds, Bounds, EngineBitfield, EngineEnum, GodotClass};
+use crate::obj::{bounds, Bounds, EngineBitfield, EngineEnum, GodotClass, Inherits};
 use crate::registry::class::get_dyn_property_hint_string;
 use crate::registry::property::{Export, Var};
 use crate::{classes, sys};
@@ -120,6 +120,62 @@ impl Default for PropertyInfo {
 }
 
 impl PropertyInfo {
+    /// Create a `PropertyInfo` from a dictionary.
+    pub fn from_dictionary(dict: &VarDictionary) -> Self {
+        use crate::obj::EngineEnum;
+
+        let variant_type = dict
+            .get_as::<&str, i64>("type")
+            .map(|ty| VariantType::from_sys(ty as sys::GDExtensionVariantType))
+            .unwrap_or(VariantType::NIL);
+
+        let property_name = dict
+            .get_as::<&str, StringName>("name")
+            .unwrap_or_default();
+
+        let class_id = dict
+            .get_as::<&str, StringName>("class_name")
+            .map(|name| ClassId::new_dynamic(name.to_string()))
+            .unwrap_or(ClassId::none());
+
+        let hint = dict
+            .get_as::<&str, i64>("hint")
+            .map(|h| PropertyHint::from_ord(h as i32))
+            .unwrap_or(PropertyHint::NONE);
+
+        let hint_string = dict
+            .get_as::<&str, GString>("hint_string")
+            .unwrap_or_default();
+
+        let usage = dict
+            .get_as::<&str, i64>("usage")
+            .map(|u| PropertyUsageFlags::from_ord(u as u64))
+            .unwrap_or(PropertyUsageFlags::DEFAULT);
+
+        Self {
+            variant_type,
+            class_id,
+            property_name,
+            hint_info: PropertyHintInfo { hint, hint_string },
+            usage,
+        }
+    }
+
+    /// Convert `PropertyInfo` to a dictionary.
+    pub fn to_dictionary(&self) -> VarDictionary {
+        use crate::builtin::vdict;
+        use crate::obj::EngineEnum;
+
+        vdict! {
+            "type": self.variant_type.ord() as i64,
+            "name": self.property_name.clone(),
+            "class_name": self.class_id.to_string_name(),
+            "hint": self.hint_info.hint.ord() as i64,
+            "hint_string": self.hint_info.hint_string.clone(),
+            "usage": self.usage.ord() as i64,
+        }
+    }
+
     /// Create a new `PropertyInfo` representing a property named `property_name` with type `T` automatically.
     ///
     /// This will generate property info equivalent to what a `#[var]` attribute would produce.
@@ -132,6 +188,29 @@ impl PropertyInfo {
     /// This will generate property info equivalent to what an `#[export]` attribute would produce.
     pub fn new_export<T: Export>(property_name: impl AsRef<str>) -> Self {
         T::Via::property_info(property_name.as_ref()).with_hint_info(T::export_hint())
+    }
+
+    /// Create a new `PropertyInfo` for an object of type `T`.
+    pub fn new_object<T: GodotClass>(property_name: impl Into<StringName>) -> Self {
+        Self {
+            variant_type: VariantType::OBJECT,
+            class_id: T::class_id(),
+            property_name: property_name.into(),
+            ..Self::default()
+        }
+    }
+
+    /// Create a new `PropertyInfo` for a resource of type `T`.
+    ///
+    /// This also sets the hint to [`PropertyHint::RESOURCE_TYPE`].
+    pub fn new_resource<T>(property_name: impl Into<StringName>) -> Self
+    where
+        T: GodotClass + Inherits<classes::Resource>,
+    {
+        Self::new_object::<T>(property_name).with_hint_info(PropertyHintInfo {
+            hint: PropertyHint::RESOURCE_TYPE,
+            hint_string: T::class_id().to_gstring(),
+        })
     }
 
     /// Returns a copy of this `PropertyInfo` with the given `usage`.
@@ -168,6 +247,83 @@ impl PropertyInfo {
     /// ```
     pub fn with_hint_info(self, hint_info: PropertyHintInfo) -> Self {
         Self { hint_info, ..self }
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the `READ_ONLY` flag set.
+    pub fn read_only(mut self) -> Self {
+        self.usage = self.usage.with_flag(PropertyUsageFlags::READ_ONLY, true);
+        self
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the `EDITOR` flag cleared.
+    pub fn no_editor(mut self) -> Self {
+        self.usage = self.usage.with_flag(PropertyUsageFlags::EDITOR, false);
+        self
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the `STORAGE` flag cleared.
+    pub fn no_storage(mut self) -> Self {
+        self.usage = self.usage.with_flag(PropertyUsageFlags::STORAGE, false);
+        self
+    }
+
+    /// Returns a copy of this `PropertyInfo` with both `EDITOR` and `STORAGE` flags set.
+    ///
+    /// This is the same as the default [`PropertyUsageFlags::DEFAULT`].
+    pub fn persisted(mut self) -> Self {
+        self.usage = self
+            .usage
+            .with_flag(PropertyUsageFlags::EDITOR, true)
+            .with_flag(PropertyUsageFlags::STORAGE, true);
+        self
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the given `flag` set to `value`.
+    pub fn with_usage_flag(mut self, flag: PropertyUsageFlags, value: bool) -> Self {
+        self.usage = self.usage.with_flag(flag, value);
+        self
+    }
+
+    /// Sets the property hint to a range.
+    pub fn range(self, min: f64, max: f64) -> Self {
+        self.with_hint_info(PropertyHintInfo::range(min, max))
+    }
+
+    /// Sets the property hint to an enum.
+    pub fn enum_names(self, names: &[&str]) -> Self {
+        self.with_hint_info(PropertyHintInfo::enum_names(names))
+    }
+
+    /// Sets the property hint to bit flags.
+    pub fn flags(self, names: &[&str]) -> Self {
+        self.with_hint_info(PropertyHintInfo::flags(names))
+    }
+
+    /// Sets the property hint to a file path.
+    pub fn file(self, filter: &str) -> Self {
+        self.with_hint_info(PropertyHintInfo::file(filter))
+    }
+
+    /// Sets the property hint to a directory path.
+    pub fn dir(self) -> Self {
+        self.with_hint_info(PropertyHintInfo::dir())
+    }
+
+    /// Sets the property hint to a multiline string.
+    pub fn multiline(self) -> Self {
+        self.with_hint_info(PropertyHintInfo::multiline())
+    }
+
+    /// Sets the step for a range hint.
+    pub fn with_step(self, step: f64) -> Self {
+        let hint_info = self.hint_info.clone().with_step(step);
+        self.with_hint_info(hint_info)
+    }
+
+    /// Sets the suffix for a range hint.
+    pub fn with_suffix(self, suffix: &str) -> Self {
+        let hint_info = self.hint_info.clone().with_suffix(suffix);
+        self.with_hint_info(hint_info)
     }
 
     /// Create a new `PropertyInfo` representing a group in Godot.

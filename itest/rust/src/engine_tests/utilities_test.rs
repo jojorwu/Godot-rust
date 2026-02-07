@@ -73,3 +73,16 @@ fn utilities_max() {
     );
     assert_eq!(output, Variant::from(-1.0));
 }
+
+#[itest]
+fn print_macros() {
+    godot_print!("hello, world!");
+    godot_print_rich!("[color=red]hello, world![/color]");
+
+    let a = 42;
+    let b = godot_dbg!(a);
+    assert_eq!(b, 42);
+
+    let c = godot_dbg!(a + 1, a * 2);
+    assert_eq!(c, (43, 84));
+}

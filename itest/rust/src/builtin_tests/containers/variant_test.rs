@@ -10,10 +10,10 @@ use std::fmt;
 use std::fmt::Display;
 
 use godot::builtin::{
-    array, varray, vdict, vslice, Array, Basis, Color, GString, NodePath, PackedInt32Array,
-    PackedStringArray, Projection, Quaternion, Signal, StringName, Transform2D, Transform3D,
-    VarArray, VarDictionary, Variant, VariantOperator, VariantType, Vector2, Vector2i, Vector3,
-    Vector3i,
+    array, varray, vdict, vslice, Array, Basis, Callable, Color, GString, NodePath,
+    PackedInt32Array, PackedStringArray, Projection, Quaternion, Signal, StringName, Transform2D,
+    Transform3D, VarArray, VarDictionary, Variant, VariantOperator, VariantType, Vector2,
+    Vector2i, Vector3, Vector3i,
 };
 use godot::classes::{Node, Node2D, Resource};
 use godot::meta::{FromGodot, ToGodot};
@@ -722,6 +722,136 @@ fn variant_hash() {
     // It's not guaranteed that different object will have different hash, but it is
     // extremely unlikely for a collision to happen.
     assert_ne!(vdict! { 0: vdict! { 0: 0 } }, vdict! { 0: vdict! { 0: 1 } });
+}
+
+#[itest]
+fn variant_keyed_indexed_named_access() {
+    // Keyed (Dictionary)
+    let mut dict_var = vdict! { "a": 1 }.to_variant();
+    assert_eq!(dict_var.get_keyed(&"a".to_variant()), 1.to_variant());
+
+    dict_var.set_keyed(&"b".to_variant(), &2.to_variant());
+    assert_eq!(dict_var.get_keyed(&"b".to_variant()), 2.to_variant());
+
+    assert_eq!(dict_var.at_as::<&str, i64>("a"), 1);
+    assert_eq!(dict_var.get_as::<&str, i64>("b"), Some(2));
+    assert_eq!(dict_var.get_as::<&str, i64>("c"), None);
+
+    // Named (Dictionary or Object)
+    let mut dict_var = vdict! { "name": "Godot" }.to_variant();
+    let name_sn = StringName::from("name");
+    assert_eq!(dict_var.get_named(&name_sn), "Godot".to_variant());
+
+    dict_var.set_named(&name_sn, &"Rust".to_variant());
+    assert_eq!(dict_var.get_named(&name_sn), "Rust".to_variant());
+
+    // Indexed (Array)
+    let mut array_var = varray![10, 20].to_variant();
+    assert_eq!(array_var.get_indexed(0), 10.to_variant());
+    assert_eq!(array_var.get_indexed(1), 20.to_variant());
+
+    array_var.set_indexed(1, &30.to_variant());
+    assert_eq!(array_var.get_indexed(1), 30.to_variant());
+
+    expect_panic("indexed access out of bounds", || {
+        array_var.get_indexed(2);
+    });
+}
+
+#[itest]
+fn variant_operators() {
+    let a = Variant::from(10);
+    let b = Variant::from(20);
+
+    // Comparison
+    assert!(a < b);
+    assert!(a <= b);
+    assert!(b > a);
+    assert!(b >= a);
+    assert!(a != b);
+    assert_eq!(a.partial_cmp(&b), Some(Ordering::Less));
+
+    // Arithmetic
+    assert_eq!(a.clone() + b.clone(), Variant::from(30));
+    assert_eq!(b.clone() - a.clone(), Variant::from(10));
+    assert_eq!(a.clone() * b.clone(), Variant::from(200));
+    assert_eq!(b.clone() / a.clone(), Variant::from(2));
+    assert_eq!(Variant::from(7) % Variant::from(3), Variant::from(1));
+
+    // Assignment
+    let mut c = a.clone();
+    c += b.clone();
+    assert_eq!(c, Variant::from(30));
+
+    c -= Variant::from(5);
+    assert_eq!(c, Variant::from(25));
+
+    // Unary
+    assert_eq!(-a.clone(), Variant::from(-10));
+    assert_eq!(!Variant::from(true), Variant::from(false));
+
+    // Bitwise
+    let x = Variant::from(0b1010);
+    let y = Variant::from(0b1100);
+    assert_eq!(x.clone() & y.clone(), Variant::from(0b1000));
+    assert_eq!(x.clone() | y.clone(), Variant::from(0b1110));
+    assert_eq!(x.clone() ^ y.clone(), Variant::from(0b0110));
+    assert_eq!(Variant::from(1) << Variant::from(2), Variant::from(4));
+    assert_eq!(Variant::from(8) >> Variant::from(2), Variant::from(2));
+}
+
+#[itest]
+fn variant_primitive_partial_eq() {
+    let v_int = Variant::from(42i64);
+    assert_eq!(v_int, 42i64);
+    assert_eq!(42i64, v_int);
+    assert_ne!(v_int, 43i64);
+
+    let v_float = Variant::from(12.34f64);
+    assert_eq!(v_float, 12.34f64);
+    assert_eq!(12.34f64, v_float);
+
+    let v_bool = Variant::from(true);
+    assert_eq!(v_bool, true);
+    assert_eq!(true, v_bool);
+
+    let v_str = Variant::from("hello");
+    assert_eq!(v_str, "hello");
+    assert_eq!("hello", v_str);
+    assert_eq!(v_str, String::from("hello"));
+    assert_eq!(v_str, GString::from("hello"));
+    assert_eq!(v_str, StringName::from("hello"));
+}
+
+#[itest]
+fn variant_gd_partial_eq() {
+    let node = Node::new_alloc();
+    let variant = node.to_variant();
+
+    assert_eq!(variant, node);
+    assert_eq!(node, variant);
+
+    let opt_node = Some(node.clone());
+    assert_eq!(variant, opt_node);
+    assert_eq!(opt_node, variant);
+
+    let none_node: Option<Gd<Node>> = None;
+    assert_ne!(variant, none_node);
+    assert_ne!(none_node, variant);
+
+    assert_eq!(Variant::nil(), none_node);
+    assert_eq!(none_node, Variant::nil());
+
+    node.free();
+}
+
+#[itest]
+fn variant_callable_partial_eq() {
+    let c = Callable::from_fn("test", |_| 42);
+    let variant = c.to_variant();
+
+    assert_eq!(variant, c);
+    assert_eq!(c, variant);
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

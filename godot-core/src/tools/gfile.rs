@@ -115,6 +115,35 @@ impl GFile {
         Ok(Self::from_inner(fa))
     }
 
+    /// Opens a file at `path`, reads its entire content as a [`GString`], and closes the file.
+    ///
+    /// For Godot 4.6+, this uses `get_as_text()`. For older versions, it uses `get_as_text(true)` (skipping carriage returns).
+    pub fn read_to_gstring(path: impl AsArg<GString>) -> std::io::Result<GString> {
+        let mut file = Self::open(path, ModeFlags::READ)?;
+        #[cfg(before_api = "4.6")]
+        {
+            file.read_as_gstring_entire(true)
+        }
+        #[cfg(since_api = "4.6")]
+        {
+            file.read_as_gstring_entire()
+        }
+    }
+
+    /// Opens a file at `path`, reads its entire content as a Rust [`String`], and closes the file.
+    pub fn read_to_string(path: impl AsArg<GString>) -> std::io::Result<String> {
+        Self::read_to_gstring(path).map(String::from)
+    }
+
+    /// Creates (or truncates) a file at `path`, writes the [`GString`] `contents` into it, and closes the file.
+    pub fn write_gstring_to_file(
+        path: impl AsArg<GString>,
+        contents: impl AsArg<GString>,
+    ) -> std::io::Result<()> {
+        let mut file = Self::open(path, ModeFlags::WRITE)?;
+        file.write_gstring(contents)
+    }
+
     /// Open a compressed file.
     ///
     /// Opens a compressed file located at `path`, creating new [`GFile`] object. Can read only files compressed by

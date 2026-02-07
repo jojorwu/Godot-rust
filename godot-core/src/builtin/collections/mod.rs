@@ -9,6 +9,7 @@ mod any_array;
 mod array;
 mod array_functional_ops;
 mod dictionary;
+mod dictionary_functional_ops;
 mod extend_buffer;
 mod packed_array;
 mod packed_array_element;
@@ -27,6 +28,7 @@ pub(crate) mod containers {
 #[rustfmt::skip] // Individual lines.
 pub(crate) mod iterators {
     pub use super::array_functional_ops::ArrayFunctionalOps;
+    pub use super::dictionary_functional_ops::DictionaryFunctionalOps;
     pub use super::array::Iter as ArrayIter;
     pub use super::dictionary::Iter as DictIter;
     pub use super::dictionary::Keys as DictKeys;

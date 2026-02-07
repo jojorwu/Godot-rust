@@ -226,6 +226,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// If no such instance ID is registered, or if the dynamic type of the object behind that instance ID
     /// is not compatible with `T`, then `None` is returned.
+    #[inline]
     pub fn try_from_instance_id(instance_id: InstanceId) -> Result<Self, ConvertError> {
         let ptr = classes::object_ptr_from_id(instance_id);
 
@@ -243,6 +244,7 @@ impl<T: GodotClass> Gd<T> {
     /// # Panics
     /// If no such instance ID is registered, or if the dynamic type of the object behind that instance ID
     /// is not compatible with `T`.
+    #[inline]
     #[doc(alias = "instance_from_id")]
     pub fn from_instance_id(instance_id: InstanceId) -> Self {
         Self::try_from_instance_id(instance_id).unwrap_or_else(|err| {
@@ -309,6 +311,12 @@ impl<T: GodotClass> Gd<T> {
     #[inline]
     pub fn is_instance_valid(&self) -> bool {
         self.raw.is_instance_valid()
+    }
+
+    /// Returns true if the object's dynamic type is `U` or a subclass of `U`.
+    #[inline]
+    pub fn is_instance_of<U: GodotClass>(&self) -> bool {
+        self.raw.is_instance_of::<U>()
     }
 
     /// Returns the dynamic class name of the object as `StringName`.
@@ -405,6 +413,7 @@ impl<T: GodotClass> Gd<T> {
     /// Equivalent to [`upcast::<Object>()`][Self::upcast], but without bounds.
     // Not yet public because it might need _mut/_ref overloads, and 6 upcast methods are a bit much...
     #[doc(hidden)] // no public API, but used by #[signal].
+    #[inline]
     pub fn upcast_object(self) -> Gd<classes::Object> {
         self.owned_cast()
             .expect("Upcast to Object failed. This is a bug; please report it.")
@@ -416,6 +425,7 @@ impl<T: GodotClass> Gd<T> {
     // }
 
     /// Equivalent to [`upcast_mut::<Object>()`][Self::upcast_mut], but without bounds.
+    #[inline]
     pub(crate) fn upcast_object_mut(&mut self) -> &mut classes::Object {
         self.raw.as_object_mut()
     }
@@ -506,6 +516,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// If `T`'s dynamic type is not `Derived` or one of its subclasses, `Err(self)` is returned, meaning you can reuse the original
     /// object for further casts.
+    #[inline]
     pub fn try_cast<Derived>(self) -> Result<Gd<Derived>, Self>
     where
         Derived: Inherits<T>,
@@ -518,6 +529,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// # Panics
     /// If the class' dynamic type is not `Derived` or one of its subclasses. Use [`Self::try_cast()`] if you want to check the result.
+    #[inline]
     pub fn cast<Derived>(self) -> Gd<Derived>
     where
         Derived: Inherits<T>,
@@ -616,6 +628,7 @@ impl<T: GodotClass> Gd<T> {
         Callable::from_linked_fn(method_name, self, rust_function)
     }
 
+    #[inline]
     pub(crate) unsafe fn from_obj_sys_or_none(
         ptr: sys::GDExtensionObjectPtr,
     ) -> Result<Self, ConvertError> {
@@ -630,6 +643,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// This is the default for most initializations from FFI. In cases where reference counter
     /// should explicitly **not** be updated, [`Self::from_obj_sys_weak`] is available.
+    #[inline]
     pub(crate) unsafe fn from_obj_sys(ptr: sys::GDExtensionObjectPtr) -> Self {
         sys::strict_assert!(
             !ptr.is_null(),
@@ -639,12 +653,14 @@ impl<T: GodotClass> Gd<T> {
         Self::from_obj_sys_or_none(ptr).unwrap()
     }
 
+    #[inline]
     pub(crate) unsafe fn from_obj_sys_weak_or_none(
         ptr: sys::GDExtensionObjectPtr,
     ) -> Result<Self, ConvertError> {
         Self::try_from_ffi(RawGd::from_obj_sys_weak(ptr))
     }
 
+    #[inline]
     pub(crate) unsafe fn from_obj_sys_weak(ptr: sys::GDExtensionObjectPtr) -> Self {
         Self::from_obj_sys_weak_or_none(ptr).unwrap()
     }
@@ -656,6 +672,7 @@ impl<T: GodotClass> Gd<T> {
     }
 
     #[doc(hidden)]
+    #[inline]
     pub fn obj_sys(&self) -> sys::GDExtensionObjectPtr {
         self.raw.obj_sys()
     }
@@ -1175,6 +1192,24 @@ impl<T: GodotClass> PartialEq for Gd<T> {
     fn eq(&self, other: &Self) -> bool {
         // Panics when one is dead
         self.instance_id() == other.instance_id()
+    }
+}
+
+impl<T: GodotClass> PartialEq<Option<Gd<T>>> for Gd<T> {
+    fn eq(&self, other: &Option<Gd<T>>) -> bool {
+        match other {
+            Some(other) => self.eq(other),
+            None => false,
+        }
+    }
+}
+
+impl<T: GodotClass> PartialEq<Gd<T>> for Option<Gd<T>> {
+    fn eq(&self, other: &Gd<T>) -> bool {
+        match self {
+            Some(self_) => self_.eq(other),
+            None => false,
+        }
     }
 }
 

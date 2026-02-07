@@ -13,8 +13,10 @@ use godot_ffi as sys;
 use sys::types::OpaqueDictionary;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
-use crate::builtin::{inner, VarArray, Variant};
+use crate::builtin::{inner, Callable, VarArray, Variant};
 use crate::meta::{ElementType, ExtVariantType, FromGodot, ToGodot};
+
+use super::dictionary_functional_ops::DictionaryFunctionalOps;
 
 #[deprecated = "Renamed to `VarDictionary`; `Dictionary` will be reserved for typed dictionaries in the future."]
 pub type Dictionary = VarDictionary;
@@ -113,6 +115,7 @@ impl VarDictionary {
     /// # Panics
     ///
     /// If there is no value for the given key. Note that this is distinct from a `NIL` value, which is returned as `Variant::nil()`.
+    #[inline]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
         // Code duplication with get(), to avoid third clone (since K: ToGodot takes ownership).
 
@@ -132,6 +135,7 @@ impl VarDictionary {
     /// When you are certain that a key is present, use [`at()`][`Self::at`] instead.
     ///
     /// This can be combined with Rust's `Option` methods, e.g. `dict.get(key).unwrap_or(default)`.
+    #[inline]
     pub fn get<K: ToGodot>(&self, key: K) -> Option<Variant> {
         // If implementation is changed, make sure to update at().
 
@@ -141,6 +145,21 @@ impl VarDictionary {
         } else {
             None
         }
+    }
+
+    /// Returns the value for the given key, converted to `V`.
+    ///
+    /// # Panics
+    /// If there is no value for the given key, or if the value cannot be converted to `V`.
+    #[inline]
+    pub fn at_as<K: ToGodot, V: FromGodot>(&self, key: K) -> V {
+        self.at(key).to::<V>()
+    }
+
+    /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
+    #[inline]
+    pub fn get_as<K: ToGodot, V: FromGodot>(&self, key: K) -> Option<V> {
+        self.get(key).and_then(|v| v.try_to::<V>().ok())
     }
 
     /// Returns the value at the key in the dictionary, or `NIL` otherwise.
@@ -210,11 +229,13 @@ impl VarDictionary {
     ///
     /// _Godot equivalent: `size`_
     #[doc(alias = "size")]
+    #[inline]
     pub fn len(&self) -> usize {
         self.as_inner().size().try_into().unwrap()
     }
 
     /// Returns true if the dictionary is empty.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         self.as_inner().is_empty()
     }
@@ -250,6 +271,7 @@ impl VarDictionary {
     /// If you are interested in the previous value, use [`insert()`][Self::insert] instead.
     ///
     /// _Godot equivalent: `dict[key] = value`_
+    #[inline]
     pub fn set<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) {
         self.balanced_ensure_mutable();
 
@@ -265,6 +287,7 @@ impl VarDictionary {
     ///
     /// If you don't need the previous value, use [`set()`][Self::set] instead.
     #[must_use]
+    #[inline]
     pub fn insert<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -279,6 +302,7 @@ impl VarDictionary {
     ///
     /// _Godot equivalent: `erase`_
     #[doc(alias = "erase")]
+    #[inline]
     pub fn remove<K: ToGodot>(&mut self, key: K) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -302,6 +326,19 @@ impl VarDictionary {
         unsafe { out_array.assume_type() }
     }
 
+    /// Returns a `Vec` containing all the keys in the dictionary.
+    pub fn keys(&self) -> Vec<Variant> {
+        Vec::from(&self.keys_array())
+    }
+
+    /// Returns a `Vec` containing all the keys in the dictionary, converted to `K`.
+    ///
+    /// # Panics
+    /// If any key cannot be converted to `K`.
+    pub fn typed_keys<K: FromGodot>(&self) -> Vec<K> {
+        self.keys_array().iter_shared().map(|k| k.to::<K>()).collect()
+    }
+
     /// Creates a new `Array` containing all the values currently in the dictionary.
     ///
     /// _Godot equivalent: `values`_
@@ -310,6 +347,19 @@ impl VarDictionary {
         // SAFETY: values() returns an untyped array with element type Variant.
         let out_array = self.as_inner().values();
         unsafe { out_array.assume_type() }
+    }
+
+    /// Returns a `Vec` containing all the values in the dictionary.
+    pub fn values(&self) -> Vec<Variant> {
+        Vec::from(&self.values_array())
+    }
+
+    /// Returns a `Vec` containing all the values in the dictionary, converted to `V`.
+    ///
+    /// # Panics
+    /// If any value cannot be converted to `V`.
+    pub fn typed_values<V: FromGodot>(&self) -> Vec<V> {
+        self.values_array().iter_shared().map(|v| v.to::<V>()).collect()
     }
 
     /// Copies all keys and values from `other` into `self`.
@@ -376,6 +426,56 @@ impl VarDictionary {
         Keys::new(self)
     }
 
+    /// Returns a typed iterator over key-value pairs.
+    pub fn iter_typed<K: FromGodot, V: FromGodot>(&self) -> TypedIter<'_, K, V> {
+        self.iter_shared().typed::<K, V>()
+    }
+
+    /// Returns a typed iterator over keys.
+    pub fn keys_typed<K: FromGodot>(&self) -> TypedKeys<'_, K> {
+        self.keys_shared().typed::<K>()
+    }
+
+    /// Returns a typed iterator over values.
+    pub fn values_typed<V: FromGodot>(&self) -> TypedValues<'_, V> {
+        TypedValues::new(self)
+    }
+
+    /// Access to Godot's functional-programming APIs based on callables.
+    pub fn functional_ops(&self) -> DictionaryFunctionalOps<'_> {
+        DictionaryFunctionalOps::new(self)
+    }
+
+    /// Returns a new dictionary containing only the elements for which the callable returns a truthy value.
+    ///
+    /// The callable has signature `fn(key, value) -> bool`.
+    #[must_use]
+    pub fn filter(&self, callable: &Callable) -> VarDictionary {
+        self.functional_ops().filter(callable)
+    }
+
+    /// Returns a new dictionary with each element transformed by the callable.
+    ///
+    /// The callable has signature `fn(key, value) -> Variant`.
+    #[must_use]
+    pub fn map(&self, callable: &Callable) -> VarDictionary {
+        self.functional_ops().map(callable)
+    }
+
+    /// Returns `true` if the callable returns a truthy value for at least one element.
+    ///
+    /// The callable has signature `fn(key, value) -> bool`.
+    pub fn any(&self, callable: &Callable) -> bool {
+        self.functional_ops().any(callable)
+    }
+
+    /// Returns `true` if the callable returns a truthy value for all elements.
+    ///
+    /// The callable has signature `fn(key, value) -> bool`.
+    pub fn all(&self, callable: &Callable) -> bool {
+        self.functional_ops().all(callable)
+    }
+
     /// Turns the dictionary into a shallow-immutable dictionary.
     ///
     /// Makes the dictionary read-only and returns the original dictionary. Disables modification of the dictionary's contents.
@@ -403,6 +503,7 @@ impl VarDictionary {
     ///
     /// See [`into_read_only()`][Self::into_read_only].
     /// In GDScript, dictionaries are automatically read-only if declared with the `const` keyword.
+    #[inline]
     pub fn is_read_only(&self) -> bool {
         self.as_inner().is_read_only()
     }
@@ -595,6 +696,76 @@ impl<K: ToGodot, V: ToGodot> FromIterator<(K, V)> for VarDictionary {
     }
 }
 
+impl IntoIterator for VarDictionary {
+    type Item = (Variant, Variant);
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        IntoIter::new(self)
+    }
+}
+
+impl<'a> IntoIterator for &'a VarDictionary {
+    type Item = (Variant, Variant);
+    type IntoIter = Iter<'a>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_shared()
+    }
+}
+
+/// An iterator that consumes a [`VarDictionary`] and yields its key-value pairs.
+pub struct IntoIter {
+    last_key: Option<Variant>,
+    dictionary: VarDictionary,
+    is_first: bool,
+    next_idx: usize,
+}
+
+impl IntoIter {
+    fn new(dictionary: VarDictionary) -> Self {
+        Self {
+            last_key: None,
+            dictionary,
+            is_first: true,
+            next_idx: 0,
+        }
+    }
+
+    fn next_key(&mut self) -> Option<Variant> {
+        let new_key = if self.is_first {
+            self.is_first = false;
+            DictionaryIter::call_init(&self.dictionary)
+        } else {
+            DictionaryIter::call_next(&self.dictionary, self.last_key.take()?)
+        };
+
+        if self.next_idx < self.dictionary.len() {
+            self.next_idx += 1;
+        }
+
+        self.last_key.clone_from(&new_key);
+        new_key
+    }
+}
+
+impl Iterator for IntoIter {
+    type Item = (Variant, Variant);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let key = self.next_key()?;
+
+        // Use as_inner().get() directly to avoid recursive into_iter() issues if we had them.
+        let value = self.dictionary.as_inner().get(&key, &Variant::nil());
+        Some((key, value))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = usize::saturating_sub(self.dictionary.len(), self.next_idx);
+        (remaining, Some(remaining))
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Internal helper for different iterator impls -- not an iterator itself
@@ -733,6 +904,37 @@ impl Iterator for Iter<'_> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next_key_value()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// [`VarDictionary`] iterator that converts each value into a typed `V`.
+///
+/// See [`VarDictionary::iter_shared()`] for more information about iteration over dictionaries.
+pub struct TypedValues<'a, V> {
+    iter: DictionaryIter<'a>,
+    _v: PhantomData<V>,
+}
+
+impl<'a, V> TypedValues<'a, V> {
+    fn new(dictionary: &'a VarDictionary) -> Self {
+        Self {
+            iter: DictionaryIter::new(dictionary),
+            _v: PhantomData,
+        }
+    }
+}
+
+impl<V: FromGodot> Iterator for TypedValues<'_, V> {
+    type Item = V;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next_key_value().map(|(_k, v)| V::from_variant(&v))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
