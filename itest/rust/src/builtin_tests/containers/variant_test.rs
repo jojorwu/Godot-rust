@@ -619,31 +619,17 @@ fn variant_sys_conversion() {
     assert_eq!(v2, v);
 }
 
-#[itest(skip)]
+#[itest]
 fn variant_sys_conversion2() {
     use godot::sys;
 
-    // FIXME alignment, maybe use alloc()
-    let mut buffer = [0u8; 50];
-
+    let mut v_dst = Variant::nil();
     let v = Variant::from(7);
     unsafe {
-        v.clone().move_return_ptr(
-            buffer.as_mut_ptr() as sys::GDExtensionTypePtr,
-            sys::PtrcallType::Standard,
-        )
+        v.clone().move_return_ptr(v_dst.sys_mut(), sys::PtrcallType::Standard)
     };
 
-    let v2 = unsafe {
-        Variant::new_with_uninit(|ptr| {
-            std::ptr::copy(
-                buffer.as_ptr(),
-                ptr as *mut u8,
-                std::mem::size_of_val(&*ptr),
-            )
-        })
-    };
-    assert_eq!(v2, v);
+    assert_eq!(v_dst, v);
 }
 
 #[itest]

@@ -79,29 +79,14 @@ pub fn to_pascal_case(ty_name: &str) -> String {
 
 #[allow(dead_code)] // Keep around in case we need it later.
 pub fn shout_to_pascal(shout_case: &str) -> String {
-    // TODO use heck?
+    use heck::ToPascalCase;
 
     assert!(
         is_valid_shout_ident(shout_case),
         "invalid identifier for SHOUT_CASE -> PascalCase conversion: {shout_case}"
     );
 
-    let mut result = String::with_capacity(shout_case.len());
-    let mut next_upper = true;
-
-    for ch in shout_case.chars() {
-        if next_upper {
-            assert_ne!(ch, '_'); // no double underscore
-            result.push(ch); // unchanged
-            next_upper = false;
-        } else if ch == '_' {
-            next_upper = true;
-        } else {
-            result.push(ch.to_ascii_lowercase());
-        }
-    }
-
-    result
+    shout_case.to_pascal_case()
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------
