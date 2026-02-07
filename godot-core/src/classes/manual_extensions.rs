@@ -13,7 +13,9 @@
 //! See also sister module [super::type_safe_replacements].
 
 use crate::builtin::{GString, NodePath, StringName, Variant};
-use crate::classes::{Node, Object, PackedScene, Resource, ResourceLoader, ResourceSaver};
+use crate::classes::{
+    Node, Object, PackedScene, Resource, ResourceLoader, ResourceSaver, SceneTree,
+};
 use crate::meta::{arg_into_ref, AsArg, FromGodot, PropertyInfo, ToGodot};
 use crate::obj::{Gd, Inherits};
 
@@ -313,6 +315,23 @@ impl Node {
         T: Inherits<Node>,
     {
         self.iter_children_typed::<T>().next()
+    }
+
+    /// ⚠️ Retrieves the scene tree, cast to type `T`, panicking if not found or bad type.
+    pub fn get_tree_as<T>(&self) -> Gd<T>
+    where
+        T: Inherits<SceneTree>,
+    {
+        self.try_get_tree_as::<T>()
+            .expect("Node::get_tree_as(): scene tree not found or bad type")
+    }
+
+    /// Retrieves the scene tree, cast to type `T` (fallible).
+    pub fn try_get_tree_as<T>(&self) -> Option<Gd<T>>
+    where
+        T: Inherits<SceneTree>,
+    {
+        self.get_tree().and_then(|tree| tree.try_cast::<T>().ok())
     }
 }
 

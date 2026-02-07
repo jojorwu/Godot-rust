@@ -138,30 +138,7 @@ impl Variant {
     /// See also [`get_type()`][Self::get_type].
     #[inline]
     pub fn is_nil(&self) -> bool {
-        let sys_type = self.sys_type();
-        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_NIL {
-            return true;
-        }
-
-        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
-            #[cfg(since_api = "4.4")]
-            return unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
-
-            #[cfg(before_api = "4.4")]
-            {
-                let is_null_object = unsafe {
-                    let object_ptr = crate::obj::raw_object_init(|type_ptr| {
-                        let converter = sys::builtin_fn!(object_from_variant);
-                        converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
-                    });
-
-                    object_ptr.is_null()
-                };
-                return is_null_object;
-            }
-        }
-
-        false
+        self.get_type() == VariantType::NIL
     }
 
     /// Alias for [`is_nil()`][Self::is_nil].

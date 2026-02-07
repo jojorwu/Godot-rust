@@ -13,7 +13,7 @@ use godot_ffi as sys;
 use sys::types::OpaqueDictionary;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
-use crate::builtin::{inner, Callable, VarArray, Variant};
+use crate::builtin::{inner, Callable, StringName, VarArray, Variant, VariantType};
 use crate::meta::{ElementType, ExtVariantType, FromGodot, ToGodot};
 
 use super::dictionary_functional_ops::DictionaryFunctionalOps;
@@ -426,6 +426,19 @@ impl VarDictionary {
         Keys::new(self)
     }
 
+    /// Returns an iterator over the values in a `Dictionary`.
+    ///
+    /// The values are each of type `Variant`. Each value references the original `Dictionary`, but instead of a `&`-reference to values pairs
+    /// as you might expect, the iterator returns a (cheap, shallow) copy of each value pair.
+    ///
+    /// Note that it's possible to modify the `Dictionary` through another reference while iterating over it. This will not result in
+    /// unsoundness or crashes, but will cause the iterator to behave in an unspecified way.
+    ///
+    /// Use `dict.values_shared().typed::<V>()` to iterate over `V` values instead.
+    pub fn values_shared(&self) -> Values<'_> {
+        Values::new(self)
+    }
+
     /// Returns a typed iterator over key-value pairs.
     pub fn iter_typed<K: FromGodot, V: FromGodot>(&self) -> TypedIter<'_, K, V> {
         self.iter_shared().typed::<K, V>()
@@ -557,6 +570,28 @@ impl VarDictionary {
             || self.as_inner().get_typed_value_class_name(),
             || self.as_inner().get_typed_value_script(),
         )
+    }
+
+    /// Reserves capacity for at least `capacity` elements.
+    ///
+    /// The dictionary may reserve more space to avoid frequent reallocations.
+    ///
+    /// _Godot equivalent: `reserve`_
+    #[cfg(since_api = "4.3")]
+    pub fn reserve(&mut self, capacity: usize) {
+        self.balanced_ensure_mutable();
+
+        let variant = self.to_variant();
+        let method = crate::static_sname!(c"reserve");
+        let arg = Variant::from(capacity as i64);
+        let _result_variant = variant.call(method, &[arg]);
+
+        // Variant::call() on a Dictionary modifies it in-place.
+        // We re-assign from the variant to ensure COW changes are picked up.
+        // If the call failed, the variant might return Nil.
+        if variant.get_type() == VariantType::DICTIONARY {
+            *self = variant.to::<Self>();
+        }
     }
 
     #[doc(hidden)]
@@ -933,6 +968,14 @@ impl<'a, V> TypedValues<'a, V> {
             _v: PhantomData,
         }
     }
+
+    /// Creates a typed iterator from an untyped one.
+    pub fn from_untyped(value: Values<'a>) -> Self {
+        Self {
+            iter: value.iter,
+            _v: PhantomData,
+        }
+    }
 }
 
 impl<V: FromGodot> Iterator for TypedValues<'_, V> {
@@ -940,6 +983,47 @@ impl<V: FromGodot> Iterator for TypedValues<'_, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next_key_value().map(|(_k, v)| V::from_variant(&v))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Iterator over values in a [`VarDictionary`].
+///
+/// See [`VarDictionary::values_shared()`] for more information about iteration over dictionaries.
+pub struct Values<'a> {
+    iter: DictionaryIter<'a>,
+}
+
+impl<'a> Values<'a> {
+    fn new(dictionary: &'a VarDictionary) -> Self {
+        Self {
+            iter: DictionaryIter::new(dictionary),
+        }
+    }
+
+    /// Creates an iterator that will convert each `Variant` value into a value of type `V`,
+    /// panicking upon failure to convert.
+    pub fn typed<V: FromGodot>(self) -> TypedValues<'a, V> {
+        TypedValues::from_untyped(self)
+    }
+
+    /// Returns an array of the values.
+    pub fn array(self) -> VarArray {
+        assert!(self.iter.is_first);
+        self.iter.dictionary.values_array()
+    }
+}
+
+impl Iterator for Values<'_> {
+    type Item = Variant;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next_key_value().map(|(_k, v)| v)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
