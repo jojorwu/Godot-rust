@@ -45,7 +45,7 @@ fn validate_property_test() {
         .iter_shared()
         .find(|dict| {
             dict.get("name")
-                .is_some_and(|v| v.to_string() == "SuperNewTestPropertyName")
+                .is_some_and(|v| v == "SuperNewTestPropertyName")
         })
         .expect("Test failed – unable to find validated property.");
 
