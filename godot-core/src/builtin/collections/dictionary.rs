@@ -274,12 +274,14 @@ impl VarDictionary {
     #[inline]
     pub fn set<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) {
         self.balanced_ensure_mutable();
+        self.set_inner(key.to_variant(), value.to_variant());
+    }
 
-        let key = key.to_variant();
-
+    /// Internal method to set a value without checking mutability.
+    fn set_inner(&mut self, key: Variant, value: Variant) {
         // SAFETY: `self.get_ptr_mut(key)` always returns a valid pointer to a value in the dictionary; either pre-existing or newly inserted.
         unsafe {
-            value.to_variant().move_into_var_ptr(self.get_ptr_mut(key));
+            value.move_into_var_ptr(self.get_ptr_mut(key));
         }
     }
 
@@ -717,8 +719,9 @@ where
 /// in `iter` will be overwritten.
 impl<K: ToGodot, V: ToGodot> Extend<(K, V)> for VarDictionary {
     fn extend<I: IntoIterator<Item = (K, V)>>(&mut self, iter: I) {
+        self.balanced_ensure_mutable();
         for (k, v) in iter.into_iter() {
-            self.set(k.to_variant(), v.to_variant())
+            self.set_inner(k.to_variant(), v.to_variant())
         }
     }
 }

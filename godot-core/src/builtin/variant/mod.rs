@@ -993,14 +993,28 @@ macro_rules! impl_variant_bin_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             fn $method(self, rhs: Self) -> Self::Output {
-                self.evaluate(&rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"))
+                self.evaluate(&rhs, $op).unwrap_or_else(|| {
+                    panic!(
+                        "Variant {} failed between {:?} and {:?}",
+                        stringify!($method),
+                        self.get_type(),
+                        rhs.get_type()
+                    )
+                })
             }
         }
 
         impl std::ops::$trait<&Variant> for Variant {
             type Output = Self;
             fn $method(self, rhs: &Variant) -> Self::Output {
-                self.evaluate(rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"))
+                self.evaluate(rhs, $op).unwrap_or_else(|| {
+                    panic!(
+                        "Variant {} failed between {:?} and {:?}",
+                        stringify!($method),
+                        self.get_type(),
+                        rhs.get_type()
+                    )
+                })
             }
         }
     };
@@ -1010,13 +1024,27 @@ macro_rules! impl_variant_assign_op {
     ($trait:ident, $method:ident, $op:expr) => {
         impl std::ops::$trait for Variant {
             fn $method(&mut self, rhs: Self) {
-                *self = self.evaluate(&rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"));
+                *self = self.evaluate(&rhs, $op).unwrap_or_else(|| {
+                    panic!(
+                        "Variant {} failed between {:?} and {:?}",
+                        stringify!($method),
+                        self.get_type(),
+                        rhs.get_type()
+                    )
+                });
             }
         }
 
         impl std::ops::$trait<&Variant> for Variant {
             fn $method(&mut self, rhs: &Variant) {
-                *self = self.evaluate(rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"));
+                *self = self.evaluate(rhs, $op).unwrap_or_else(|| {
+                    panic!(
+                        "Variant {} failed between {:?} and {:?}",
+                        stringify!($method),
+                        self.get_type(),
+                        rhs.get_type()
+                    )
+                });
             }
         }
     };

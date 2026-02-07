@@ -366,6 +366,20 @@ impl PartialEq<&str> for StringName {
     }
 }
 
+impl PartialEq<String> for StringName {
+    fn eq(&self, other: &String) -> bool {
+        self.eq(&other.as_str())
+    }
+}
+
+impl PartialEq<GString> for StringName {
+    fn eq(&self, other: &GString) -> bool {
+        // Godot strings (GString) can be compared with StringNames efficiently.
+        // But for consistency we use GString's implementation if available, or just convert.
+        GString::from(self).eq(other)
+    }
+}
+
 impl fmt::Display for StringName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = GString::from(self);
@@ -542,7 +556,6 @@ mod serialize {
     }
 }
 
-// TODO(v0.4.x): consider re-exposing in public API. Open questions: thread-safety, performance, memory leaks, global overhead.
 // Possibly in a more general StringName cache, similar to ClassId. See https://github.com/godot-rust/gdext/pull/1316.
 /// Creates and gets a reference to a static `StringName` from a ASCII/Latin-1 `c"string"`.
 ///

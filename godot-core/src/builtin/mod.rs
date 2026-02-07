@@ -56,7 +56,6 @@ pub mod __prelude_reexport {
     #[rustfmt::skip] // Do not reorder.
     pub use crate::dict;
 
-    #[cfg(feature = "trace")] // Test only.
     pub use crate::static_sname;
 }
 

@@ -68,13 +68,26 @@ pub fn to_pascal_case(ty_name: &str) -> String {
         return snake_special.to_pascal_case();
     }
 
-    ty_name
-        .to_pascal_case()
-        .replace("GdExtension", "GDExtension")
-        .replace("GdNative", "GDNative")
-        .replace("GdScript", "GDScript")
-        .replace("Vsync", "VSync")
-        .replace("Sdfgiy", "SdfgiY")
+    let mut pascal = ty_name.to_pascal_case();
+
+    // Systematic acronym/abbreviation handling.
+    let mapping = [
+        ("GdExtension", "GDExtension"),
+        ("GdNative", "GDNative"),
+        ("GdScript", "GDScript"),
+        ("Vsync", "VSync"),
+        ("Sdfgiy", "SdfgiY"),
+        ("1d", "1D"),
+        ("2d", "2D"),
+        ("3d", "3D"),
+        ("4d", "4D"),
+    ];
+
+    for (from, to) in mapping {
+        pascal = pascal.replace(from, to);
+    }
+
+    pascal
 }
 
 #[allow(dead_code)] // Keep around in case we need it later.
