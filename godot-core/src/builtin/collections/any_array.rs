@@ -203,10 +203,10 @@ impl AnyArray {
     pub fn reserve(&mut self, capacity: usize) {
         self.balanced_ensure_mutable();
 
-        let method = StringName::from("reserve");
+        let method = crate::static_sname!(c"reserve");
         let arg = Variant::from(capacity as i64);
         let variant = self.ffi_to_variant();
-        variant.call(&method, &[arg]);
+        variant.call(method, &[arg]);
 
         // Variant::call() on an Array modifies it in-place (possibly triggering COW).
         // To get the changes back into `self`, we need to extract the array from the variant.
@@ -487,9 +487,9 @@ impl AnyArray {
     /// This method is dynamic and can be used on any array. Each element is converted to a string before joining.
     pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
         let variant = self.ffi_to_variant();
-        let method = StringName::from("join");
+        let method = crate::static_sname!(c"join");
         meta::arg_into_ref!(delimiter);
-        let result = variant.call(&method, &[delimiter.to_variant()]);
+        let result = variant.call(method, &[delimiter.to_variant()]);
         result.to::<GString>()
     }
 }

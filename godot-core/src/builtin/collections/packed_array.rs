@@ -230,9 +230,9 @@ impl<T: PackedArrayElement> PackedArray<T> {
     #[cfg(since_api = "4.6")]
     pub fn reserve(&mut self, capacity: usize) {
         let variant = self.to_variant();
-        let method = StringName::from("reserve");
+        let method = crate::static_sname!(c"reserve");
         let arg = Variant::from(capacity as i64);
-        let _result_variant = variant.call(&method, &[arg]);
+        let _result_variant = variant.call(method, &[arg]);
 
         // Variant::call() on a PackedArray modifies it in-place.
         // We re-assign from the variant to ensure COW changes are picked up.
@@ -996,9 +996,9 @@ impl PackedStringArray {
     pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
         use meta::GodotFfiVariant;
         let variant = self.ffi_to_variant();
-        let method = StringName::from("join");
+        let method = crate::static_sname!(c"join");
         meta::arg_into_ref!(delimiter);
-        let result = variant.call(&method, &[delimiter.to_variant()]);
+        let result = variant.call(method, &[delimiter.to_variant()]);
         result.to::<GString>()
     }
 }
