@@ -1195,6 +1195,24 @@ impl<T: GodotClass> PartialEq for Gd<T> {
     }
 }
 
+impl<T: GodotClass> PartialEq<Option<Gd<T>>> for Gd<T> {
+    fn eq(&self, other: &Option<Gd<T>>) -> bool {
+        match other {
+            Some(other) => self.eq(other),
+            None => false,
+        }
+    }
+}
+
+impl<T: GodotClass> PartialEq<Gd<T>> for Option<Gd<T>> {
+    fn eq(&self, other: &Gd<T>) -> bool {
+        match self {
+            Some(self_) => self_.eq(other),
+            None => false,
+        }
+    }
+}
+
 impl<T: GodotClass> Eq for Gd<T> {}
 
 impl<T: GodotClass> Display for Gd<T> {

@@ -10,10 +10,10 @@ use std::fmt;
 use std::fmt::Display;
 
 use godot::builtin::{
-    array, varray, vdict, vslice, Array, Basis, Color, GString, NodePath, PackedInt32Array,
-    PackedStringArray, Projection, Quaternion, Signal, StringName, Transform2D, Transform3D,
-    VarArray, VarDictionary, Variant, VariantOperator, VariantType, Vector2, Vector2i, Vector3,
-    Vector3i,
+    array, varray, vdict, vslice, Array, Basis, Callable, Color, GString, NodePath,
+    PackedInt32Array, PackedStringArray, Projection, Quaternion, Signal, StringName, Transform2D,
+    Transform3D, VarArray, VarDictionary, Variant, VariantOperator, VariantType, Vector2,
+    Vector2i, Vector3, Vector3i,
 };
 use godot::classes::{Node, Node2D, Resource};
 use godot::meta::{FromGodot, ToGodot};
@@ -821,6 +821,37 @@ fn variant_primitive_partial_eq() {
     assert_eq!(v_str, String::from("hello"));
     assert_eq!(v_str, GString::from("hello"));
     assert_eq!(v_str, StringName::from("hello"));
+}
+
+#[itest]
+fn variant_gd_partial_eq() {
+    let node = Node::new_alloc();
+    let variant = node.to_variant();
+
+    assert_eq!(variant, node);
+    assert_eq!(node, variant);
+
+    let opt_node = Some(node.clone());
+    assert_eq!(variant, opt_node);
+    assert_eq!(opt_node, variant);
+
+    let none_node: Option<Gd<Node>> = None;
+    assert_ne!(variant, none_node);
+    assert_ne!(none_node, variant);
+
+    assert_eq!(Variant::nil(), none_node);
+    assert_eq!(none_node, Variant::nil());
+
+    node.free();
+}
+
+#[itest]
+fn variant_callable_partial_eq() {
+    let c = Callable::from_fn("test", |_| 42);
+    let variant = c.to_variant();
+
+    assert_eq!(variant, c);
+    assert_eq!(c, variant);
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

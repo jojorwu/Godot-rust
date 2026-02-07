@@ -49,6 +49,7 @@ mod string {
 
 mod script {
     mod script_instance_tests;
+    mod node_extension_test;
 }
 
 mod color_test;

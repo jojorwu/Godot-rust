@@ -278,6 +278,12 @@ impl PropertyInfo {
         self
     }
 
+    /// Returns a copy of this `PropertyInfo` with the given `flag` set to `value`.
+    pub fn with_usage_flag(mut self, flag: PropertyUsageFlags, value: bool) -> Self {
+        self.usage = self.usage.with_flag(flag, value);
+        self
+    }
+
     /// Sets the property hint to a range.
     pub fn range(self, min: f64, max: f64) -> Self {
         self.with_hint_info(PropertyHintInfo::range(min, max))

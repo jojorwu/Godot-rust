@@ -296,6 +296,24 @@ impl Node {
     {
         self.find_child_as::<T>(pattern, recursive, owned)
     }
+
+    /// Returns an iterator over children of type `T`.
+    pub fn iter_children_typed<T>(&self) -> impl Iterator<Item = Gd<T>> + '_
+    where
+        T: Inherits<Node>,
+    {
+        self.get_children()
+            .into_iter()
+            .filter_map(|node| node.try_cast::<T>().ok())
+    }
+
+    /// Returns the first child of type `T`.
+    pub fn get_first_child_typed<T>(&self) -> Option<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.iter_children_typed::<T>().next()
+    }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

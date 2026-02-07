@@ -927,6 +927,42 @@ impl PartialEq<NodePath> for Variant {
     }
 }
 
+impl<T: crate::obj::GodotClass> PartialEq<crate::obj::Gd<T>> for Variant {
+    fn eq(&self, other: &crate::obj::Gd<T>) -> bool {
+        self.eq(&other.to_variant())
+    }
+}
+
+impl<T: crate::obj::GodotClass> PartialEq<Variant> for crate::obj::Gd<T> {
+    fn eq(&self, other: &Variant) -> bool {
+        self.to_variant().eq(other)
+    }
+}
+
+impl<T: crate::obj::GodotClass> PartialEq<Option<crate::obj::Gd<T>>> for Variant {
+    fn eq(&self, other: &Option<crate::obj::Gd<T>>) -> bool {
+        self.eq(&other.to_variant())
+    }
+}
+
+impl<T: crate::obj::GodotClass> PartialEq<Variant> for Option<crate::obj::Gd<T>> {
+    fn eq(&self, other: &Variant) -> bool {
+        self.to_variant().eq(other)
+    }
+}
+
+impl PartialEq<crate::builtin::Callable> for Variant {
+    fn eq(&self, other: &crate::builtin::Callable) -> bool {
+        self.eq(&other.to_variant())
+    }
+}
+
+impl PartialEq<Variant> for crate::builtin::Callable {
+    fn eq(&self, other: &Variant) -> bool {
+        self.to_variant().eq(other)
+    }
+}
+
 impl PartialEq<&str> for Variant {
     fn eq(&self, other: &&str) -> bool {
         self.eq(&GString::from(*other).to_variant())

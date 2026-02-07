@@ -10,6 +10,7 @@ use godot_ffi::conv::u32_to_usize;
 use crate::builtin::{StringName, VarDictionary, Variant};
 use crate::global::MethodFlags;
 use crate::meta::{AsArg, ClassId, PropertyInfo, ToGodot};
+use crate::obj::EngineBitfield;
 use crate::sys;
 
 /// Describes a method's signature and metadata required by the Godot engine.
@@ -232,6 +233,36 @@ impl MethodInfo {
     /// Sets method flags.
     pub fn with_flags(mut self, flags: MethodFlags) -> Self {
         self.flags = flags;
+        self
+    }
+
+    /// Sets the `VARARG` flag.
+    pub fn vararg(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::VARARG, true);
+        self
+    }
+
+    /// Sets the `STATIC` flag.
+    pub fn static_method(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::STATIC, true);
+        self
+    }
+
+    /// Sets the `VIRTUAL` flag.
+    pub fn virtual_method(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::VIRTUAL, true);
+        self
+    }
+
+    /// Sets the `CONST` flag.
+    pub fn const_method(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::CONST, true);
+        self
+    }
+
+    /// Sets the `EDITOR` flag.
+    pub fn editor_method(mut self) -> Self {
+        self.flags = self.flags.with_flag(MethodFlags::EDITOR, true);
         self
     }
 
