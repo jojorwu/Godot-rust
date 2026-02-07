@@ -5,7 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use crate::builtin::{Callable, VarDictionary};
+use crate::builtin::{Callable, VarDictionary, Variant};
 
 /// Immutable, functional-programming operations for `Dictionary`, based on Godot callables.
 ///
@@ -46,5 +46,45 @@ impl<'a> DictionaryFunctionalOps<'a> {
             result.set(key, mapped);
         }
         result
+    }
+
+    /// Reduces the dictionary to a single value by iteratively applying the callable.
+    ///
+    /// The callable takes three arguments: the accumulator, the current key and the current value.
+    /// It returns the new accumulator value. The process starts with `initial` as the accumulator.
+    #[must_use]
+    pub fn reduce(&self, callable: &Callable, initial: &Variant) -> Variant {
+        let mut acc = initial.clone();
+        for (key, value) in self.dict.iter_shared() {
+            let args = [acc, key, value];
+            acc = callable.call(&args);
+        }
+        acc
+    }
+
+    /// Returns `true` if the callable returns a truthy value for at least one element.
+    ///
+    /// The callable has signature `fn(key, value) -> bool`.
+    pub fn any(&self, callable: &Callable) -> bool {
+        for (key, value) in self.dict.iter_shared() {
+            let args = [key, value];
+            if callable.call(&args).booleanize() {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Returns `true` if the callable returns a truthy value for all elements.
+    ///
+    /// The callable has signature `fn(key, value) -> bool`.
+    pub fn all(&self, callable: &Callable) -> bool {
+        for (key, value) in self.dict.iter_shared() {
+            let args = [key, value];
+            if !callable.call(&args).booleanize() {
+                return false;
+            }
+        }
+        true
     }
 }

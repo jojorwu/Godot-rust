@@ -800,6 +800,29 @@ fn variant_operators() {
     assert_eq!(Variant::from(8) >> Variant::from(2), Variant::from(2));
 }
 
+#[itest]
+fn variant_primitive_partial_eq() {
+    let v_int = Variant::from(42i64);
+    assert_eq!(v_int, 42i64);
+    assert_eq!(42i64, v_int);
+    assert_ne!(v_int, 43i64);
+
+    let v_float = Variant::from(12.34f64);
+    assert_eq!(v_float, 12.34f64);
+    assert_eq!(12.34f64, v_float);
+
+    let v_bool = Variant::from(true);
+    assert_eq!(v_bool, true);
+    assert_eq!(true, v_bool);
+
+    let v_str = Variant::from("hello");
+    assert_eq!(v_str, "hello");
+    assert_eq!("hello", v_str);
+    assert_eq!(v_str, String::from("hello"));
+    assert_eq!(v_str, GString::from("hello"));
+    assert_eq!(v_str, StringName::from("hello"));
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 
 fn convert_relaxed_to<T, U>(from: T, expected_to: U)

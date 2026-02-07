@@ -11,7 +11,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
 use crate::builtin::{
-    GString, StringName, VarArray, VariantDispatch, VariantOperator, VariantType,
+    GString, NodePath, StringName, VarArray, VariantDispatch, VariantOperator, VariantType,
 };
 use crate::classes;
 use crate::meta::error::{ConvertError, FromVariantError};
@@ -886,6 +886,68 @@ impl PartialEq for Variant {
         Self::evaluate(self, other, VariantOperator::EQUAL) //.
             .is_some_and(|v| v.to::<bool>())
         // If there is no defined conversion (-> None), then they are non-equal.
+    }
+}
+
+macro_rules! impl_variant_partial_eq {
+    ($($ty:ty),*) => {
+        $(
+            impl PartialEq<$ty> for Variant {
+                fn eq(&self, other: &$ty) -> bool {
+                    self.eq(&other.to_variant())
+                }
+            }
+
+            impl PartialEq<Variant> for $ty {
+                fn eq(&self, other: &Variant) -> bool {
+                    self.to_variant().eq(other)
+                }
+            }
+        )*
+    };
+}
+
+impl_variant_partial_eq!(i64, f64, bool);
+
+impl PartialEq<GString> for Variant {
+    fn eq(&self, other: &GString) -> bool {
+        self.eq(&other.to_variant())
+    }
+}
+
+impl PartialEq<StringName> for Variant {
+    fn eq(&self, other: &StringName) -> bool {
+        self.eq(&other.to_variant())
+    }
+}
+
+impl PartialEq<NodePath> for Variant {
+    fn eq(&self, other: &NodePath) -> bool {
+        self.eq(&other.to_variant())
+    }
+}
+
+impl PartialEq<&str> for Variant {
+    fn eq(&self, other: &&str) -> bool {
+        self.eq(&GString::from(*other).to_variant())
+    }
+}
+
+impl PartialEq<Variant> for &str {
+    fn eq(&self, other: &Variant) -> bool {
+        GString::from(*self).to_variant().eq(other)
+    }
+}
+
+impl PartialEq<String> for Variant {
+    fn eq(&self, other: &String) -> bool {
+        self.eq(&GString::from(other).to_variant())
+    }
+}
+
+impl PartialEq<Variant> for String {
+    fn eq(&self, other: &Variant) -> bool {
+        GString::from(self).to_variant().eq(other)
     }
 }
 

@@ -355,6 +355,14 @@ impl crate::classes::EditorInterface {
             .cast::<T>()
     }
 
+    /// Alias for [`get_editor_main_screen_as()`][Self::get_editor_main_screen_as].
+    pub fn get_editor_main_screen_typed<T>(&self) -> Gd<T>
+    where
+        T: Inherits<crate::classes::Control>,
+    {
+        self.get_editor_main_screen_as::<T>()
+    }
+
     /// Retrieves the editor base control, cast to type `T`.
     pub fn get_base_control_as<T>(&self) -> Gd<T>
     where
@@ -364,6 +372,14 @@ impl crate::classes::EditorInterface {
             .expect("Editor base control not found")
             .upcast::<crate::classes::Control>()
             .cast::<T>()
+    }
+
+    /// Alias for [`get_base_control_as()`][Self::get_base_control_as].
+    pub fn get_base_control_typed<T>(&self) -> Gd<T>
+    where
+        T: Inherits<crate::classes::Control>,
+    {
+        self.get_base_control_as::<T>()
     }
 }
 
@@ -387,6 +403,11 @@ impl crate::classes::ProjectSettings {
     /// `None` will be returned.
     pub fn try_get_setting_as<T: FromGodot>(&self, name: impl AsArg<GString>) -> Option<T> {
         self.get_setting(name).try_to::<T>().ok()
+    }
+
+    /// Alias for [`get_setting_as()`][Self::get_setting_as].
+    pub fn get_setting_typed<T: FromGodot>(&self, name: impl AsArg<GString>) -> T {
+        self.get_setting_as::<T>(name)
     }
 }
 

@@ -13,7 +13,7 @@ use godot_ffi as sys;
 use sys::types::OpaqueDictionary;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
-use crate::builtin::{inner, VarArray, Variant};
+use crate::builtin::{inner, Callable, VarArray, Variant};
 use crate::meta::{ElementType, ExtVariantType, FromGodot, ToGodot};
 
 use super::dictionary_functional_ops::DictionaryFunctionalOps;
@@ -444,6 +444,36 @@ impl VarDictionary {
     /// Access to Godot's functional-programming APIs based on callables.
     pub fn functional_ops(&self) -> DictionaryFunctionalOps<'_> {
         DictionaryFunctionalOps::new(self)
+    }
+
+    /// Returns a new dictionary containing only the elements for which the callable returns a truthy value.
+    ///
+    /// The callable has signature `fn(key, value) -> bool`.
+    #[must_use]
+    pub fn filter(&self, callable: &Callable) -> VarDictionary {
+        self.functional_ops().filter(callable)
+    }
+
+    /// Returns a new dictionary with each element transformed by the callable.
+    ///
+    /// The callable has signature `fn(key, value) -> Variant`.
+    #[must_use]
+    pub fn map(&self, callable: &Callable) -> VarDictionary {
+        self.functional_ops().map(callable)
+    }
+
+    /// Returns `true` if the callable returns a truthy value for at least one element.
+    ///
+    /// The callable has signature `fn(key, value) -> bool`.
+    pub fn any(&self, callable: &Callable) -> bool {
+        self.functional_ops().any(callable)
+    }
+
+    /// Returns `true` if the callable returns a truthy value for all elements.
+    ///
+    /// The callable has signature `fn(key, value) -> bool`.
+    pub fn all(&self, callable: &Callable) -> bool {
+        self.functional_ops().all(callable)
     }
 
     /// Turns the dictionary into a shallow-immutable dictionary.
