@@ -508,13 +508,13 @@ where
 
     pub(crate) fn try_bind(&self) -> Result<GdRef<'_, T>, Box<dyn std::error::Error>> {
         self.check_rtti("try_bind");
-        let storage = self.storage().ok_or_else(|| "storage not found")?;
+        let storage = self.storage().ok_or("storage not found")?;
         storage.try_get().map(GdRef::from_guard)
     }
 
     pub(crate) fn try_bind_mut(&mut self) -> Result<GdMut<'_, T>, Box<dyn std::error::Error>> {
         self.check_rtti("try_bind_mut");
-        let storage = self.storage().ok_or_else(|| "storage not found")?;
+        let storage = self.storage().ok_or("storage not found")?;
         storage.try_get_mut().map(GdMut::from_guard)
     }
 
