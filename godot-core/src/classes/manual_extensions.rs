@@ -49,11 +49,12 @@ impl Object {
     /// ⚠️ Retrieves a property value, panicking if not found or cannot be converted to `T`.
     pub fn get_as<T: FromGodot>(&self, property: impl AsArg<StringName>) -> T {
         arg_into_ref!(property);
-        self.try_get_as::<T>(property).unwrap_or_else(|| {
-            panic!(
-                "Object::get_as(): property '{property}' not found or cannot be converted to {to}",
-                to = std::any::type_name::<T>()
-            )
+        let variant = self.get(property);
+        if variant.is_nil() {
+            panic!("Object::get_as(): property '{property}' not found (returned Nil)");
+        }
+        variant.try_to::<T>().unwrap_or_else(|err| {
+            panic!("Object::get_as(): property '{property}' conversion failed: {err}");
         })
     }
 
@@ -70,11 +71,12 @@ impl Object {
     /// ⚠️ Retrieves a metadata value, panicking if not found or cannot be converted to `T`.
     pub fn get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
         arg_into_ref!(name);
-        self.try_get_meta_as::<T>(name).unwrap_or_else(|| {
-            panic!(
-                "Object::get_meta_as(): meta '{name}' not found or cannot be converted to {to}",
-                to = std::any::type_name::<T>()
-            )
+        let variant = self.get_meta(name);
+        if variant.is_nil() {
+            panic!("Object::get_meta_as(): meta '{name}' not found (returned Nil)");
+        }
+        variant.try_to::<T>().unwrap_or_else(|err| {
+            panic!("Object::get_meta_as(): meta '{name}' conversion failed: {err}");
         })
     }
 
@@ -95,11 +97,9 @@ impl Object {
         args: &[Variant],
     ) -> T {
         arg_into_ref!(method);
-        self.try_call_as::<T>(method, args).unwrap_or_else(|| {
-            panic!(
-                "Object::call_as(): method '{method}' call failed or cannot convert return value to {to}",
-                to = std::any::type_name::<T>()
-            )
+        let result = self.call(method, args);
+        result.try_to::<T>().unwrap_or_else(|err| {
+            panic!("Object::call_as(): method '{method}' conversion failed: {err}")
         })
     }
 

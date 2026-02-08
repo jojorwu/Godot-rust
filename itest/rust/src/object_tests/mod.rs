@@ -35,3 +35,5 @@ mod virtual_methods_test;
 
 // Need to test this in the init level method.
 pub use init_stage_test::*;
+pub mod manual_extensions_test;
+pub mod diagnostics_test;

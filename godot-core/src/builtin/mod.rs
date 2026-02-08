@@ -137,7 +137,9 @@ macro_rules! declare_hash_u32_method {
 // Conversion functions
 
 pub(crate) fn to_i64(i: usize) -> i64 {
-    i.try_into().unwrap()
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: size {i} exceeds i64::MAX, which is not supported by Godot")
+    })
 }
 
 pub(crate) fn to_usize(i: i64) -> usize {

@@ -585,7 +585,7 @@ impl VarDictionary {
 
         let variant = self.to_variant();
         let method = crate::static_sname!(c"reserve");
-        let arg = Variant::from(capacity as i64);
+        let arg = Variant::from(crate::builtin::to_i64(capacity));
         let _result_variant = variant.call(method, &[arg]);
 
         // Variant::call() on a Dictionary modifies it in-place.
