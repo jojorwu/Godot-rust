@@ -47,6 +47,7 @@ impl std::error::Error for GetNodeError {}
 /// Manual extensions for the `Object` class.
 impl Object {
     /// ⚠️ Retrieves a property value, panicking if not found or cannot be converted to `T`.
+    #[inline]
     pub fn get_as<T: FromGodot>(&self, property: impl AsArg<StringName>) -> T {
         arg_into_ref!(property);
         let variant = self.get(property);
@@ -59,16 +60,19 @@ impl Object {
     }
 
     /// Retrieves a property value (fallible).
+    #[inline]
     pub fn try_get_as<T: FromGodot>(&self, property: impl AsArg<StringName>) -> Option<T> {
         self.get(property).try_to::<T>().ok()
     }
 
     /// Sets a property value.
+    #[inline]
     pub fn set_as<T: ToGodot>(&mut self, property: impl AsArg<StringName>, value: T) {
         self.set(property, &value.to_variant());
     }
 
     /// ⚠️ Retrieves a metadata value, panicking if not found or cannot be converted to `T`.
+    #[inline]
     pub fn get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
         arg_into_ref!(name);
         let variant = self.get_meta(name);
@@ -81,16 +85,19 @@ impl Object {
     }
 
     /// Retrieves a metadata value (fallible).
+    #[inline]
     pub fn try_get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> Option<T> {
         self.get_meta(name).try_to::<T>().ok()
     }
 
     /// Sets a metadata value.
+    #[inline]
     pub fn set_meta_as<T: ToGodot>(&mut self, name: impl AsArg<StringName>, value: T) {
         self.set_meta(name, &value.to_variant());
     }
 
     /// ⚠️ Calls a method and converts the return value to `T`, panicking if it fails.
+    #[inline]
     pub fn call_as<T: FromGodot>(
         &mut self,
         method: impl AsArg<StringName>,
@@ -104,6 +111,7 @@ impl Object {
     }
 
     /// Calls a method and converts the return value to `T` (fallible).
+    #[inline]
     pub fn try_call_as<T: FromGodot>(
         &mut self,
         method: impl AsArg<StringName>,
@@ -129,6 +137,7 @@ impl Node {
     ///
     /// # Panics
     /// If the node is not found, or if it does not have type `T` or inherited.
+    #[inline]
     pub fn get_node_as<T>(&self, path: impl AsArg<NodePath>) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -145,6 +154,7 @@ impl Node {
     ///
     /// If the node is not found, or if it does not have type `T` or inherited,
     /// a [`GetNodeError`] will be returned.
+    #[inline]
     pub fn try_get_node_as<T>(&self, path: impl AsArg<NodePath>) -> Result<Gd<T>, GetNodeError>
     where
         T: Inherits<Node>,
@@ -161,6 +171,7 @@ impl Node {
     }
 
     /// Retrieves the node at path `path`, returning `None` if not found or bad type.
+    #[inline]
     pub fn get_node_or_none<T>(&self, path: impl AsArg<NodePath>) -> Option<Gd<T>>
     where
         T: Inherits<Node>,
@@ -169,6 +180,7 @@ impl Node {
     }
 
     /// Alias for [`get_node_as()`][Self::get_node_as].
+    #[inline]
     pub fn get_node_typed<T>(&self, path: impl AsArg<NodePath>) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -180,6 +192,7 @@ impl Node {
     ///
     /// # Panics
     /// If the parent is not found, or if it does not have type `T` or inherited.
+    #[inline]
     pub fn get_parent_as<T>(&self) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -192,6 +205,7 @@ impl Node {
     ///
     /// If the parent is not found, or if it does not have type `T` or inherited,
     /// `None` will be returned.
+    #[inline]
     pub fn try_get_parent_as<T>(&self) -> Option<Gd<T>>
     where
         T: Inherits<Node>,
@@ -203,6 +217,7 @@ impl Node {
     ///
     /// # Panics
     /// If the owner is not found, or if it does not have type `T` or inherited.
+    #[inline]
     pub fn get_owner_as<T>(&self) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -215,6 +230,7 @@ impl Node {
     ///
     /// If the owner is not found, or if it does not have type `T` or inherited,
     /// `None` will be returned.
+    #[inline]
     pub fn try_get_owner_as<T>(&self) -> Option<Gd<T>>
     where
         T: Inherits<Node>,
@@ -226,6 +242,7 @@ impl Node {
     ///
     /// # Panics
     /// If `index` is out of bounds, or if the node does not have type `T` or inherited.
+    #[inline]
     pub fn get_child_as<T>(&self, index: usize) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -238,6 +255,7 @@ impl Node {
     ///
     /// If `index` is out of bounds, or if the node does not have type `T` or inherited,
     /// `None` will be returned.
+    #[inline]
     pub fn try_get_child_as<T>(&self, index: usize) -> Option<Gd<T>>
     where
         T: Inherits<Node>,
@@ -247,6 +265,7 @@ impl Node {
     }
 
     /// Alias for [`get_child_as()`][Self::get_child_as].
+    #[inline]
     pub fn get_child_typed<T>(&self, index: usize) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -270,6 +289,7 @@ impl Node {
     /// Finds the first child whose name matches `pattern`, cast to type `T`.
     ///
     /// If no child is found or if it cannot be cast to `T`, `None` is returned.
+    #[inline]
     pub fn find_child_as<T>(
         &self,
         pattern: impl AsArg<GString>,
@@ -287,6 +307,7 @@ impl Node {
     }
 
     /// Alias for [`find_child_as()`][Self::find_child_as].
+    #[inline]
     pub fn find_child_typed<T>(
         &self,
         pattern: impl AsArg<GString>,
@@ -318,6 +339,7 @@ impl Node {
     }
 
     /// ⚠️ Retrieves the scene tree, cast to type `T`, panicking if not found or bad type.
+    #[inline]
     pub fn get_tree_as<T>(&self) -> Gd<T>
     where
         T: Inherits<SceneTree>,
@@ -327,6 +349,7 @@ impl Node {
     }
 
     /// Retrieves the scene tree, cast to type `T` (fallible).
+    #[inline]
     pub fn try_get_tree_as<T>(&self) -> Option<Gd<T>>
     where
         T: Inherits<SceneTree>,
@@ -363,6 +386,7 @@ impl crate::classes::ClassDb {
     }
 
     /// Instantiates a class by name (fallible).
+    #[inline]
     pub fn try_instantiate_as<T>(&self, class: impl AsArg<StringName>) -> Option<Gd<T>>
     where
         T: Inherits<crate::classes::Object>,
@@ -376,6 +400,7 @@ impl crate::classes::ClassDb {
     }
 
     /// Alias for [`instantiate_as()`][Self::instantiate_as].
+    #[inline]
     pub fn instantiate_typed<T>(&self, class: impl AsArg<StringName>) -> Gd<T>
     where
         T: Inherits<crate::classes::Object>,
@@ -452,11 +477,13 @@ impl crate::classes::ProjectSettings {
     ///
     /// If the setting is not found, or if its value cannot be converted to `T`,
     /// `None` will be returned.
+    #[inline]
     pub fn try_get_setting_as<T: FromGodot>(&self, name: impl AsArg<GString>) -> Option<T> {
         self.get_setting(name).try_to::<T>().ok()
     }
 
     /// Alias for [`get_setting_as()`][Self::get_setting_as].
+    #[inline]
     pub fn get_setting_typed<T: FromGodot>(&self, name: impl AsArg<GString>) -> T {
         self.get_setting_as::<T>(name)
     }
@@ -492,6 +519,7 @@ impl crate::classes::Engine {
     ///
     /// If the singleton is not found, or if it does not have type `T` or inherited,
     /// `None` will be returned.
+    #[inline]
     pub fn try_get_singleton_as<T>(&self, name: impl AsArg<StringName>) -> Option<Gd<T>>
     where
         T: Inherits<crate::classes::Object>,
@@ -501,6 +529,7 @@ impl crate::classes::Engine {
     }
 
     /// Alias for [`get_singleton_as()`][Self::get_singleton_as].
+    #[inline]
     pub fn get_singleton_typed<T>(&self, name: impl AsArg<StringName>) -> Gd<T>
     where
         T: Inherits<crate::classes::Object>,

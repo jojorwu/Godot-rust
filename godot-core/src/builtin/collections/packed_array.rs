@@ -127,6 +127,27 @@ impl<T: PackedArrayElement> PackedArray<T> {
         self.get(index).unwrap_or_else(|| self.panic_out_of_bounds(index))
     }
 
+    /// Returns a copy of the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
+    #[inline]
+    pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U>
+    where
+        T: ToGodot,
+    {
+        self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
+    /// ⚠️ Returns the value at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    #[inline]
+    pub fn at_as<U: FromGodot>(&self, index: usize) -> U
+    where
+        T: ToGodot,
+    {
+        self.at(index).to_variant().to::<U>()
+    }
+
     /// Returns `true` if the array contains the given value.
     ///
     /// _Godot equivalent: `has`_

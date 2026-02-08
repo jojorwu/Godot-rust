@@ -440,6 +440,12 @@ impl PartialEq<GString> for &str {
     }
 }
 
+impl PartialEq<NodePath> for GString {
+    fn eq(&self, other: &NodePath) -> bool {
+        other.eq(self)
+    }
+}
+
 impl PartialEq<String> for GString {
     fn eq(&self, other: &String) -> bool {
         self.eq(&other.as_str())

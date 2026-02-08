@@ -895,7 +895,7 @@ macro_rules! impl_variant_partial_eq {
     };
 }
 
-impl_variant_partial_eq!(i64, f64, bool);
+impl_variant_partial_eq!(i64, f64, bool, i32, f32, i16, u16, i8, u8, u32);
 
 impl PartialEq<GString> for Variant {
     fn eq(&self, other: &GString) -> bool {

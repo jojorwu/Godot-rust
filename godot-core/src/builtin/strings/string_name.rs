@@ -448,6 +448,12 @@ impl PartialEq<GString> for StringName {
     }
 }
 
+impl PartialEq<NodePath> for StringName {
+    fn eq(&self, other: &NodePath) -> bool {
+        other.eq(self)
+    }
+}
+
 impl fmt::Display for StringName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let s = GString::from(self);

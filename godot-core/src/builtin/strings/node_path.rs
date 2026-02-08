@@ -273,6 +273,18 @@ impl PartialEq<NodePath> for String {
     }
 }
 
+impl PartialEq<GString> for NodePath {
+    fn eq(&self, other: &GString) -> bool {
+        self.eq(&NodePath::from(other))
+    }
+}
+
+impl PartialEq<StringName> for NodePath {
+    fn eq(&self, other: &StringName) -> bool {
+        self.eq(&NodePath::from(other))
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Conversion from/into other string-types
 

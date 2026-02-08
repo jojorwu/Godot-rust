@@ -152,6 +152,7 @@ where
     ///
     /// # Panics
     /// Panics occurring in the `init` function are propagated to the caller.
+    #[inline]
     pub fn from_init_fn<F>(init: F) -> Self
     where
         F: FnOnce(crate::obj::Base<T::Base>) -> T,
@@ -166,6 +167,7 @@ where
     ///
     /// This is only useful for types `T` which do not store their base objects (if they have a base,
     /// you cannot construct them standalone).
+    #[inline]
     pub fn from_object(user_object: T) -> Self {
         Self::from_init_fn(move |_base| user_object)
     }
@@ -184,6 +186,7 @@ where
     /// * If there is an ongoing function call from GDScript to Rust, which currently holds a `&mut T`
     ///   reference to the user instance. This can happen through re-entrancy (Rust -> GDScript -> Rust call).
     // Note: possible names: write/read, hold/hold_mut, r/w, r/rw, ...
+    #[inline]
     pub fn bind(&self) -> GdRef<'_, T> {
         self.raw.bind()
     }
@@ -201,6 +204,7 @@ where
     /// * If another `Gd` smart pointer pointing to the same Rust instance has a live `GdRef` or `GdMut` guard bound.
     /// * If there is an ongoing function call from GDScript to Rust, which currently holds a `&T` or `&mut T`
     ///   reference to the user instance. This can happen through re-entrancy (Rust -> GDScript -> Rust call).
+    #[inline]
     pub fn bind_mut(&mut self) -> GdMut<'_, T> {
         self.raw.bind_mut()
     }
@@ -208,6 +212,7 @@ where
     /// Fallible version of [`bind()`][Self::bind].
     ///
     /// Returns `Err` if the Rust instance is already exclusively borrowed.
+    #[inline]
     pub fn try_bind(&self) -> Result<GdRef<'_, T>, Box<dyn std::error::Error>> {
         self.raw.try_bind()
     }
@@ -215,6 +220,7 @@ where
     /// Fallible version of [`bind_mut()`][Self::bind_mut].
     ///
     /// Returns `Err` if the Rust instance is already borrowed.
+    #[inline]
     pub fn try_bind_mut(&mut self) -> Result<GdMut<'_, T>, Box<dyn std::error::Error>> {
         self.raw.try_bind_mut()
     }
@@ -464,6 +470,7 @@ impl<T: GodotClass> Gd<T> {
     ///     }
     /// }
     /// ```
+    #[inline]
     pub fn upcast_ref<Base>(&self) -> &Base
     where
         Base: GodotClass + Bounds<Declarer = bounds::DeclEngine>,
@@ -503,6 +510,7 @@ impl<T: GodotClass> Gd<T> {
     ///     }
     /// }
     /// ```
+    #[inline]
     pub fn upcast_mut<Base>(&mut self) -> &mut Base
     where
         Base: GodotClass + Bounds<Declarer = bounds::DeclEngine>,
@@ -536,9 +544,10 @@ impl<T: GodotClass> Gd<T> {
     {
         self.owned_cast().unwrap_or_else(|from_obj| {
             panic!(
-                "downcast from {from} to {to} failed; instance {from_obj:?}",
+                "downcast from {from} to {to} failed; actual class is {actual} (instance {from_obj:?})",
                 from = T::class_id(),
                 to = Derived::class_id(),
+                actual = from_obj.dynamic_class_string(),
             )
         })
     }
@@ -578,6 +587,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// The `D` parameter can typically be inferred when there is a single `AsDyn<...>` implementation for `T`.  \
     /// Otherwise, use it as `gd.into_dyn::<dyn MyTrait>()`.
+    #[inline]
     #[must_use]
     pub fn into_dyn<D>(self) -> DynGd<T, D>
     where
@@ -591,6 +601,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// If `T`'s dynamic class doesn't implement `AsDyn<D>`, `Err(self)` is returned, meaning you can reuse the original
     /// object for further casts.
+    #[inline]
     pub fn try_dynify<D>(self) -> Result<DynGd<T, D>, Self>
     where
         T: GodotClass + Bounds<Declarer = bounds::DeclEngine>,
@@ -605,6 +616,7 @@ impl<T: GodotClass> Gd<T> {
     /// Returns a callable referencing a method from this object named `method_name`.
     ///
     /// This is shorter syntax for [`Callable::from_object_method(self, method_name)`][Callable::from_object_method].
+    #[inline]
     pub fn callable(&self, method_name: impl AsArg<StringName>) -> Callable {
         Callable::from_object_method(self, method_name)
     }
@@ -616,6 +628,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// Such a callable will be automatically invalidated by Godot when a linked Object is freed.
     /// If you need a Callable which can live indefinitely, use [`Callable::from_fn()`].
+    #[inline]
     pub fn linked_callable<R, F>(
         &self,
         method_name: impl Into<crate::builtin::CowStr>,
