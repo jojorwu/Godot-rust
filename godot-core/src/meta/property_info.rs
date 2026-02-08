@@ -369,7 +369,7 @@ impl PropertyInfo {
     {
         self.variant_type == VariantType::ARRAY
             && self.hint_info.hint == PropertyHint::ARRAY_TYPE
-            && self.hint_info.hint_string == GString::from(&T::Via::godot_type_name())
+            && self.hint_info.hint_string == T::Via::godot_type_name()
     }
 
     // ------------------------------------------------------------------------------------------------------------------------------------------

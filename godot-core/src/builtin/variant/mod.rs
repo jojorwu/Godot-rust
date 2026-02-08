@@ -46,6 +46,7 @@ impl Variant {
     ///
     /// If a Godot engine API accepts object (not variant) parameters and you'd like to pass `null`, use
     /// [`Gd::null_arg()`][crate::obj::Gd::null_arg] instead.
+    #[inline]
     pub fn nil() -> Self {
         Self::default()
     }
@@ -53,6 +54,7 @@ impl Variant {
     /// Create a variant holding a non-nil value.
     ///
     /// Equivalent to [`value.to_variant()`][ToGodot::to_variant], but consumes the argument.
+    #[inline]
     pub fn from<T: ToGodot>(value: T) -> Self {
         value.to_variant()
     }
@@ -138,7 +140,16 @@ impl Variant {
     /// See also [`get_type()`][Self::get_type].
     #[inline]
     pub fn is_nil(&self) -> bool {
-        self.get_type() == VariantType::NIL
+        let sys_type = self.sys_type();
+        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_NIL {
+            return true;
+        }
+
+        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
+            return self.is_null_object();
+        }
+
+        false
     }
 
     /// Alias for [`is_nil()`][Self::is_nil].
@@ -204,16 +215,19 @@ impl Variant {
     }
 
     /// Returns the variant as an `Array<Variant>`, or `Err` if it is not an array.
+    #[inline]
     pub fn try_to_array(&self) -> Result<crate::builtin::Array<Variant>, ConvertError> {
         self.try_to()
     }
 
     /// Returns the variant as a `VarDictionary`, or `Err` if it is not a dictionary.
+    #[inline]
     pub fn try_to_dictionary(&self) -> Result<crate::builtin::VarDictionary, ConvertError> {
         self.try_to()
     }
 
     /// Returns the variant as a `Gd<T>`, or `Err` if it is not an object of type `T`.
+    #[inline]
     pub fn try_to_object<T: crate::obj::Inherits<crate::classes::Object> + crate::obj::GodotClass>(
         &self,
     ) -> Result<crate::obj::Gd<T>, ConvertError> {
@@ -221,29 +235,34 @@ impl Variant {
     }
 
     /// Returns the variant as a `GString`, or `Err` if it is not a string.
+    #[inline]
     pub fn try_to_gstring(&self) -> Result<GString, ConvertError> {
         self.try_to()
     }
 
     /// ⚠️ Returns the variant as an integer, using relaxed conversion rules, panicking if it fails.
+    #[inline]
     pub fn to_int(&self) -> i64 {
         self.try_to_relaxed::<i64>()
             .unwrap_or_else(|err| panic!("Variant::to_int(): {err}"))
     }
 
     /// ⚠️ Returns the variant as a float, using relaxed conversion rules, panicking if it fails.
+    #[inline]
     pub fn to_float(&self) -> f64 {
         self.try_to_relaxed::<f64>()
             .unwrap_or_else(|err| panic!("Variant::to_float(): {err}"))
     }
 
     /// ⚠️ Returns the variant as a boolean, using relaxed conversion rules, panicking if it fails.
+    #[inline]
     pub fn to_bool(&self) -> bool {
         self.try_to_relaxed::<bool>()
             .unwrap_or_else(|err| panic!("Variant::to_bool(): {err}"))
     }
 
     /// ⚠️ Returns the variant as a `GString`, using relaxed conversion rules, panicking if it fails.
+    #[inline]
     pub fn to_gstring(&self) -> GString {
         self.try_to_relaxed::<GString>()
             .unwrap_or_else(|err| panic!("Variant::to_gstring(): {err}"))
@@ -251,37 +270,29 @@ impl Variant {
 
     /// Returns the type that is currently held by this variant.
     ///
-    /// If this variant holds a type `Object` but no instance (represented as a null object pointer), then `Nil` will be returned for
-    /// consistency. This may deviate from Godot behavior -- for example, calling [`Node::get_node_or_null()`][crate::classes::Node::get_node_or_null]
-    ///  with an invalid path returns a variant that has type `Object` but acts like `Nil` for all practical purposes.
+    /// Note that this returns `OBJECT` even if the variant holds a null object pointer. To check for
+    /// null objects, use [`is_nil()`][Self::is_nil].
     #[inline]
     pub fn get_type(&self) -> VariantType {
-        let sys_type = self.sys_type();
+        VariantType::from_sys(self.sys_type())
+    }
 
-        // There is a special case when the Variant has type OBJECT, but the Object* is null.
-        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
-            // Faster check available from 4.4 onwards.
-            #[cfg(since_api = "4.4")]
-            let is_null_object =
-                unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
+    #[inline]
+    fn is_null_object(&self) -> bool {
+        // Faster check available from 4.4 onwards.
+        #[cfg(since_api = "4.4")]
+        return unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
 
-            #[cfg(before_api = "4.4")]
-            // SAFETY: we checked that the raw type is OBJECT, so we can interpret the type-ptr as address of an object-ptr.
-            let is_null_object = unsafe {
-                let object_ptr = crate::obj::raw_object_init(|type_ptr| {
-                    let converter = sys::builtin_fn!(object_from_variant);
-                    converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
-                });
+        #[cfg(before_api = "4.4")]
+        // SAFETY: caller verified that the raw type is OBJECT, so we can interpret the type-ptr as address of an object-ptr.
+        unsafe {
+            let object_ptr = crate::obj::raw_object_init(|type_ptr| {
+                let converter = sys::builtin_fn!(object_from_variant);
+                converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
+            });
 
-                object_ptr.is_null()
-            };
-
-            if is_null_object {
-                return VariantType::NIL;
-            }
+            object_ptr.is_null()
         }
-
-        VariantType::from_sys(sys_type)
     }
 
     /// For variants holding an object, returns the object's instance ID.

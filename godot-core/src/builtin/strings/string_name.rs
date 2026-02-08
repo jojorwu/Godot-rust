@@ -365,12 +365,11 @@ impl IntoIterator for StringName {
     type IntoIter = IntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
-        let (ptr, len) = {
-            let gstring = GString::from(&self);
-            gstring.raw_slice()
-        };
+        let gstring = GString::from(&self);
+        let (ptr, len) = gstring.raw_slice();
+
         IntoIter {
-            _string: self,
+            _string: gstring,
             ptr,
             len,
             index: 0,
@@ -381,7 +380,7 @@ impl IntoIterator for StringName {
 #[cfg(since_api = "4.5")]
 /// An iterator that consumes a [`StringName`] and yields its characters.
 pub struct IntoIter {
-    _string: StringName,
+    _string: GString,
     ptr: *const char,
     len: usize,
     index: usize,
