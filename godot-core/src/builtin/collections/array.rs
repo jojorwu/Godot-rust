@@ -225,8 +225,6 @@ sys::static_assert_eq_size_align!(VarArray, AnyArray);
 /// Untyped Godot `Array`.
 pub type VarArray = Array<Variant>;
 
-// TODO check if these return a typed array
-
 // Methods that don't provide type-specific ergonomics are available through `Deref`/`DerefMut` to [`AnyArray`].
 // This includes:
 // - Read-only: `len()`, `is_empty()`, `hash_u32()`, `element_type()`
@@ -497,7 +495,7 @@ impl<T: ArrayElement> Array<T> {
     /// The array may reserve more space to avoid frequent reallocations.
     ///
     /// _Godot equivalent: `reserve`_
-    #[cfg(since_api = "4.6")]
+    #[cfg(since_api = "4.3")]
     pub fn reserve(&mut self, capacity: usize) {
         self.as_any_mut().reserve(capacity)
     }

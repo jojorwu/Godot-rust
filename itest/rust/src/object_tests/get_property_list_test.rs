@@ -35,7 +35,7 @@ impl IObject for GetPropertyListTest {
 }
 
 fn property_dict_eq_property_info(dict: &VarDictionary, info: &PropertyInfo) -> bool {
-    dict.get("name").unwrap().to::<GString>().to_string() == info.property_name.to_string()
+    info.property_name == dict.get("name").unwrap().to::<GString>()
         && dict.get("class_name").unwrap().to::<StringName>() == info.class_id.to_string_name()
         && dict.get("type").unwrap().to::<VariantType>() == info.variant_type
         && dict.get("hint").unwrap().to::<PropertyHint>() == info.hint_info.hint

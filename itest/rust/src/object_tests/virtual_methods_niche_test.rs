@@ -37,7 +37,7 @@ impl IResourceFormatLoader for FormatLoaderTest {
     }
 
     fn handles_type(&self, type_: StringName) -> bool {
-        type_.to_string() == Self::resource_type().to_string()
+        type_ == Self::resource_type()
     }
 
     fn get_resource_type(&self, _path: GString) -> GString {

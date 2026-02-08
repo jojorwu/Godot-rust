@@ -199,7 +199,7 @@ impl AnyArray {
     /// The array may reserve more space to avoid frequent reallocations.
     ///
     /// _Godot equivalent: `reserve`_
-    #[cfg(since_api = "4.6")]
+    #[cfg(since_api = "4.3")]
     pub fn reserve(&mut self, capacity: usize) {
         self.balanced_ensure_mutable();
 
