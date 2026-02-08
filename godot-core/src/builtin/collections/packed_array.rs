@@ -324,6 +324,13 @@ impl<T: PackedArrayElement> PackedArray<T> {
         }
     }
 
+    /// Returns an iterator over the elements of the array.
+    ///
+    /// The iterator yields shared references to the elements.
+    pub fn iter_shared(&self) -> std::slice::Iter<'_, T> {
+        self.as_slice().iter()
+    }
+
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.

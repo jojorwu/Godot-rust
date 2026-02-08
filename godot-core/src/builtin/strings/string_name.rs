@@ -500,6 +500,12 @@ impl From<&String> for StringName {
     }
 }
 
+impl From<String> for StringName {
+    fn from(value: String) -> Self {
+        value.as_str().into()
+    }
+}
+
 impl From<&GString> for StringName {
     /// See also [`GString::to_string_name()`].
     fn from(string: &GString) -> Self {

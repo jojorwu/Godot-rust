@@ -504,6 +504,12 @@ impl From<&String> for GString {
     }
 }
 
+impl From<String> for GString {
+    fn from(value: String) -> Self {
+        value.as_str().into()
+    }
+}
+
 impl From<&GString> for String {
     fn from(string: &GString) -> Self {
         string.chars().iter().copied().collect()

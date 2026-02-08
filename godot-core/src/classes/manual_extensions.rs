@@ -346,11 +346,19 @@ impl crate::classes::ClassDb {
         T: Inherits<crate::classes::Object>,
     {
         arg_into_ref!(class);
-        self.try_instantiate_as::<T>(class).unwrap_or_else(|| {
+        let variant = self.instantiate(class);
+        if variant.is_nil() {
+            panic!("ClassDB::instantiate_as(): failed to instantiate class '{class}' (returned Nil)");
+        }
+        let obj = variant.try_to::<Gd<Object>>().unwrap_or_else(|err| {
+            panic!("ClassDB::instantiate_as(): failed to convert instance of '{class}' to Gd<Object>: {err}");
+        });
+
+        obj.try_cast::<T>().unwrap_or_else(|obj| {
             panic!(
-                "ClassDB::instantiate_as(): failed to instantiate {class} as {to}",
+                "ClassDB::instantiate_as(): class '{class}' (instance {obj:?}) is not of type {to}",
                 to = T::class_id()
-            )
+            );
         })
     }
 
@@ -430,8 +438,14 @@ impl crate::classes::ProjectSettings {
     /// # Panics
     /// If the setting is not found, or if its value cannot be converted to `T`.
     pub fn get_setting_as<T: FromGodot>(&self, name: impl AsArg<GString>) -> T {
-        self.try_get_setting_as::<T>(name)
-            .unwrap_or_else(|| panic!("ProjectSettings::get_setting_as(): setting not found or wrong type"))
+        arg_into_ref!(name);
+        let variant = self.get_setting(name);
+        if variant.is_nil() {
+            panic!("ProjectSettings::get_setting_as(): setting '{name}' not found (returned Nil)");
+        }
+        variant.try_to::<T>().unwrap_or_else(|err| {
+            panic!("ProjectSettings::get_setting_as(): setting '{name}' conversion failed: {err}");
+        })
     }
 
     /// Retrieves a setting value (fallible).
@@ -461,8 +475,17 @@ impl crate::classes::Engine {
     where
         T: Inherits<crate::classes::Object>,
     {
-        self.try_get_singleton_as::<T>(name)
-            .unwrap_or_else(|| panic!("Engine::get_singleton_as(): singleton not found or bad type"))
+        arg_into_ref!(name);
+        let obj = self.get_singleton(name).unwrap_or_else(|| {
+            panic!("Engine::get_singleton_as(): singleton '{name}' not found");
+        });
+
+        obj.try_cast::<T>().unwrap_or_else(|obj| {
+            panic!(
+                "Engine::get_singleton_as(): singleton '{name}' (instance {obj:?}) is not of type {to}",
+                to = T::class_id()
+            );
+        })
     }
 
     /// Retrieves a singleton instance by name (fallible).

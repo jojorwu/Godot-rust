@@ -285,6 +285,13 @@ impl From<&str> for NodePath {
     }
 }
 
+impl From<String> for NodePath {
+    fn from(s: String) -> Self {
+        // NodePath doesn't offer direct construction from bytes; go via GString.
+        Self::from(&GString::from(s))
+    }
+}
+
 impl From<&String> for NodePath {
     fn from(s: &String) -> Self {
         // NodePath doesn't offer direct construction from bytes; go via GString.

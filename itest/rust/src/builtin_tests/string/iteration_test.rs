@@ -10,6 +10,19 @@ use godot::obj::{Gd, NewGd};
 use crate::framework::itest;
 
 #[itest]
+fn string_from_string_owned() {
+    let s = String::from("ABC");
+    let g = GString::from(s.clone());
+    assert_eq!(g, "ABC");
+
+    let sn = StringName::from(s.clone());
+    assert_eq!(sn, "ABC");
+
+    let np = NodePath::from(s);
+    assert_eq!(np, "ABC");
+}
+
+#[itest]
 fn string_into_iter() {
     let s = GString::from("ABC");
     let mut iter = s.into_iter();
@@ -58,6 +71,19 @@ fn string_equality_extensions() {
     assert_eq!(np, "path/to/node");
     assert_eq!("path/to/node", np);
     assert_eq!(np, String::from("path/to/node"));
+}
+
+#[itest]
+fn packed_array_iter_shared() {
+    let mut arr = PackedByteArray::new();
+    arr.push(1);
+    arr.push(2);
+
+    let mut count = 0;
+    for &val in arr.iter_shared() {
+        count += val;
+    }
+    assert_eq!(count, 3);
 }
 
 #[itest]
