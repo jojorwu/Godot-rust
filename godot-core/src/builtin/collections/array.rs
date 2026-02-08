@@ -273,12 +273,22 @@ impl<T: ArrayElement> Array<T> {
     pub fn get(&self, index: usize) -> Option<T> {
         let ptr = self.ptr_or_null(index);
         if ptr.is_null() {
-            None
-        } else {
-            // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
-            let variant = unsafe { Variant::borrow_var_sys(ptr) };
-            Some(T::from_variant(variant))
+            return None;
         }
+
+        // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
+        let variant = unsafe { Variant::borrow_var_sys(ptr) };
+        Some(T::from_variant(variant))
+    }
+
+    /// ⚠️ Returns the element at the given index, converted to `U`, panicking if out of bounds or conversion fails.
+    pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
+        self.at(index).to_variant().to::<U>()
+    }
+
+    /// Returns the element at the given index, converted to `U`, or `None` if out of bounds or conversion fails.
+    pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
+        self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
@@ -1495,8 +1505,15 @@ impl<T: ArrayElement + FromGodot> IntoIterator for Array<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         let len = self.len();
+        let ptr = if len == 0 {
+            std::ptr::null()
+        } else {
+            self.ptr(0)
+        };
+
         IntoIter {
-            array: self,
+            _array: self,
+            ptr: ptr.cast(),
             len,
             next_idx: 0,
         }
@@ -1514,7 +1531,8 @@ impl<'a, T: ArrayElement + FromGodot> IntoIterator for &'a Array<T> {
 
 /// An iterator that consumes an [`Array`] and yields its elements.
 pub struct IntoIter<T: ArrayElement> {
-    array: Array<T>,
+    _array: Array<T>,
+    ptr: *const Variant,
     len: usize,
     next_idx: usize,
 }
@@ -1524,7 +1542,11 @@ impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.next_idx < self.len {
-            let item = self.array.at(self.next_idx);
+            // SAFETY: index is within bounds, pointer remains valid as long as COW array is not modified.
+            // Iterator owns the array and doesn't modify it.
+            let variant = unsafe { &*self.ptr.add(self.next_idx) };
+            let item = T::from_variant(variant);
+
             self.next_idx += 1;
             Some(item)
         } else {

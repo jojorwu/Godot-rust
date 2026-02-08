@@ -42,6 +42,7 @@ mod containers {
 
 mod string {
     mod gstring_test;
+    mod iteration_test;
     mod node_path_test;
     mod string_name_test;
     mod string_test_macros;

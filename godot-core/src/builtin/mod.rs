@@ -56,6 +56,7 @@ pub mod __prelude_reexport {
     #[rustfmt::skip] // Do not reorder.
     pub use crate::dict;
 
+    pub use crate::static_node_path;
     pub use crate::static_sname;
 }
 

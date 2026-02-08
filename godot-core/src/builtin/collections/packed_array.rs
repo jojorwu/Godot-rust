@@ -834,7 +834,9 @@ impl<T: PackedArrayElement> fmt::Debug for PackedArray<T> {
 
 /// An iterator over elements of a [`PackedArray`].
 pub struct PackedIter<T: PackedArrayElement> {
-    array: PackedArray<T>,
+    _array: PackedArray<T>,
+    ptr: *const T,
+    len: usize,
     index: usize,
 }
 
@@ -842,15 +844,19 @@ impl<T: PackedArrayElement> Iterator for PackedIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let item = self.array.get(self.index);
-        if item.is_some() {
+        if self.index < self.len {
+            // SAFETY: index is within bounds, pointer remains valid as long as COW array is not modified.
+            // Iterator owns the array and doesn't modify it.
+            let item = unsafe { &*self.ptr.add(self.index) };
             self.index += 1;
+            Some(item.clone())
+        } else {
+            None
         }
-        item
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.array.len() - self.index;
+        let remaining = self.len - self.index;
         (remaining, Some(remaining))
     }
 }
@@ -862,8 +868,17 @@ impl<T: PackedArrayElement> IntoIterator for PackedArray<T> {
     type IntoIter = PackedIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
+        let len = self.len();
+        let ptr = if len == 0 {
+            std::ptr::null()
+        } else {
+            self.ptr(0)
+        };
+
         PackedIter {
-            array: self,
+            _array: self,
+            ptr,
+            len,
             index: 0,
         }
     }

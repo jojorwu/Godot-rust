@@ -311,6 +311,61 @@ impl std::ops::Index<usize> for GString {
     }
 }
 
+impl<'a> IntoIterator for &'a GString {
+    type Item = char;
+    type IntoIter = std::iter::Copied<std::slice::Iter<'a, char>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.chars().iter().copied()
+    }
+}
+
+impl IntoIterator for GString {
+    type Item = char;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let (ptr, len) = self.raw_slice();
+        IntoIter {
+            _string: self,
+            ptr,
+            len,
+            index: 0,
+        }
+    }
+}
+
+/// An iterator that consumes a [`GString`] and yields its characters.
+pub struct IntoIter {
+    _string: GString,
+    ptr: *const char,
+    len: usize,
+    index: usize,
+}
+
+impl Iterator for IntoIter {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.len {
+            // SAFETY: index is within bounds, pointer remains valid as long as COW string is not modified.
+            // Iterator owns the string and doesn't modify it.
+            let ch = unsafe { *self.ptr.add(self.index) };
+            self.index += 1;
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+impl ExactSizeIterator for IntoIter {}
+
 // SAFETY:
 // - `move_return_ptr`
 //   Nothing special needs to be done beyond a `std::mem::swap` when returning a String.
@@ -376,6 +431,30 @@ impl fmt::Debug for GString {
 impl PartialEq<&str> for GString {
     fn eq(&self, other: &&str) -> bool {
         self.chars().iter().copied().eq(other.chars())
+    }
+}
+
+impl PartialEq<GString> for &str {
+    fn eq(&self, other: &GString) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<String> for GString {
+    fn eq(&self, other: &String) -> bool {
+        self.eq(&other.as_str())
+    }
+}
+
+impl PartialEq<GString> for String {
+    fn eq(&self, other: &GString) -> bool {
+        other.eq(&self.as_str())
+    }
+}
+
+impl PartialEq<StringName> for GString {
+    fn eq(&self, other: &StringName) -> bool {
+        other.eq(self)
     }
 }
 

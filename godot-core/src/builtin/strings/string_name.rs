@@ -349,6 +349,69 @@ impl std::ops::Index<usize> for StringName {
     }
 }
 
+#[cfg(since_api = "4.5")]
+impl<'a> IntoIterator for &'a StringName {
+    type Item = char;
+    type IntoIter = std::iter::Copied<std::slice::Iter<'a, char>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.chars().iter().copied()
+    }
+}
+
+#[cfg(since_api = "4.5")]
+impl IntoIterator for StringName {
+    type Item = char;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let (ptr, len) = {
+            let gstring = GString::from(&self);
+            gstring.raw_slice()
+        };
+        IntoIter {
+            _string: self,
+            ptr,
+            len,
+            index: 0,
+        }
+    }
+}
+
+#[cfg(since_api = "4.5")]
+/// An iterator that consumes a [`StringName`] and yields its characters.
+pub struct IntoIter {
+    _string: StringName,
+    ptr: *const char,
+    len: usize,
+    index: usize,
+}
+
+#[cfg(since_api = "4.5")]
+impl Iterator for IntoIter {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.len {
+            // SAFETY: index is within bounds, pointer remains valid as long as COW string name is not modified.
+            // Iterator owns the string name and doesn't modify it.
+            let ch = unsafe { *self.ptr.add(self.index) };
+            self.index += 1;
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+#[cfg(since_api = "4.5")]
+impl ExactSizeIterator for IntoIter {}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Comparison with Rust strings
 
@@ -363,6 +426,12 @@ impl PartialEq<&str> for StringName {
     #[cfg(before_api = "4.5")]
     fn eq(&self, other: &&str) -> bool {
         GString::from(self) == *other
+    }
+}
+
+impl PartialEq<StringName> for &str {
+    fn eq(&self, other: &StringName) -> bool {
+        other.eq(self)
     }
 }
 
