@@ -251,7 +251,7 @@ impl fmt::Debug for NodePath {
 
 impl PartialEq<&str> for NodePath {
     fn eq(&self, other: &&str) -> bool {
-        self.eq(&NodePath::from(*other))
+        GString::from(self) == *other
     }
 }
 
@@ -275,13 +275,13 @@ impl PartialEq<NodePath> for String {
 
 impl PartialEq<GString> for NodePath {
     fn eq(&self, other: &GString) -> bool {
-        self.eq(&NodePath::from(other))
+        GString::from(self).eq(other)
     }
 }
 
 impl PartialEq<StringName> for NodePath {
     fn eq(&self, other: &StringName) -> bool {
-        self.eq(&NodePath::from(other))
+        GString::from(self).eq(other)
     }
 }
 

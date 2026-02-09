@@ -416,15 +416,44 @@ impl ExactSizeIterator for IntoIter {}
 
 // API design: see PartialEq for GString.
 impl PartialEq<&str> for StringName {
-    #[cfg(since_api = "4.5")]
     fn eq(&self, other: &&str) -> bool {
-        self.chars().iter().copied().eq(other.chars())
-    }
+        let other_bytes = other.as_bytes();
+        let gstring = GString::from(self);
+        let s = gstring.string_sys();
+        unsafe {
+            // Get length in UTF-8 bytes.
+            let len = sys::interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
+            if len as usize != other_bytes.len() {
+                return false;
+            }
+            if len == 0 {
+                return true;
+            }
 
-    // Polyfill for older Godot versions -- StringName->GString conversion still requires allocation in older versions.
-    #[cfg(before_api = "4.5")]
-    fn eq(&self, other: &&str) -> bool {
-        GString::from(self) == *other
+            // We need a temporary buffer to hold the GString's UTF-8 representation.
+            // For short strings, we can use the stack.
+            const STACK_BUF_SIZE: usize = 128;
+            if len as usize <= STACK_BUF_SIZE {
+                let mut buf = [0u8; STACK_BUF_SIZE];
+                sys::interface_fn!(string_to_utf8_chars)(
+                    s,
+                    buf.as_mut_ptr() as *mut std::ffi::c_char,
+                    len,
+                );
+                &buf[..len as usize] == other_bytes
+            } else {
+                // For long strings, character-by-character comparison is likely better than heap allocation.
+                #[cfg(since_api = "4.5")]
+                {
+                    self.chars().iter().copied().eq(other.chars())
+                }
+
+                #[cfg(before_api = "4.5")]
+                {
+                    gstring == *other
+                }
+            }
+        }
     }
 }
 
@@ -441,6 +470,12 @@ impl PartialEq<String> for StringName {
 }
 
 impl PartialEq<GString> for StringName {
+    #[cfg(since_api = "4.5")]
+    fn eq(&self, other: &GString) -> bool {
+        self.chars() == other.chars()
+    }
+
+    #[cfg(before_api = "4.5")]
     fn eq(&self, other: &GString) -> bool {
         // Godot strings (GString) can be compared with StringNames efficiently.
         // But for consistency we use GString's implementation if available, or just convert.
