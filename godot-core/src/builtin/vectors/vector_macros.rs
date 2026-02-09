@@ -21,6 +21,7 @@ macro_rules! impl_vector_unary_operator {
     ) => {
         impl std::ops::$Operator for $Vector {
             type Output = Self;
+            #[inline]
             fn $func(mut self) -> Self::Output {
                 $(
                     self.$components = self.$components.$func();
@@ -45,6 +46,7 @@ macro_rules! impl_vector_vector_binary_operator {
     ) => {
         impl std::ops::$Operator for $Vector {
             type Output = Self;
+            #[inline]
             fn $func(mut self, rhs: $Vector) -> Self::Output {
                 $(
                     self.$components = self.$components.$func(rhs.$components);
@@ -72,6 +74,7 @@ macro_rules! impl_vector_scalar_binary_operator {
     ) => {
         impl std::ops::$Operator<$Scalar> for $Vector {
             type Output = Self;
+            #[inline]
             fn $func(mut self, rhs: $Scalar) -> Self::Output {
                 $(
                     self.$components = self.$components.$func(rhs);
@@ -99,6 +102,7 @@ macro_rules! impl_scalar_vector_binary_operator {
     ) => {
         impl std::ops::$Operator<$Vector> for $Scalar {
             type Output = $Vector;
+            #[inline]
             fn $func(self, mut rhs: $Vector) -> Self::Output {
                 $(
                     rhs.$components = rhs.$components.$func(self);
@@ -123,6 +127,7 @@ macro_rules! impl_vector_vector_assign_operator {
         $func:ident
     ) => {
         impl std::ops::$Operator for $Vector {
+            #[inline]
             fn $func(&mut self, rhs: $Vector) {
                 $(
                     self.$components.$func(rhs.$components);
@@ -148,6 +153,7 @@ macro_rules! impl_vector_scalar_assign_operator {
         $func:ident
     ) => {
         impl std::ops::$Operator<$Scalar> for $Vector {
+            #[inline]
             fn $func(&mut self, rhs: $Scalar) {
                 $(
                     self.$components.$func(rhs);

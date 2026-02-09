@@ -335,3 +335,52 @@ mod test {
         crate::builtin::test_utils::roundtrip(&rect, expected_json);
     }
 }
+
+impl From<(Vector2, Vector2)> for Rect2 {
+    #[inline]
+    fn from((position, size): (Vector2, Vector2)) -> Self {
+        Self { position, size }
+    }
+}
+
+impl PartialEq<(Vector2, Vector2)> for Rect2 {
+    #[inline]
+    fn eq(&self, other: &(Vector2, Vector2)) -> bool {
+        self.position == other.0 && self.size == other.1
+    }
+}
+
+impl PartialEq<Rect2> for (Vector2, Vector2) {
+    #[inline]
+    fn eq(&self, other: &Rect2) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<(real, real, real, real)> for Rect2 {
+    #[inline]
+    fn eq(&self, other: &(real, real, real, real)) -> bool {
+        self.position.x == other.0 && self.position.y == other.1 && self.size.x == other.2 && self.size.y == other.3
+    }
+}
+
+impl PartialEq<Rect2> for (real, real, real, real) {
+    #[inline]
+    fn eq(&self, other: &Rect2) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<[real; 4]> for Rect2 {
+    #[inline]
+    fn eq(&self, other: &[real; 4]) -> bool {
+        self.position.x == other[0] && self.position.y == other[1] && self.size.x == other[2] && self.size.y == other[3]
+    }
+}
+
+impl PartialEq<Rect2> for [real; 4] {
+    #[inline]
+    fn eq(&self, other: &Rect2) -> bool {
+        other == self
+    }
+}

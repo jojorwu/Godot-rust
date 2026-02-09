@@ -79,11 +79,13 @@ impl Basis {
     pub const FLIP_Z: Self = Self::from_diagonal(1.0, 1.0, -1.0);
 
     /// Create a new basis from 3 row vectors. These are *not* basis vectors.
+    #[inline]
     pub const fn from_rows(x: Vector3, y: Vector3, z: Vector3) -> Self {
         Self { rows: [x, y, z] }
     }
 
     /// Create a new basis from 3 column vectors.
+    #[inline]
     pub const fn from_cols(a: Vector3, b: Vector3, c: Vector3) -> Self {
         Self::from_rows_array(&[a.x, b.x, c.x, a.y, b.y, c.y, a.z, b.z, c.z])
     }
@@ -91,11 +93,13 @@ impl Basis {
     /// Create a `Basis` from an axis and angle.
     ///
     /// _Godot equivalent: `Basis(Vector3 axis, float angle)`_
+    #[inline]
     pub fn from_axis_angle(axis: Vector3, angle: real) -> Self {
         RMat3::from_axis_angle(axis.to_glam(), angle).to_front()
     }
 
     /// Create a diagonal matrix from the given values.
+    #[inline]
     pub const fn from_diagonal(x: real, y: real, z: real) -> Self {
         Self {
             rows: [
@@ -109,10 +113,12 @@ impl Basis {
     /// Create a diagonal matrix from the given values.
     ///
     /// _Godot equivalent: `Basis.from_scale(Vector3 scale)`
+    #[inline]
     pub const fn from_scale(scale: Vector3) -> Self {
         Self::from_diagonal(scale.x, scale.y, scale.z)
     }
 
+    #[inline]
     const fn from_rows_array(rows: &[real; 9]) -> Self {
         let [ax, bx, cx, ay, by, cy, az, bz, cz] = rows;
         Self::from_rows(
@@ -125,6 +131,7 @@ impl Basis {
     /// Create a `Basis` from a `Quaternion`.
     ///
     /// _Godot equivalent: `Basis(Quaternion from)`_
+    #[inline]
     pub fn from_quaternion(quat: Quaternion) -> Self {
         RMat3::from_quat(quat.to_glam()).to_front()
     }
@@ -159,10 +166,12 @@ impl Basis {
     }
 
     /// Creates a `[Vector3; 3]` with the columns of the `Basis`.
+    #[inline]
     pub fn to_cols(&self) -> [Vector3; 3] {
         self.transposed().rows
     }
 
+    #[inline]
     const fn to_rows_array(self) -> [real; 9] {
         let [Vector3 {
             x: ax,
@@ -184,6 +193,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.get_rotation_quaternion()`_
     #[doc(alias = "get_rotation_quaternion")]
+    #[inline]
     pub fn get_quaternion(&self) -> Quaternion {
         RQuat::from_mat3(&self.orthonormalized().to_glam()).to_front()
     }
@@ -192,6 +202,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.get_scale()`_
     #[must_use]
+    #[inline]
     pub fn get_scale(&self) -> Vector3 {
         let det = self.determinant();
         let det_sign = if det < 0.0 { -1.0 } else { 1.0 };
@@ -206,6 +217,7 @@ impl Basis {
     /// Returns the rotation of the matrix in euler angles, with the order `YXZ`.
     ///
     /// See [`get_euler_with()`](Self::get_euler_with) for custom angle orders.
+    #[inline]
     pub fn get_euler(&self) -> Vector3 {
         self.get_euler_with(EulerOrder::YXZ)
     }
@@ -342,6 +354,7 @@ impl Basis {
     /// Returns the determinant of the matrix.
     ///
     /// _Godot equivalent: `Basis.determinant()`_
+    #[inline]
     pub fn determinant(&self) -> real {
         self.to_glam().determinant()
     }
@@ -350,6 +363,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.scaled()`_
     #[must_use]
+    #[inline]
     pub fn scaled(&self, scale: Vector3) -> Self {
         Self::from_diagonal(scale.x, scale.y, scale.z) * (*self)
     }
@@ -358,6 +372,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.inverse()`_
     #[must_use]
+    #[inline]
     pub fn inverse(&self) -> Basis {
         self.glam(|mat| mat.inverse())
     }
@@ -366,6 +381,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.transposed()`_
     #[must_use]
+    #[inline]
     pub fn transposed(&self) -> Self {
         Self::from_cols(self.rows[0], self.rows[1], self.rows[2])
     }
@@ -405,6 +421,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.rotated()`_
     #[must_use]
+    #[inline]
     pub fn rotated(&self, axis: Vector3, angle: real) -> Self {
         Self::from_axis_angle(axis, angle) * (*self)
     }
@@ -414,6 +431,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.slerp()`_
     #[must_use]
+    #[inline]
     pub fn slerp(&self, other: &Self, weight: real) -> Self {
         let from = self.get_quaternion();
         let to = other.get_quaternion();
@@ -431,6 +449,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.tdotx()`_
     #[must_use]
+    #[inline]
     pub fn tdotx(&self, with: Vector3) -> real {
         self.col_a().dot(with)
     }
@@ -439,6 +458,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.tdoty()`_
     #[must_use]
+    #[inline]
     pub fn tdoty(&self, with: Vector3) -> real {
         self.col_b().dot(with)
     }
@@ -447,6 +467,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.tdotz()`_
     #[must_use]
+    #[inline]
     pub fn tdotz(&self, with: Vector3) -> real {
         self.col_c().dot(with)
     }
@@ -455,6 +476,7 @@ impl Basis {
     /// matrix is not `NaN`, positive infinity, or negative infinity.
     ///
     /// _Godot equivalent: `Basis.is_finite()`_
+    #[inline]
     pub fn is_finite(&self) -> bool {
         self.rows[0].is_finite() && self.rows[1].is_finite() && self.rows[2].is_finite()
     }
@@ -464,11 +486,13 @@ impl Basis {
     /// _Godot equivalent: `Basis.x`_, see [`Basis`] for why it's changed
     #[doc(alias = "x")]
     #[must_use]
+    #[inline]
     pub fn col_a(&self) -> Vector3 {
         Vector3::new(self.rows[0].x, self.rows[1].x, self.rows[2].x)
     }
 
     /// Set the values of the first column of the matrix.
+    #[inline]
     pub fn set_col_a(&mut self, col: Vector3) {
         self.rows[0].x = col.x;
         self.rows[1].x = col.y;
@@ -480,11 +504,13 @@ impl Basis {
     /// _Godot equivalent: `Basis.y`_, see [`Basis`] for why it's changed
     #[doc(alias = "y")]
     #[must_use]
+    #[inline]
     pub fn col_b(&self) -> Vector3 {
         Vector3::new(self.rows[0].y, self.rows[1].y, self.rows[2].y)
     }
 
     /// Set the values of the second column of the matrix.
+    #[inline]
     pub fn set_col_b(&mut self, col: Vector3) {
         self.rows[0].y = col.x;
         self.rows[1].y = col.y;
@@ -496,11 +522,13 @@ impl Basis {
     /// _Godot equivalent: `Basis.z`_, see [`Basis`] for why it's changed
     #[doc(alias = "z")]
     #[must_use]
+    #[inline]
     pub fn col_c(&self) -> Vector3 {
         Vector3::new(self.rows[0].z, self.rows[1].z, self.rows[2].z)
     }
 
     /// Set the values of the third column of the matrix.
+    #[inline]
     pub fn set_col_c(&mut self, col: Vector3) {
         self.rows[0].z = col.x;
         self.rows[1].z = col.y;

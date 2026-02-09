@@ -138,6 +138,7 @@ impl Transform3D {
     /// Returns the inverse of the transform, under the assumption that the
     /// transformation is composed of rotation, scaling and translation.
     #[must_use]
+    #[inline]
     pub fn affine_inverse(&self) -> Self {
         self.glam(|aff| aff.inverse())
     }
@@ -145,6 +146,7 @@ impl Transform3D {
     /// Returns a transform interpolated between this transform and another by
     /// a given weight (on the range of 0.0 to 1.0).
     #[must_use]
+    #[inline]
     pub fn interpolate_with(&self, other: &Self, weight: real) -> Self {
         let src_scale = self.basis.get_scale();
         let src_rot = self.basis.get_quaternion().normalized();
@@ -165,6 +167,7 @@ impl Transform3D {
 
     /// Returns true if this transform is finite by calling `is_finite` on the
     /// basis and origin.
+    #[inline]
     pub fn is_finite(&self) -> bool {
         self.basis.is_finite() && self.origin.is_finite()
     }
@@ -174,6 +177,7 @@ impl Transform3D {
     ///
     /// _Godot equivalent: Transform3D.orthonormalized()_
     #[must_use]
+    #[inline]
     pub fn orthonormalized(&self) -> Self {
         Self {
             basis: self.basis.orthonormalized(),
@@ -188,6 +192,7 @@ impl Transform3D {
     ///
     /// _Godot equivalent: `Transform2D.rotated()`_
     #[must_use]
+    #[inline]
     pub fn rotated(&self, axis: Vector3, angle: real) -> Self {
         let rotation = Basis::from_axis_angle(axis, angle);
         Self {
@@ -202,6 +207,7 @@ impl Transform3D {
     ///
     /// _Godot equivalent: `Transform2D.rotated_local()`_
     #[must_use]
+    #[inline]
     pub fn rotated_local(&self, axis: Vector3, angle: real) -> Self {
         Self {
             basis: self.basis * Basis::from_axis_angle(axis, angle),
@@ -216,6 +222,7 @@ impl Transform3D {
     ///
     /// _Godot equivalent: `Transform2D.scaled()`_
     #[must_use]
+    #[inline]
     pub fn scaled(&self, scale: Vector3) -> Self {
         Self {
             basis: Basis::from_scale(scale) * self.basis,
@@ -230,6 +237,7 @@ impl Transform3D {
     ///
     /// _Godot equivalent: `Transform2D.scaled_local()`_
     #[must_use]
+    #[inline]
     pub fn scaled_local(&self, scale: Vector3) -> Self {
         Self {
             basis: self.basis * Basis::from_scale(scale),
@@ -244,6 +252,7 @@ impl Transform3D {
     ///
     /// _Godot equivalent: `Transform2D.translated()`_
     #[must_use]
+    #[inline]
     pub fn translated(&self, offset: Vector3) -> Self {
         Self {
             basis: self.basis,
@@ -258,6 +267,7 @@ impl Transform3D {
     ///
     /// _Godot equivalent: `Transform2D.translated()`_
     #[must_use]
+    #[inline]
     pub fn translated_local(&self, offset: Vector3) -> Self {
         Self {
             basis: self.basis,

@@ -974,3 +974,33 @@ mod test {
         );
     }
 }
+
+impl PartialEq<(real, real, real, real, real, real)> for Aabb {
+    #[inline]
+    fn eq(&self, other: &(real, real, real, real, real, real)) -> bool {
+        self.position.x == other.0 && self.position.y == other.1 && self.position.z == other.2 &&
+        self.size.x == other.3 && self.size.y == other.4 && self.size.z == other.5
+    }
+}
+
+impl PartialEq<Aabb> for (real, real, real, real, real, real) {
+    #[inline]
+    fn eq(&self, other: &Aabb) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<[real; 6]> for Aabb {
+    #[inline]
+    fn eq(&self, other: &[real; 6]) -> bool {
+        self.position.x == other[0] && self.position.y == other[1] && self.position.z == other[2] &&
+        self.size.x == other[3] && self.size.y == other[4] && self.size.z == other[5]
+    }
+}
+
+impl PartialEq<Aabb> for [real; 6] {
+    #[inline]
+    fn eq(&self, other: &Aabb) -> bool {
+        other == self
+    }
+}

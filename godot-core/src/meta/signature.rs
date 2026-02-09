@@ -183,7 +183,6 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 for (i, arg) in varargs.iter().enumerate() {
                     ptrs_arr[explicit_args.len() + i] = arg.var_sys();
                 }
-                ptrs_vec = Vec::new();
                 ptrs_arr.as_ptr()
             } else {
                 ptrs_vec = explicit_args
@@ -276,7 +275,6 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     for (i, arg) in varargs.iter().enumerate() {
                         type_ptrs_arr[explicit_args.len() + i] = sys::GodotFfi::sys(arg);
                     }
-                    type_ptrs_vec = Vec::new();
                     type_ptrs_arr.as_ptr()
                 } else {
                     type_ptrs_vec = explicit_args
@@ -324,7 +322,6 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     for (i, arg) in varargs.iter().enumerate() {
                         type_ptrs_arr[explicit_args.len() + i] = sys::GodotFfi::sys(arg);
                     }
-                    type_ptrs_vec = Vec::new();
                     type_ptrs_arr.as_ptr()
                 } else {
                     type_ptrs_vec = explicit_args
