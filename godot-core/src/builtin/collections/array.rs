@@ -246,6 +246,7 @@ impl<T: ArrayElement> Array<T> {
     }
 
     /// Constructs an empty `Array`.
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
@@ -282,22 +283,26 @@ impl<T: ArrayElement> Array<T> {
     }
 
     /// ⚠️ Returns the element at the given index, converted to `U`, panicking if out of bounds or conversion fails.
+    #[inline]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
         self.at(index).to_variant().to::<U>()
     }
 
     /// Returns the element at the given index, converted to `U`, or `None` if out of bounds or conversion fails.
+    #[inline]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
         self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
+    #[inline]
     pub fn contains(&self, value: impl AsArg<T>) -> bool {
         meta::arg_into_ref!(value: T);
         self.as_inner().has(&value.to_variant())
     }
 
     /// Returns the number of times a value is in the array.
+    #[inline]
     pub fn count(&self, value: impl AsArg<T>) -> usize {
         meta::arg_into_ref!(value: T);
         to_usize(self.as_inner().count(&value.to_variant()))
@@ -391,6 +396,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// Note: On large arrays, this method is much slower than `pop()` as it will move all the
     /// array's elements. The larger the array, the slower `pop_front()` will be.
+    #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
         self.balanced_ensure_mutable();
 
@@ -408,6 +414,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index > len()`.
+    #[inline]
     pub fn insert(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -448,6 +455,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// On large arrays, this method is much slower than [`pop()`][Self::pop], as it will move all the array's
     /// elements after the removed element.
+    #[inline]
     pub fn erase(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -459,6 +467,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Assigns the given value to all elements in the array. This can be used together with
     /// `resize` to create an array with a given size and initialized elements.
+    #[inline]
     pub fn fill(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -474,6 +483,7 @@ impl<T: ArrayElement> Array<T> {
     /// then the new elements are set to `value`.
     ///
     /// If you know that the new size is smaller, then consider using [`shrink`][AnyArray::shrink] instead.
+    #[inline]
     pub fn resize(&mut self, new_size: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -511,6 +521,7 @@ impl<T: ArrayElement> Array<T> {
     }
 
     /// Appends another array at the end of this array. Equivalent of `append_array` in GDScript.
+    #[inline]
     pub fn extend_array(&mut self, other: &Array<T>) {
         self.balanced_ensure_mutable();
 
@@ -526,6 +537,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// To create a deep copy, use [`duplicate_deep()`][Self::duplicate_deep] instead.
     /// To create a new reference to the same array data, use [`clone()`][Clone::clone].
+    #[inline]
     pub fn duplicate_shallow(&self) -> Self {
         // SAFETY: duplicate() returns a typed array with the same type as Self, and all values are taken from `self` so have the right type
         let duplicate: Self = unsafe { self.as_inner().duplicate(false) };
@@ -538,6 +550,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// To create a shallow copy, use [`duplicate_shallow()`][Self::duplicate_shallow] instead.
     /// To create a new reference to the same array data, use [`clone()`][Clone::clone].
+    #[inline]
     pub fn duplicate_deep(&self) -> Self {
         // SAFETY: duplicate() returns a typed array with the same type as Self, and all values are taken from `self` so have the right type
         let duplicate: Self = unsafe { self.as_inner().duplicate(true) };
@@ -590,6 +603,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// Notice that it's possible to modify the `Array` through another reference while iterating over it. This will not result
     /// in unsoundness or crashes, but will cause the iterator to behave in an unspecified way.
+    #[inline]
     pub fn iter_shared(&self) -> Iter<'_, T> {
         let slice = if self.is_empty() {
             &[]
@@ -608,6 +622,7 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the minimum value contained in the array if all elements are of comparable types.
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
+    #[inline]
     pub fn min(&self) -> Option<T> {
         let min = self.as_inner().min();
         (!min.is_nil()).then(|| T::from_variant(&min))
@@ -616,12 +631,14 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the maximum value contained in the array if all elements are of comparable types.
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
+    #[inline]
     pub fn max(&self) -> Option<T> {
         let max = self.as_inner().max();
         (!max.is_nil()).then(|| T::from_variant(&max))
     }
 
     /// Returns a random element from the array, or `None` if it is empty.
+    #[inline]
     pub fn pick_random(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().pick_random();
@@ -633,6 +650,7 @@ impl<T: ArrayElement> Array<T> {
     /// not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
+    #[inline]
     pub fn find(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
         meta::arg_into_ref!(value: T);
 
@@ -649,6 +667,7 @@ impl<T: ArrayElement> Array<T> {
     /// `None` if not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
+    #[inline]
     pub fn rfind(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
         meta::arg_into_ref!(value: T);
 
@@ -671,6 +690,7 @@ impl<T: ArrayElement> Array<T> {
     /// order is compatible with your callable's ordering.
     ///
     /// See also: [`bsearch_by()`][Self::bsearch_by], [`functional_ops().bsearch_custom()`][ArrayFunctionalOps::bsearch_custom].
+    #[inline]
     pub fn bsearch(&self, value: impl AsArg<T>) -> usize {
         meta::arg_into_ref!(value: T);
 

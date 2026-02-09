@@ -877,101 +877,225 @@ impl PartialEq for Variant {
     }
 }
 
-macro_rules! impl_variant_partial_eq {
+macro_rules! impl_variant_partial_eq_int {
     ($($ty:ty),*) => {
         $(
             impl PartialEq<$ty> for Variant {
+                #[inline]
                 fn eq(&self, other: &$ty) -> bool {
-                    self.eq(&other.to_variant())
+                    match self.get_type() {
+                        VariantType::INT => self.to_int() == *other as i64,
+                        VariantType::FLOAT => self.to_float() == *other as f64,
+                        _ => false,
+                    }
                 }
             }
 
             impl PartialEq<Variant> for $ty {
+                #[inline]
                 fn eq(&self, other: &Variant) -> bool {
-                    self.to_variant().eq(other)
+                    other.eq(self)
                 }
             }
         )*
     };
 }
 
-impl_variant_partial_eq!(i64, f64, bool, i32, f32, i16, u16, i8, u8, u32);
+impl_variant_partial_eq_int!(i64, i32, i16, i8, u32, u16, u8);
+
+impl PartialEq<f64> for Variant {
+    #[inline]
+    fn eq(&self, other: &f64) -> bool {
+        match self.get_type() {
+            VariantType::INT => self.to_int() as f64 == *other,
+            VariantType::FLOAT => self.to_float() == *other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for f64 {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<f32> for Variant {
+    #[inline]
+    fn eq(&self, other: &f32) -> bool {
+        match self.get_type() {
+            VariantType::INT => self.to_int() as f64 == *other as f64,
+            VariantType::FLOAT => self.to_float() == *other as f64,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for f32 {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<bool> for Variant {
+    #[inline]
+    fn eq(&self, other: &bool) -> bool {
+        if self.is_bool() {
+            return self.to_bool() == *other;
+        }
+        false
+    }
+}
+
+impl PartialEq<Variant> for bool {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
+    }
+}
 
 impl PartialEq<GString> for Variant {
+    #[inline]
     fn eq(&self, other: &GString) -> bool {
-        self.eq(&other.to_variant())
+        match self.get_type() {
+            VariantType::STRING => self.to::<GString>() == *other,
+            VariantType::STRING_NAME => self.to::<StringName>() == *other,
+            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for GString {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
     }
 }
 
 impl PartialEq<StringName> for Variant {
+    #[inline]
     fn eq(&self, other: &StringName) -> bool {
-        self.eq(&other.to_variant())
+        match self.get_type() {
+            VariantType::STRING => self.to::<GString>() == *other,
+            VariantType::STRING_NAME => self.to::<StringName>() == *other,
+            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for StringName {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
     }
 }
 
 impl PartialEq<NodePath> for Variant {
+    #[inline]
     fn eq(&self, other: &NodePath) -> bool {
-        self.eq(&other.to_variant())
+        match self.get_type() {
+            VariantType::STRING => self.to::<GString>() == *other,
+            VariantType::STRING_NAME => self.to::<StringName>() == *other,
+            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for NodePath {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
     }
 }
 
 impl<T: crate::obj::GodotClass> PartialEq<crate::obj::Gd<T>> for Variant {
+    #[inline]
     fn eq(&self, other: &crate::obj::Gd<T>) -> bool {
-        self.eq(&other.to_variant())
+        if self.is_object() {
+            if let Some(id) = self.object_id() {
+                return id == other.instance_id();
+            }
+        }
+        false
     }
 }
 
 impl<T: crate::obj::GodotClass> PartialEq<Variant> for crate::obj::Gd<T> {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        self.to_variant().eq(other)
+        other.eq(self)
     }
 }
 
 impl<T: crate::obj::GodotClass> PartialEq<Option<crate::obj::Gd<T>>> for Variant {
+    #[inline]
     fn eq(&self, other: &Option<crate::obj::Gd<T>>) -> bool {
-        self.eq(&other.to_variant())
+        match other {
+            Some(gd) => self.eq(gd),
+            None => self.is_nil(),
+        }
     }
 }
 
 impl<T: crate::obj::GodotClass> PartialEq<Variant> for Option<crate::obj::Gd<T>> {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        self.to_variant().eq(other)
+        other.eq(self)
     }
 }
 
 impl PartialEq<crate::builtin::Callable> for Variant {
+    #[inline]
     fn eq(&self, other: &crate::builtin::Callable) -> bool {
-        self.eq(&other.to_variant())
+        if self.is_type(VariantType::CALLABLE) {
+            return self.to::<crate::builtin::Callable>() == *other;
+        }
+        false
     }
 }
 
 impl PartialEq<Variant> for crate::builtin::Callable {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        self.to_variant().eq(other)
+        other.eq(self)
     }
 }
 
 impl PartialEq<&str> for Variant {
+    #[inline]
     fn eq(&self, other: &&str) -> bool {
-        self.eq(&GString::from(*other).to_variant())
+        match self.get_type() {
+            VariantType::STRING => self.to::<GString>() == *other,
+            VariantType::STRING_NAME => self.to::<StringName>() == *other,
+            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
+            _ => false,
+        }
     }
 }
 
 impl PartialEq<Variant> for &str {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        GString::from(*self).to_variant().eq(other)
+        other.eq(self)
     }
 }
 
 impl PartialEq<String> for Variant {
+    #[inline]
     fn eq(&self, other: &String) -> bool {
-        self.eq(&GString::from(other).to_variant())
+        self.eq(&other.as_str())
     }
 }
 
 impl PartialEq<Variant> for String {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        GString::from(self).to_variant().eq(other)
+        other.eq(self)
     }
 }
 

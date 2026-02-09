@@ -158,6 +158,31 @@ impl<T: GodotClass> RawGd<T> {
         }
     }
 
+    /// ⚠️ **Downcast:** convert into a low-level smart pointer to a derived class, without checking the type.
+    ///
+    /// # Safety
+    /// The caller must ensure that the object's dynamic type is indeed `U` or a subclass of it.
+    #[inline]
+    pub(super) unsafe fn cast_unchecked<U>(self) -> RawGd<U>
+    where
+        U: GodotClass,
+    {
+        let obj_ptr = self.obj_sys();
+        let result = RawGd::<U>::from_obj_sys_weak(obj_ptr);
+
+        // We need to preserve the cached storage ptr if possible, but they might have different types.
+        // Actually, for unchecked cast, we can just let it re-resolve if needed, or assume it's an engine class.
+        // If U is a user class, it will re-resolve.
+
+        // If the source was a strong ref, we must ensure the destination is also treated as one.
+        // RawGd doesn't explicitly track strong/weak, but its Drop impl calls maybe_dec_ref.
+        // maybe_dec_ref only decrements if T inherits RefCounted.
+        // Since we move the pointer, the new RawGd will also decrement it on drop.
+
+        std::mem::forget(self);
+        result
+    }
+
     /// Low-level cast that allows selective use of either input or output type.
     ///
     /// On success, you'll get a `CastSuccess<T, U>` instance, which holds a weak `RawGd<U>`. You can only extract that one by trading

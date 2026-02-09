@@ -292,6 +292,20 @@ unsafe impl GodotFfi for Rect2i {
 
 crate::meta::impl_godot_as_self!(Rect2i: ByValue);
 
+impl From<(i32, i32, i32, i32)> for Rect2i {
+    #[inline]
+    fn from(tuple: (i32, i32, i32, i32)) -> Self {
+        Self::from_components(tuple.0, tuple.1, tuple.2, tuple.3)
+    }
+}
+
+impl From<[i32; 4]> for Rect2i {
+    #[inline]
+    fn from(array: [i32; 4]) -> Self {
+        Self::from_components(array[0], array[1], array[2], array[3])
+    }
+}
+
 impl std::fmt::Display for Rect2i {
     /// Formats `Rect2i` to match Godot's string representation.
     ///

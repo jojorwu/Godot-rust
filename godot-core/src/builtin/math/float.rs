@@ -237,11 +237,8 @@ macro_rules! impl_float_ext {
                 if self == other {
                     return true;
                 }
-                let mut tolerance = Self::CMP_EPSILON * self.abs();
-                if tolerance < Self::CMP_EPSILON {
-                    tolerance = Self::CMP_EPSILON;
-                }
-                (self - other).abs() < tolerance
+                let max = self.abs().max(other.abs()).max(1.0);
+                (self - other).abs() <= Self::CMP_EPSILON * max
             }
         }
     };

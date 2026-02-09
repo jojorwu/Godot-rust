@@ -294,6 +294,20 @@ impl ApproxEq for Rect2 {
     }
 }
 
+impl From<(real, real, real, real)> for Rect2 {
+    #[inline]
+    fn from(tuple: (real, real, real, real)) -> Self {
+        Self::from_components(tuple.0, tuple.1, tuple.2, tuple.3)
+    }
+}
+
+impl From<[real; 4]> for Rect2 {
+    #[inline]
+    fn from(array: [real; 4]) -> Self {
+        Self::from_components(array[0], array[1], array[2], array[3])
+    }
+}
+
 impl std::fmt::Display for Rect2 {
     /// Formats `Rect2` to match Godot's string representation.
     ///

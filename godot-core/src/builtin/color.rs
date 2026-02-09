@@ -368,12 +368,24 @@ crate::meta::impl_godot_as_self!(Color: ByValue);
 
 impl ApproxEq for Color {
     fn approx_eq(&self, other: &Self) -> bool {
-
-
         self.r.approx_eq(&other.r)
             && self.g.approx_eq(&other.g)
             && self.b.approx_eq(&other.b)
             && self.a.approx_eq(&other.a)
+    }
+}
+
+impl From<(f32, f32, f32, f32)> for Color {
+    #[inline]
+    fn from(tuple: (f32, f32, f32, f32)) -> Self {
+        Self::from_rgba(tuple.0, tuple.1, tuple.2, tuple.3)
+    }
+}
+
+impl From<[f32; 4]> for Color {
+    #[inline]
+    fn from(array: [f32; 4]) -> Self {
+        Self::from_rgba(array[0], array[1], array[2], array[3])
     }
 }
 
@@ -456,6 +468,23 @@ impl ops::MulAssign<f32> for Color {
         self.g *= f;
         self.b *= f;
         self.a *= f;
+    }
+}
+
+impl ops::Div<f32> for Color {
+    type Output = Color;
+    fn div(mut self, rhs: f32) -> Self::Output {
+        self /= rhs;
+        self
+    }
+}
+
+impl ops::DivAssign<f32> for Color {
+    fn div_assign(&mut self, f: f32) {
+        self.r /= f;
+        self.g /= f;
+        self.b /= f;
+        self.a /= f;
     }
 }
 
@@ -577,6 +606,43 @@ impl std::fmt::Display for Color {
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
+    #[test]
+    fn arithmetic() {
+        use crate::assert_eq_approx;
+
+        let c1 = Color::from_rgba(0.2, 0.4, 0.6, 0.8);
+        let c2 = Color::from_rgba(0.1, 0.2, 0.3, 0.4);
+
+        assert_eq_approx!(c1 + c2, Color::from_rgba(0.3, 0.6, 0.9, 1.2));
+        assert_eq_approx!(c1 - c2, Color::from_rgba(0.1, 0.2, 0.3, 0.4));
+        assert_eq_approx!(c1 * c2, Color::from_rgba(0.02, 0.08, 0.18, 0.32));
+        assert_eq_approx!(c1 / c2, Color::from_rgba(2.0, 2.0, 2.0, 2.0));
+
+        assert_eq_approx!(c1 * 2.0, Color::from_rgba(0.4, 0.8, 1.2, 1.6));
+        assert_eq_approx!(2.0 * c1, Color::from_rgba(0.4, 0.8, 1.2, 1.6));
+        assert_eq_approx!(c1 / 2.0, Color::from_rgba(0.1, 0.2, 0.3, 0.4));
+
+        let mut c = c1;
+        c += c2;
+        assert_eq_approx!(c, c1 + c2);
+
+        let mut c = c1;
+        c -= c2;
+        assert_eq_approx!(c, c1 - c2);
+
+        let mut c = c1;
+        c *= 2.0;
+        assert_eq_approx!(c, c1 * 2.0);
+
+        let mut c = c1;
+        c /= 2.0;
+        assert_eq_approx!(c, c1 / 2.0);
+
+        assert_eq_approx!(-c1, Color::from_rgba(-0.2, -0.4, -0.6, -0.8));
+    }
+
     #[cfg(feature = "serde")]
     #[test]
     fn serde_roundtrip() {

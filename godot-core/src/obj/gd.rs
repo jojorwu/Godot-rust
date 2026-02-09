@@ -263,6 +263,21 @@ impl<T: GodotClass> Gd<T> {
         })
     }
 
+    /// ⚠️ **Downcast:** convert into a smart pointer to a derived class, without checking the type.
+    ///
+    /// # Safety
+    /// The caller must ensure that the object's dynamic type is indeed `Derived` or a subclass of it.
+    /// Violating this will lead to undefined behavior when methods of `Derived` are called.
+    #[inline]
+    pub unsafe fn cast_unchecked<Derived>(self) -> Gd<Derived>
+    where
+        Derived: Inherits<T>,
+    {
+        Gd {
+            raw: unsafe { self.raw.cast_unchecked() },
+        }
+    }
+
     /// Returns the instance ID of this object, or `None` if the object is dead or null.
     #[inline]
     pub(crate) fn instance_id_or_none(&self) -> Option<InstanceId> {

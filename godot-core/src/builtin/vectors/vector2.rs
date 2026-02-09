@@ -204,6 +204,48 @@ impl GlamType for RVec2 {
     }
 }
 
+impl PartialEq<(real, real)> for Vector2 {
+    #[inline]
+    fn eq(&self, other: &(real, real)) -> bool {
+        self.x == other.0 && self.y == other.1
+    }
+}
+
+impl PartialEq<Vector2> for (real, real) {
+    #[inline]
+    fn eq(&self, other: &Vector2) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<[real; 2]> for Vector2 {
+    #[inline]
+    fn eq(&self, other: &[real; 2]) -> bool {
+        self.x == other[0] && self.y == other[1]
+    }
+}
+
+impl PartialEq<Vector2> for [real; 2] {
+    #[inline]
+    fn eq(&self, other: &Vector2) -> bool {
+        other.eq(self)
+    }
+}
+
+impl From<(real, real)> for Vector2 {
+    #[inline]
+    fn from(tuple: (real, real)) -> Self {
+        Self::new(tuple.0, tuple.1)
+    }
+}
+
+impl From<[real; 2]> for Vector2 {
+    #[inline]
+    fn from(array: [real; 2]) -> Self {
+        Self::new(array[0], array[1])
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -7,7 +7,6 @@
 
 use std::convert::Infallible;
 use std::fmt;
-use std::fmt::Write;
 
 use godot_ffi as sys;
 use sys::types::OpaqueString;
@@ -402,11 +401,8 @@ impl_shared_string_api! {
 impl fmt::Display for GString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         pad_if_needed(f, |f| {
-            for ch in self.chars() {
-                f.write_char(*ch)?;
-            }
-
-            Ok(())
+            let s = String::from(self);
+            f.write_str(&s)
         })
     }
 }
