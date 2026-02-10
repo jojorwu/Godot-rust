@@ -233,9 +233,9 @@ impl_dynamic_send!(tuple; arg1: A1, arg2: A2, arg3: A3, arg4: A4, arg5: A5, arg6
 
 #[cfg(since_api = "4.3")]
 mod api_4_3 {
-    use crate::task::impl_dynamic_send;
     #[allow(unused_imports)]
     use crate::builtin::PackedVector4Array;
+    use crate::task::impl_dynamic_send;
 
     #[cfg(not(feature = "experimental-threads"))]
     impl_dynamic_send!(!Send; PackedVector4Array);

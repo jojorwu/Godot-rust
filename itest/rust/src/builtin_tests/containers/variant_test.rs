@@ -654,7 +654,8 @@ fn variant_sys_conversion2() {
     let mut v_dst = Variant::nil();
     let v = Variant::from(7);
     unsafe {
-        v.clone().move_return_ptr(v_dst.sys_mut(), sys::PtrcallType::Standard)
+        v.clone()
+            .move_return_ptr(v_dst.sys_mut(), sys::PtrcallType::Standard)
     };
 
     assert_eq!(v_dst, v);

@@ -237,7 +237,9 @@ impl Variant {
 
     /// Returns the variant as a `Gd<T>`, or `Err` if it is not an object of type `T`.
     #[inline]
-    pub fn try_to_object<T: crate::obj::Inherits<crate::classes::Object> + crate::obj::GodotClass>(
+    pub fn try_to_object<
+        T: crate::obj::Inherits<crate::classes::Object> + crate::obj::GodotClass,
+    >(
         &self,
     ) -> Result<crate::obj::Gd<T>, ConvertError> {
         self.try_to()
@@ -1138,8 +1140,9 @@ macro_rules! impl_variant_op {
             type Output = Self;
             #[inline]
             fn $method(self, rhs: Self) -> Self::Output {
-                self.evaluate(&rhs, $op)
-                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())))
+                self.evaluate(&rhs, $op).unwrap_or_else(|| {
+                    Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
+                })
             }
         }
 
@@ -1147,8 +1150,9 @@ macro_rules! impl_variant_op {
             type Output = Self;
             #[inline]
             fn $method(self, rhs: &Variant) -> Self::Output {
-                self.evaluate(rhs, $op)
-                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())))
+                self.evaluate(rhs, $op).unwrap_or_else(|| {
+                    Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
+                })
             }
         }
     };
@@ -1157,16 +1161,18 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             #[inline]
             fn $method(&mut self, rhs: Self) {
-                *self = self.evaluate(&rhs, $op)
-                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())));
+                *self = self.evaluate(&rhs, $op).unwrap_or_else(|| {
+                    Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
+                });
             }
         }
 
         impl std::ops::$trait<&Variant> for Variant {
             #[inline]
             fn $method(&mut self, rhs: &Variant) {
-                *self = self.evaluate(rhs, $op)
-                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())));
+                *self = self.evaluate(rhs, $op).unwrap_or_else(|| {
+                    Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
+                });
             }
         }
     };

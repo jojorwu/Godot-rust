@@ -324,18 +324,6 @@ impl std::fmt::Display for Rect2 {
     }
 }
 
-#[cfg(test)]
-mod test {
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serde_roundtrip() {
-        let rect = super::Rect2::default();
-        let expected_json = "{\"position\":{\"x\":0.0,\"y\":0.0},\"size\":{\"x\":0.0,\"y\":0.0}}";
-
-        crate::builtin::test_utils::roundtrip(&rect, expected_json);
-    }
-}
-
 impl From<(Vector2, Vector2)> for Rect2 {
     #[inline]
     fn from((position, size): (Vector2, Vector2)) -> Self {
@@ -360,7 +348,10 @@ impl PartialEq<Rect2> for (Vector2, Vector2) {
 impl PartialEq<(real, real, real, real)> for Rect2 {
     #[inline]
     fn eq(&self, other: &(real, real, real, real)) -> bool {
-        self.position.x == other.0 && self.position.y == other.1 && self.size.x == other.2 && self.size.y == other.3
+        self.position.x == other.0
+            && self.position.y == other.1
+            && self.size.x == other.2
+            && self.size.y == other.3
     }
 }
 
@@ -374,7 +365,10 @@ impl PartialEq<Rect2> for (real, real, real, real) {
 impl PartialEq<[real; 4]> for Rect2 {
     #[inline]
     fn eq(&self, other: &[real; 4]) -> bool {
-        self.position.x == other[0] && self.position.y == other[1] && self.size.x == other[2] && self.size.y == other[3]
+        self.position.x == other[0]
+            && self.position.y == other[1]
+            && self.size.x == other[2]
+            && self.size.y == other[3]
     }
 }
 
@@ -382,5 +376,17 @@ impl PartialEq<Rect2> for [real; 4] {
     #[inline]
     fn eq(&self, other: &Rect2) -> bool {
         other == self
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_roundtrip() {
+        let rect = super::Rect2::default();
+        let expected_json = "{\"position\":{\"x\":0.0,\"y\":0.0},\"size\":{\"x\":0.0,\"y\":0.0}}";
+
+        crate::builtin::test_utils::roundtrip(&rect, expected_json);
     }
 }

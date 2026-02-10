@@ -5,11 +5,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+use crate::framework::{expect_panic, itest};
 use godot::builtin::GString;
 use godot::classes::{Node, Object};
 use godot::obj::NewAlloc;
 use godot::prelude::ToGodot;
-use crate::framework::{expect_panic, itest};
 
 #[itest]
 fn object_get_as_reliability() {
@@ -21,14 +21,20 @@ fn object_get_as_reliability() {
     assert_eq!(val, 42);
 
     // Missing property
-    expect_panic("Object::get_as(): property 'non_existent' not found", || {
-        let _: i64 = obj.get_as("non_existent");
-    });
+    expect_panic(
+        "Object::get_as(): property 'non_existent' not found",
+        || {
+            let _: i64 = obj.get_as("non_existent");
+        },
+    );
 
     // Wrong type
-    expect_panic("cannot be converted to godot::builtin::strings::gstring::GString", || {
-        let _: GString = obj.get_as("my_prop");
-    });
+    expect_panic(
+        "cannot be converted to godot::builtin::strings::gstring::GString",
+        || {
+            let _: GString = obj.get_as("my_prop");
+        },
+    );
 
     obj.free();
 }
@@ -43,9 +49,12 @@ fn object_meta_as_reliability() {
     assert_eq!(val, "hello");
 
     // Missing meta
-    expect_panic("Object::get_meta_as(): meta 'non_existent' not found", || {
-        let _: GString = obj.get_meta_as("non_existent");
-    });
+    expect_panic(
+        "Object::get_meta_as(): meta 'non_existent' not found",
+        || {
+            let _: GString = obj.get_meta_as("non_existent");
+        },
+    );
 
     // Wrong type
     expect_panic("cannot be converted to i64", || {
@@ -65,7 +74,9 @@ fn node_get_tree_as_reliability() {
     });
 
     // try_get_tree_as returns None
-    assert!(node.try_get_tree_as::<godot::classes::SceneTree>().is_none());
+    assert!(node
+        .try_get_tree_as::<godot::classes::SceneTree>()
+        .is_none());
 
     node.free();
 }

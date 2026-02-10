@@ -41,10 +41,10 @@ mod containers {
 }
 
 mod string {
-    mod gstring_test;
     mod cross_string_test;
     mod diagnostics_test;
     mod equality_test;
+    mod gstring_test;
     mod iteration_test;
     mod node_path_test;
     mod string_name_test;
@@ -52,8 +52,8 @@ mod string {
 }
 
 mod script {
-    mod script_instance_tests;
     mod node_extension_test;
+    mod script_instance_tests;
 }
 
 mod color_test;

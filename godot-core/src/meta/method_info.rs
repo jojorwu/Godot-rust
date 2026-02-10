@@ -111,9 +111,7 @@ impl MethodInfo {
         use crate::builtin::VarArray;
         use crate::obj::EngineBitfield;
 
-        let method_name = dict
-            .get_as::<&str, StringName>("name")
-            .unwrap_or_default();
+        let method_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();
 
         let id = dict.get_as::<&str, i64>("id").unwrap_or(0) as i32;
 

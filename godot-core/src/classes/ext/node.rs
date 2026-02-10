@@ -114,7 +114,8 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.get_parent().and_then(|parent| parent.try_cast::<T>().ok())
+        self.get_parent()
+            .and_then(|parent| parent.try_cast::<T>().ok())
     }
 
     /// ⚠️ Retrieves the owner node, panicking if not found or bad type.
@@ -139,7 +140,8 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.get_owner().and_then(|owner| owner.try_cast::<T>().ok())
+        self.get_owner()
+            .and_then(|owner| owner.try_cast::<T>().ok())
     }
 
     /// ⚠️ Retrieves the child node at index `index`, panicking if out of bounds or bad type.
@@ -151,8 +153,9 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.try_get_child_as::<T>(index)
-            .unwrap_or_else(|| panic!("Node::get_child_as(): index {index} out of bounds or bad type"))
+        self.try_get_child_as::<T>(index).unwrap_or_else(|| {
+            panic!("Node::get_child_as(): index {index} out of bounds or bad type")
+        })
     }
 
     /// Retrieves the child node at index `index` (fallible).

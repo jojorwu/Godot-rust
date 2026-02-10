@@ -24,7 +24,10 @@ impl ResourceLoader {
     }
 
     /// Loads a resource from the filesystem located at `path` (fallible).
-    pub fn try_load_as<T>(&self, path: impl AsArg<GString>) -> Result<Gd<T>, crate::meta::error::IoError>
+    pub fn try_load_as<T>(
+        &self,
+        path: impl AsArg<GString>,
+    ) -> Result<Gd<T>, crate::meta::error::IoError>
     where
         T: Inherits<Resource>,
     {
@@ -76,7 +79,11 @@ impl ResourceSaver {
     }
 
     /// Saves a resource to the filesystem at `path` (fallible).
-    pub fn try_save_as<T>(&self, obj: &Gd<T>, path: impl AsArg<GString>) -> Result<(), crate::meta::error::IoError>
+    pub fn try_save_as<T>(
+        &self,
+        obj: &Gd<T>,
+        path: impl AsArg<GString>,
+    ) -> Result<(), crate::meta::error::IoError>
     where
         T: Inherits<Resource>,
     {

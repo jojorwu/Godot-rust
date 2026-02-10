@@ -169,7 +169,9 @@ impl<'c, C: WithSignals, Ps: meta::ParamTuple> TypedSignal<'c, C, Ps> {
     /// Returns `true` if the signal is connected to the given callable.
     pub fn is_connected(&self, callable: &Callable) -> bool {
         let signal_name = self.name.as_ref();
-        self.object.to_owned_object().is_connected(signal_name, callable)
+        self.object
+            .to_owned_object()
+            .is_connected(signal_name, callable)
     }
 
     /// Disconnects the signal from the given callable.
@@ -316,7 +318,9 @@ impl<C: WithSignals, Ps: InParamTuple + 'static> TypedSignal<'_, C, Ps> {
         for<'c_rcv> F: SignalReceiver<(), Ps> + 'static,
         for<'c_rcv> IndirectSignalReceiver<'c_rcv, (), Ps, F>: From<&'c_rcv mut F>,
     {
-        self.builder().flags(ConnectFlags::DEFERRED).connect(function)
+        self.builder()
+            .flags(ConnectFlags::DEFERRED)
+            .connect(function)
     }
 
     /// Connect a method (member function) with `&mut self` as the first parameter.
