@@ -225,8 +225,6 @@ sys::static_assert_eq_size_align!(VarArray, AnyArray);
 /// Untyped Godot `Array`.
 pub type VarArray = Array<Variant>;
 
-// TODO check if these return a typed array
-
 // Methods that don't provide type-specific ergonomics are available through `Deref`/`DerefMut` to [`AnyArray`].
 // This includes:
 // - Read-only: `len()`, `is_empty()`, `hash_u32()`, `element_type()`
@@ -248,6 +246,7 @@ impl<T: ArrayElement> Array<T> {
     }
 
     /// Constructs an empty `Array`.
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
@@ -275,21 +274,35 @@ impl<T: ArrayElement> Array<T> {
     pub fn get(&self, index: usize) -> Option<T> {
         let ptr = self.ptr_or_null(index);
         if ptr.is_null() {
-            None
-        } else {
-            // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
-            let variant = unsafe { Variant::borrow_var_sys(ptr) };
-            Some(T::from_variant(variant))
+            return None;
         }
+
+        // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
+        let variant = unsafe { Variant::borrow_var_sys(ptr) };
+        Some(T::from_variant(variant))
+    }
+
+    /// ⚠️ Returns the element at the given index, converted to `U`, panicking if out of bounds or conversion fails.
+    #[inline]
+    pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
+        self.at(index).to_variant().to::<U>()
+    }
+
+    /// Returns the element at the given index, converted to `U`, or `None` if out of bounds or conversion fails.
+    #[inline]
+    pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
+        self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
+    #[inline]
     pub fn contains(&self, value: impl AsArg<T>) -> bool {
         meta::arg_into_ref!(value: T);
         self.as_inner().has(&value.to_variant())
     }
 
     /// Returns the number of times a value is in the array.
+    #[inline]
     pub fn count(&self, value: impl AsArg<T>) -> usize {
         meta::arg_into_ref!(value: T);
         to_usize(self.as_inner().count(&value.to_variant()))
@@ -383,6 +396,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// Note: On large arrays, this method is much slower than `pop()` as it will move all the
     /// array's elements. The larger the array, the slower `pop_front()` will be.
+    #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
         self.balanced_ensure_mutable();
 
@@ -400,6 +414,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index > len()`.
+    #[inline]
     pub fn insert(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -440,6 +455,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// On large arrays, this method is much slower than [`pop()`][Self::pop], as it will move all the array's
     /// elements after the removed element.
+    #[inline]
     pub fn erase(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -451,6 +467,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Assigns the given value to all elements in the array. This can be used together with
     /// `resize` to create an array with a given size and initialized elements.
+    #[inline]
     pub fn fill(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -466,6 +483,7 @@ impl<T: ArrayElement> Array<T> {
     /// then the new elements are set to `value`.
     ///
     /// If you know that the new size is smaller, then consider using [`shrink`][AnyArray::shrink] instead.
+    #[inline]
     pub fn resize(&mut self, new_size: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -497,12 +515,13 @@ impl<T: ArrayElement> Array<T> {
     /// The array may reserve more space to avoid frequent reallocations.
     ///
     /// _Godot equivalent: `reserve`_
-    #[cfg(since_api = "4.6")]
+    #[cfg(since_api = "4.3")]
     pub fn reserve(&mut self, capacity: usize) {
         self.as_any_mut().reserve(capacity)
     }
 
     /// Appends another array at the end of this array. Equivalent of `append_array` in GDScript.
+    #[inline]
     pub fn extend_array(&mut self, other: &Array<T>) {
         self.balanced_ensure_mutable();
 
@@ -518,6 +537,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// To create a deep copy, use [`duplicate_deep()`][Self::duplicate_deep] instead.
     /// To create a new reference to the same array data, use [`clone()`][Clone::clone].
+    #[inline]
     pub fn duplicate_shallow(&self) -> Self {
         // SAFETY: duplicate() returns a typed array with the same type as Self, and all values are taken from `self` so have the right type
         let duplicate: Self = unsafe { self.as_inner().duplicate(false) };
@@ -530,6 +550,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// To create a shallow copy, use [`duplicate_shallow()`][Self::duplicate_shallow] instead.
     /// To create a new reference to the same array data, use [`clone()`][Clone::clone].
+    #[inline]
     pub fn duplicate_deep(&self) -> Self {
         // SAFETY: duplicate() returns a typed array with the same type as Self, and all values are taken from `self` so have the right type
         let duplicate: Self = unsafe { self.as_inner().duplicate(true) };
@@ -582,16 +603,26 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// Notice that it's possible to modify the `Array` through another reference while iterating over it. This will not result
     /// in unsoundness or crashes, but will cause the iterator to behave in an unspecified way.
+    #[inline]
     pub fn iter_shared(&self) -> Iter<'_, T> {
+        let slice = if self.is_empty() {
+            &[]
+        } else {
+            // SAFETY: Array elements are stored contiguously in Godot's Vector<Variant>.
+            // Since we hold a shared reference to the Array, the COW handle ensures the data is stable.
+            unsafe { Variant::borrow_slice(self.ptr(0), self.len()) }
+        };
+
         Iter {
-            array: self,
-            next_idx: 0,
+            slice_iter: slice.iter(),
+            _phantom: PhantomData,
         }
     }
 
     /// Returns the minimum value contained in the array if all elements are of comparable types.
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
+    #[inline]
     pub fn min(&self) -> Option<T> {
         let min = self.as_inner().min();
         (!min.is_nil()).then(|| T::from_variant(&min))
@@ -600,12 +631,14 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the maximum value contained in the array if all elements are of comparable types.
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
+    #[inline]
     pub fn max(&self) -> Option<T> {
         let max = self.as_inner().max();
         (!max.is_nil()).then(|| T::from_variant(&max))
     }
 
     /// Returns a random element from the array, or `None` if it is empty.
+    #[inline]
     pub fn pick_random(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().pick_random();
@@ -617,6 +650,7 @@ impl<T: ArrayElement> Array<T> {
     /// not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
+    #[inline]
     pub fn find(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
         meta::arg_into_ref!(value: T);
 
@@ -633,6 +667,7 @@ impl<T: ArrayElement> Array<T> {
     /// `None` if not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
+    #[inline]
     pub fn rfind(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
         meta::arg_into_ref!(value: T);
 
@@ -655,6 +690,7 @@ impl<T: ArrayElement> Array<T> {
     /// order is compatible with your callable's ordering.
     ///
     /// See also: [`bsearch_by()`][Self::bsearch_by], [`functional_ops().bsearch_custom()`][ArrayFunctionalOps::bsearch_custom].
+    #[inline]
     pub fn bsearch(&self, value: impl AsArg<T>) -> usize {
         meta::arg_into_ref!(value: T);
 
@@ -1437,13 +1473,31 @@ impl<T: ArrayElement + ToGodot> FromIterator<T> for Array<T> {
 /// Extends a `Array` with the contents of an iterator.
 impl<T: ArrayElement> Extend<T> for Array<T> {
     fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
-        // Unfortunately the GDExtension API does not offer the equivalent of `Vec::reserve`.
-        // Otherwise, we could use it to pre-allocate based on `iter.size_hint()`.
-        //
-        // A faster implementation using `resize()` and direct pointer writes might still be possible.
-        // Note that this could technically also use iter(), since no moves need to happen (however Extend requires IntoIterator).
-        for item in iter.into_iter() {
-            // self.push(AsArg::into_arg(&item));
+        let mut iter = iter.into_iter();
+        let (lower, _upper) = iter.size_hint();
+
+        if lower > 0 {
+            let old_len = self.len();
+            let new_len = old_len + lower;
+
+            self.balanced_ensure_mutable();
+
+            // SAFETY: resize() on typed array fills with default values of T.
+            // We then overwrite them with actual values from the iterator.
+            unsafe { self.as_inner_mut() }.resize(to_i64(new_len));
+
+            // SAFETY: Array elements are stored contiguously in Godot's Vector<Variant>.
+            let elements = unsafe { Variant::borrow_slice_mut(self.ptr_mut(old_len), lower) };
+            for array_slot in elements.iter_mut() {
+                let item = iter
+                    .next()
+                    .expect("iterator returned fewer than size_hint().0 elements");
+                *array_slot = item.to_variant();
+            }
+        }
+
+        // Handle remaining elements.
+        for item in iter {
             self.push(meta::owned_into_arg(item));
         }
     }
@@ -1470,7 +1524,19 @@ impl<T: ArrayElement + FromGodot> IntoIterator for Array<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        IntoIter { array: self, next_idx: 0 }
+        let len = self.len();
+        let ptr = if len == 0 {
+            std::ptr::null()
+        } else {
+            self.ptr(0)
+        };
+
+        IntoIter {
+            _array: self,
+            ptr: ptr.cast(),
+            len,
+            next_idx: 0,
+        }
     }
 }
 
@@ -1485,7 +1551,9 @@ impl<'a, T: ArrayElement + FromGodot> IntoIterator for &'a Array<T> {
 
 /// An iterator that consumes an [`Array`] and yields its elements.
 pub struct IntoIter<T: ArrayElement> {
-    array: Array<T>,
+    _array: Array<T>,
+    ptr: *const Variant,
+    len: usize,
     next_idx: usize,
 }
 
@@ -1493,8 +1561,12 @@ impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.next_idx < self.array.len() {
-            let item = self.array.at(self.next_idx);
+        if self.next_idx < self.len {
+            // SAFETY: index is within bounds, pointer remains valid as long as COW array is not modified.
+            // Iterator owns the array and doesn't modify it.
+            let variant = unsafe { &*self.ptr.add(self.next_idx) };
+            let item = T::from_variant(variant);
+
             self.next_idx += 1;
             Some(item)
         } else {
@@ -1503,7 +1575,7 @@ impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.array.len() - self.next_idx;
+        let remaining = self.len - self.next_idx;
         (remaining, Some(remaining))
     }
 }
@@ -1513,33 +1585,19 @@ impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
 
 /// An iterator over typed elements of an [`Array`].
 pub struct Iter<'a, T: ArrayElement> {
-    array: &'a Array<T>,
-    next_idx: usize,
+    slice_iter: std::slice::Iter<'a, Variant>,
+    _phantom: PhantomData<T>,
 }
 
 impl<T: ArrayElement + FromGodot> Iterator for Iter<'_, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.next_idx < self.array.len() {
-            let idx = self.next_idx;
-            self.next_idx += 1;
-
-            let element_ptr = self.array.ptr_or_null(idx);
-
-            // SAFETY: We just checked that the index is not out of bounds, so the pointer won't be null.
-            // We immediately convert this to the right element, so barring `experimental-threads` the pointer won't be invalidated in time.
-            let variant = unsafe { Variant::borrow_var_sys(element_ptr) };
-            let element = T::from_variant(variant);
-            Some(element)
-        } else {
-            None
-        }
+        self.slice_iter.next().map(T::from_variant)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.array.len() - self.next_idx;
-        (remaining, Some(remaining))
+        self.slice_iter.size_hint()
     }
 }
 
@@ -1614,11 +1672,9 @@ macro_rules! varray {
     ($($elements:expr),* $(,)?) => {
         {
             use $crate::meta::ToGodot as _;
-            let mut array = $crate::builtin::VarArray::default();
-            $(
-                array.push(&$elements.to_variant());
-            )*
-            array
+            $crate::builtin::VarArray::from(&[
+                $($elements.to_variant()),*
+            ])
         } as $crate::builtin::VarArray
         // The `as` cast is necessary for Deref coercion to AnyArray; type inference doesn't seem to pick it up otherwise.
     };

@@ -13,7 +13,7 @@ use godot_ffi as sys;
 use sys::types::OpaqueDictionary;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
-use crate::builtin::{inner, Callable, VarArray, Variant};
+use crate::builtin::{inner, Callable, StringName, VarArray, Variant, VariantType};
 use crate::meta::{ElementType, ExtVariantType, FromGodot, ToGodot};
 
 use super::dictionary_functional_ops::DictionaryFunctionalOps;
@@ -274,12 +274,15 @@ impl VarDictionary {
     #[inline]
     pub fn set<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) {
         self.balanced_ensure_mutable();
+        self.set_inner(key.to_variant(), value.to_variant());
+    }
 
-        let key = key.to_variant();
-
+    /// Internal method to set a value without checking mutability.
+    #[doc(hidden)]
+    pub fn set_inner(&mut self, key: Variant, value: Variant) {
         // SAFETY: `self.get_ptr_mut(key)` always returns a valid pointer to a value in the dictionary; either pre-existing or newly inserted.
         unsafe {
-            value.to_variant().move_into_var_ptr(self.get_ptr_mut(key));
+            value.move_into_var_ptr(self.get_ptr_mut(key));
         }
     }
 
@@ -426,6 +429,19 @@ impl VarDictionary {
         Keys::new(self)
     }
 
+    /// Returns an iterator over the values in a `Dictionary`.
+    ///
+    /// The values are each of type `Variant`. Each value references the original `Dictionary`, but instead of a `&`-reference to values pairs
+    /// as you might expect, the iterator returns a (cheap, shallow) copy of each value pair.
+    ///
+    /// Note that it's possible to modify the `Dictionary` through another reference while iterating over it. This will not result in
+    /// unsoundness or crashes, but will cause the iterator to behave in an unspecified way.
+    ///
+    /// Use `dict.values_shared().typed::<V>()` to iterate over `V` values instead.
+    pub fn values_shared(&self) -> Values<'_> {
+        Values::new(self)
+    }
+
     /// Returns a typed iterator over key-value pairs.
     pub fn iter_typed<K: FromGodot, V: FromGodot>(&self) -> TypedIter<'_, K, V> {
         self.iter_shared().typed::<K, V>()
@@ -559,6 +575,28 @@ impl VarDictionary {
         )
     }
 
+    /// Reserves capacity for at least `capacity` elements.
+    ///
+    /// The dictionary may reserve more space to avoid frequent reallocations.
+    ///
+    /// _Godot equivalent: `reserve`_
+    #[cfg(since_api = "4.3")]
+    pub fn reserve(&mut self, capacity: usize) {
+        self.balanced_ensure_mutable();
+
+        let variant = self.to_variant();
+        let method = crate::static_sname!(c"reserve");
+        let arg = Variant::from(crate::builtin::to_i64(capacity));
+        let _result_variant = variant.call(method, &[arg]);
+
+        // Variant::call() on a Dictionary modifies it in-place.
+        // We re-assign from the variant to ensure COW changes are picked up.
+        // If the call failed, the variant might return Nil.
+        if variant.get_type() == VariantType::DICTIONARY {
+            *self = variant.to::<Self>();
+        }
+    }
+
     #[doc(hidden)]
     pub fn as_inner(&self) -> inner::InnerDictionary<'_> {
         inner::InnerDictionary::from_outer(self)
@@ -682,8 +720,9 @@ where
 /// in `iter` will be overwritten.
 impl<K: ToGodot, V: ToGodot> Extend<(K, V)> for VarDictionary {
     fn extend<I: IntoIterator<Item = (K, V)>>(&mut self, iter: I) {
+        self.balanced_ensure_mutable();
         for (k, v) in iter.into_iter() {
-            self.set(k.to_variant(), v.to_variant())
+            self.set_inner(k.to_variant(), v.to_variant())
         }
     }
 }
@@ -718,15 +757,18 @@ impl<'a> IntoIterator for &'a VarDictionary {
 pub struct IntoIter {
     last_key: Option<Variant>,
     dictionary: VarDictionary,
+    variant_dict: Variant,
     is_first: bool,
     next_idx: usize,
 }
 
 impl IntoIter {
     fn new(dictionary: VarDictionary) -> Self {
+        let variant_dict = dictionary.to_variant();
         Self {
             last_key: None,
             dictionary,
+            variant_dict,
             is_first: true,
             next_idx: 0,
         }
@@ -735,9 +777,9 @@ impl IntoIter {
     fn next_key(&mut self) -> Option<Variant> {
         let new_key = if self.is_first {
             self.is_first = false;
-            DictionaryIter::call_init(&self.dictionary)
+            DictionaryIter::call_init_internal(&self.variant_dict)
         } else {
-            DictionaryIter::call_next(&self.dictionary, self.last_key.take()?)
+            DictionaryIter::call_next_internal(&self.variant_dict, self.last_key.take()?)
         };
 
         if self.next_idx < self.dictionary.len() {
@@ -772,15 +814,18 @@ impl Iterator for IntoIter {
 struct DictionaryIter<'a> {
     last_key: Option<Variant>,
     dictionary: &'a VarDictionary,
+    variant_dict: Variant,
     is_first: bool,
     next_idx: usize,
 }
 
 impl<'a> DictionaryIter<'a> {
     fn new(dictionary: &'a VarDictionary) -> Self {
+        let variant_dict = dictionary.to_variant();
         Self {
             last_key: None,
             dictionary,
+            variant_dict,
             is_first: true,
             next_idx: 0,
         }
@@ -789,9 +834,9 @@ impl<'a> DictionaryIter<'a> {
     fn next_key(&mut self) -> Option<Variant> {
         let new_key = if self.is_first {
             self.is_first = false;
-            Self::call_init(self.dictionary)
+            Self::call_init_internal(&self.variant_dict)
         } else {
-            Self::call_next(self.dictionary, self.last_key.take()?)
+            Self::call_next_internal(&self.variant_dict, self.last_key.take()?)
         };
 
         if self.next_idx < self.dictionary.len() {
@@ -804,11 +849,12 @@ impl<'a> DictionaryIter<'a> {
 
     fn next_key_value(&mut self) -> Option<(Variant, Variant)> {
         let key = self.next_key()?;
-        if !self.dictionary.contains_key(key.clone()) {
-            return None;
-        }
 
+        // Use as_inner().get() directly to avoid redundant contains_key() check.
+        // Note: if the dictionary was modified during iteration, this may return Nil for a key that
+        // was present in the initial state but is now gone. This matches GDScript behavior.
         let value = self.dictionary.as_inner().get(&key, &Variant::nil());
+
         Some((key, value))
     }
 
@@ -820,21 +866,21 @@ impl<'a> DictionaryIter<'a> {
         (remaining, Some(remaining))
     }
 
-    fn call_init(dictionary: &VarDictionary) -> Option<Variant> {
+    fn call_init_internal(variant_dict: &Variant) -> Option<Variant> {
         let variant: Variant = Variant::nil();
         let iter_fn = |dictionary, next_value: sys::GDExtensionVariantPtr, valid| unsafe {
             interface_fn!(variant_iter_init)(dictionary, sys::SysPtr::as_uninit(next_value), valid)
         };
 
-        Self::ffi_iterate(iter_fn, dictionary, variant)
+        Self::ffi_iterate(iter_fn, variant_dict, variant)
     }
 
-    fn call_next(dictionary: &VarDictionary, last_key: Variant) -> Option<Variant> {
+    fn call_next_internal(variant_dict: &Variant, last_key: Variant) -> Option<Variant> {
         let iter_fn = |dictionary, next_value, valid| unsafe {
             interface_fn!(variant_iter_next)(dictionary, next_value, valid)
         };
 
-        Self::ffi_iterate(iter_fn, dictionary, last_key)
+        Self::ffi_iterate(iter_fn, variant_dict, last_key)
     }
 
     /// Calls the provided Godot FFI function, in order to iterate the current state.
@@ -847,10 +893,9 @@ impl<'a> DictionaryIter<'a> {
             sys::GDExtensionVariantPtr,
             *mut sys::GDExtensionBool,
         ) -> sys::GDExtensionBool,
-        dictionary: &VarDictionary,
+        variant_dict: &Variant,
         mut next_value: Variant,
     ) -> Option<Variant> {
-        let dictionary = dictionary.to_variant();
         let mut valid_u8: u8 = 0;
 
         // SAFETY:
@@ -859,7 +904,7 @@ impl<'a> DictionaryIter<'a> {
         // `last_key` is an initialized and valid `Variant`, since we own a copy of it.
         let has_next = unsafe {
             iter_fn(
-                dictionary.var_sys(),
+                variant_dict.var_sys(),
                 next_value.var_sys_mut(),
                 ptr::addr_of_mut!(valid_u8),
             )
@@ -928,6 +973,14 @@ impl<'a, V> TypedValues<'a, V> {
             _v: PhantomData,
         }
     }
+
+    /// Creates a typed iterator from an untyped one.
+    pub fn from_untyped(value: Values<'a>) -> Self {
+        Self {
+            iter: value.iter,
+            _v: PhantomData,
+        }
+    }
 }
 
 impl<V: FromGodot> Iterator for TypedValues<'_, V> {
@@ -935,6 +988,47 @@ impl<V: FromGodot> Iterator for TypedValues<'_, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next_key_value().map(|(_k, v)| V::from_variant(&v))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
+    }
+}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+
+/// Iterator over values in a [`VarDictionary`].
+///
+/// See [`VarDictionary::values_shared()`] for more information about iteration over dictionaries.
+pub struct Values<'a> {
+    iter: DictionaryIter<'a>,
+}
+
+impl<'a> Values<'a> {
+    fn new(dictionary: &'a VarDictionary) -> Self {
+        Self {
+            iter: DictionaryIter::new(dictionary),
+        }
+    }
+
+    /// Creates an iterator that will convert each `Variant` value into a value of type `V`,
+    /// panicking upon failure to convert.
+    pub fn typed<V: FromGodot>(self) -> TypedValues<'a, V> {
+        TypedValues::from_untyped(self)
+    }
+
+    /// Returns an array of the values.
+    pub fn array(self) -> VarArray {
+        assert!(self.iter.is_first);
+        self.iter.dictionary.values_array()
+    }
+}
+
+impl Iterator for Values<'_> {
+    type Item = Variant;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter.next_key_value().map(|(_k, v)| v)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -1088,16 +1182,23 @@ fn u8_to_bool(u: u8) -> bool {
 macro_rules! vdict {
     ($($key:tt: $value:expr),* $(,)?) => {
         {
+            use $crate::meta::ToGodot as _;
             let mut d = $crate::builtin::VarDictionary::new();
-            $(
-                // `cargo check` complains that `(1 + 2): true` has unused parens, even though it's not
-                // possible to omit the parens.
-                #[allow(unused_parens)]
-                d.set($key, $value);
-            )*
+
+            let count = 0usize $( + $crate::vdict!(@unit $key) )*;
+            if count > 0 {
+                #[cfg(since_api = "4.3")]
+                d.reserve(count);
+
+                $(
+                    #[allow(unused_parens)]
+                    d.set_inner($key.to_variant(), $value.to_variant());
+                )*
+            }
             d
         }
     };
+    (@unit $key:tt) => { 1usize };
 }
 
 #[macro_export]

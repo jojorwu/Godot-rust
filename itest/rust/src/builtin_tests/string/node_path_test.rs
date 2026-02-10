@@ -89,21 +89,21 @@ fn node_path_subpath() {
     let path = NodePath::from("path/to/Node:with:props");
     let parts = path.get_name_count() + path.get_subname_count();
 
-    assert_eq!(path.subpath(0..1), "path".into());
-    assert_eq!(path.subpath(1..2), "to".into());
-    assert_eq!(path.subpath(2..3), "Node".into());
-    assert_eq!(path.subpath(3..4), ":with".into());
-    assert_eq!(path.subpath(4..5), ":props".into());
+    assert_eq!(path.subpath(0..1), "path");
+    assert_eq!(path.subpath(1..2), "to");
+    assert_eq!(path.subpath(2..3), "Node");
+    assert_eq!(path.subpath(3..4), ":with");
+    assert_eq!(path.subpath(4..5), ":props");
 
-    assert_eq!(path.subpath(wrapped(1..-1)), "to/Node:with".into());
+    assert_eq!(path.subpath(wrapped(1..-1)), "to/Node:with");
     assert_eq!(
         path.subpath(wrapped(1..parts as i32 - 1)),
-        "to/Node:with".into()
+        "to/Node:with"
     );
-    assert_eq!(path.subpath(wrapped(0..-2)), "path/to/Node".into());
-    assert_eq!(path.subpath(wrapped(-3..-1)), "Node:with".into());
-    assert_eq!(path.subpath(wrapped(-2..)), ":with:props".into());
-    assert_eq!(path.subpath(wrapped(-1..)), ":props".into());
+    assert_eq!(path.subpath(wrapped(0..-2)), "path/to/Node");
+    assert_eq!(path.subpath(wrapped(-3..-1)), "Node:with");
+    assert_eq!(path.subpath(wrapped(-2..)), ":with:props");
+    assert_eq!(path.subpath(wrapped(-1..)), ":props");
 }
 
 #[itest]

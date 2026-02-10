@@ -850,7 +850,6 @@ impl BufRead for GFile {
 
         // We need to keep the amount of last read side to be able to adjust cursor position in `consume`.
         self.last_buffer_size = buffer_read_size;
-        self.buffer = vec![0; Self::BUFFER_SIZE];
 
         let gd_buffer = self.fa.get_buffer(buffer_read_size as i64);
         self.check_error()?;

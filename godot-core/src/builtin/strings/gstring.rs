@@ -7,7 +7,6 @@
 
 use std::convert::Infallible;
 use std::fmt;
-use std::fmt::Write;
 
 use godot_ffi as sys;
 use sys::types::OpaqueString;
@@ -311,6 +310,61 @@ impl std::ops::Index<usize> for GString {
     }
 }
 
+impl<'a> IntoIterator for &'a GString {
+    type Item = char;
+    type IntoIter = std::iter::Copied<std::slice::Iter<'a, char>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.chars().iter().copied()
+    }
+}
+
+impl IntoIterator for GString {
+    type Item = char;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let (ptr, len) = self.raw_slice();
+        IntoIter {
+            _string: self,
+            ptr,
+            len,
+            index: 0,
+        }
+    }
+}
+
+/// An iterator that consumes a [`GString`] and yields its characters.
+pub struct IntoIter {
+    _string: GString,
+    ptr: *const char,
+    len: usize,
+    index: usize,
+}
+
+impl Iterator for IntoIter {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.len {
+            // SAFETY: index is within bounds, pointer remains valid as long as COW string is not modified.
+            // Iterator owns the string and doesn't modify it.
+            let ch = unsafe { *self.ptr.add(self.index) };
+            self.index += 1;
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+impl ExactSizeIterator for IntoIter {}
+
 // SAFETY:
 // - `move_return_ptr`
 //   Nothing special needs to be done beyond a `std::mem::swap` when returning a String.
@@ -347,11 +401,8 @@ impl_shared_string_api! {
 impl fmt::Display for GString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         pad_if_needed(f, |f| {
-            for ch in self.chars() {
-                f.write_char(*ch)?;
-            }
-
-            Ok(())
+            let s = String::from(self);
+            f.write_str(&s)
         })
     }
 }
@@ -375,7 +426,70 @@ impl fmt::Debug for GString {
 
 impl PartialEq<&str> for GString {
     fn eq(&self, other: &&str) -> bool {
-        self.chars().iter().copied().eq(other.chars())
+        let other_bytes = other.as_bytes();
+        let s = self.string_sys();
+        unsafe {
+            // Get length in UTF-8 bytes.
+            let len = interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
+            if len as usize != other_bytes.len() {
+                return false;
+            }
+            if len == 0 {
+                return true;
+            }
+
+            // We need a temporary buffer to hold the GString's UTF-8 representation.
+            // For short strings, we can use the stack.
+            const STACK_BUF_SIZE: usize = 128;
+            if len as usize <= STACK_BUF_SIZE {
+                let mut buf = [0u8; STACK_BUF_SIZE];
+                interface_fn!(string_to_utf8_chars)(
+                    s,
+                    buf.as_mut_ptr() as *mut std::ffi::c_char,
+                    len,
+                );
+                &buf[..len as usize] == other_bytes
+            } else {
+                // For long strings, character-by-character comparison is likely better than heap allocation.
+                self.chars().iter().copied().eq(other.chars())
+            }
+        }
+    }
+}
+
+impl PartialEq<GString> for &str {
+    fn eq(&self, other: &GString) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<NodePath> for GString {
+    fn eq(&self, other: &NodePath) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<String> for GString {
+    fn eq(&self, other: &String) -> bool {
+        self.eq(&other.as_str())
+    }
+}
+
+impl PartialEq<GString> for String {
+    fn eq(&self, other: &GString) -> bool {
+        other.eq(&self.as_str())
+    }
+}
+
+impl PartialEq<StringName> for GString {
+    #[cfg(since_api = "4.5")]
+    fn eq(&self, other: &StringName) -> bool {
+        self.chars() == other.chars()
+    }
+
+    #[cfg(before_api = "4.5")]
+    fn eq(&self, other: &StringName) -> bool {
+        other.eq(self)
     }
 }
 
@@ -425,9 +539,32 @@ impl From<&String> for GString {
     }
 }
 
+impl From<String> for GString {
+    fn from(value: String) -> Self {
+        value.as_str().into()
+    }
+}
+
 impl From<&GString> for String {
     fn from(string: &GString) -> Self {
-        string.chars().iter().copied().collect()
+        let s = string.string_sys();
+        unsafe {
+            let len = interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
+            if len == 0 {
+                return String::new();
+            }
+
+            let mut buffer = Vec::with_capacity(len as usize);
+            interface_fn!(string_to_utf8_chars)(
+                s,
+                buffer.as_mut_ptr() as *mut std::ffi::c_char,
+                len,
+            );
+            buffer.set_len(len as usize);
+
+            // SAFETY: Godot guarantees valid UTF-8.
+            String::from_utf8_unchecked(buffer)
+        }
     }
 }
 

@@ -12,8 +12,8 @@ use std::fmt::Display;
 use godot::builtin::{
     array, varray, vdict, vslice, Array, Basis, Callable, Color, GString, NodePath,
     PackedInt32Array, PackedStringArray, Projection, Quaternion, Signal, StringName, Transform2D,
-    Transform3D, VarArray, VarDictionary, Variant, VariantOperator, VariantType, Vector2,
-    Vector2i, Vector3, Vector3i,
+    Transform3D, VarArray, VarDictionary, Variant, VariantDispatch, VariantOperator, VariantType,
+    Vector2, Vector2i, Vector3, Vector3i,
 };
 use godot::classes::{Node, Node2D, Resource};
 use godot::meta::{FromGodot, ToGodot};
@@ -460,6 +460,34 @@ fn variant_object_id_unchecked() {
 }
 
 #[itest]
+fn variant_dispatch_traits() {
+    let v1 = Variant::from(42);
+    let d1 = VariantDispatch::from_variant(&v1);
+    let d1_clone = d1.clone();
+    assert_eq!(d1, d1_clone);
+
+    let v2 = Variant::from("hello");
+    let d2 = VariantDispatch::from_variant(&v2);
+    assert_ne!(d1, d2);
+
+    let d_nil = VariantDispatch::Nil;
+    assert_eq!(d_nil, d_nil.clone());
+    assert_ne!(d_nil, d1);
+
+    let node = Node::new_alloc();
+    let v_node = node.to_variant();
+    let d_obj = VariantDispatch::from_variant(&v_node);
+    assert_eq!(d_obj, d_obj.clone());
+    assert_ne!(d_obj, d1);
+
+    node.free();
+    let d_freed = VariantDispatch::from_variant(&v_node);
+    assert_eq!(d_freed, VariantDispatch::FreedObject);
+    assert_eq!(d_freed, d_freed.clone());
+    assert_ne!(d_freed, d_nil);
+}
+
+#[itest]
 fn variant_equal() {
     assert_eq!(Variant::nil(), ().to_variant());
     assert_eq!(Variant::nil(), Variant::default());
@@ -619,31 +647,17 @@ fn variant_sys_conversion() {
     assert_eq!(v2, v);
 }
 
-#[itest(skip)]
+#[itest]
 fn variant_sys_conversion2() {
     use godot::sys;
 
-    // FIXME alignment, maybe use alloc()
-    let mut buffer = [0u8; 50];
-
+    let mut v_dst = Variant::nil();
     let v = Variant::from(7);
     unsafe {
-        v.clone().move_return_ptr(
-            buffer.as_mut_ptr() as sys::GDExtensionTypePtr,
-            sys::PtrcallType::Standard,
-        )
+        v.clone().move_return_ptr(v_dst.sys_mut(), sys::PtrcallType::Standard)
     };
 
-    let v2 = unsafe {
-        Variant::new_with_uninit(|ptr| {
-            std::ptr::copy(
-                buffer.as_ptr(),
-                ptr as *mut u8,
-                std::mem::size_of_val(&*ptr),
-            )
-        })
-    };
-    assert_eq!(v2, v);
+    assert_eq!(v_dst, v);
 }
 
 #[itest]

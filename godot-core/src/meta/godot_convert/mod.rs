@@ -150,6 +150,25 @@ pub trait FromGodot: Sized + GodotConvert {
     }
 }
 
+/// A trait for types that can be borrowed from a [`Variant`] without allocation.
+///
+/// This is an advanced trait used for performance-critical code where you want to avoid incrementing
+/// reference counts or allocating temporary objects when accessing variant data.
+pub trait VariantBorrow<'a>: GodotConvert {
+    /// The type that is returned by the borrow operation.
+    type Borrowed;
+
+    /// Tries to borrow the value from the variant.
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError>;
+
+    /// ⚠️ Tries to borrow the value from the variant, panicking on failure.
+    fn borrow_from_variant(variant: &'a Variant) -> Self::Borrowed {
+        Self::try_borrow_from_variant(variant).unwrap_or_else(|err| {
+            panic!("VariantBorrow::borrow_from_variant() failed: {err}");
+        })
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Engine conversion traits (for APIs and virtual methods, not user-facing #[func])
 

@@ -42,6 +42,10 @@ mod containers {
 
 mod string {
     mod gstring_test;
+    mod cross_string_test;
+    mod diagnostics_test;
+    mod equality_test;
+    mod iteration_test;
     mod node_path_test;
     mod string_name_test;
     mod string_test_macros;
@@ -62,3 +66,4 @@ mod common;
 
 #[cfg(feature = "serde")]
 mod serde_test;
+mod variant_test;

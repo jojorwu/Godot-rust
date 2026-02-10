@@ -174,28 +174,25 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 })
             };
 
-            if varargs.is_empty() {
-                // Common case: no varargs. Use stack-allocated pointers to avoid Vec.
-                // We need to collect the pointers into a stack array.
-                // Since explicit_args is small (max 16), we can use a fixed-size array on stack.
-                let ptrs_vec;
-                let mut ptrs_arr = [std::ptr::null(); sys::MAX_STACK_ARGS];
-                let ptrs: *const sys::GDExtensionConstVariantPtr = if explicit_args.len() <= sys::MAX_STACK_ARGS {
-                    for (i, arg) in explicit_args.iter().enumerate() {
-                        ptrs_arr[i] = arg.var_sys();
-                    }
-                    ptrs_arr.as_ptr()
-                } else {
-                    ptrs_vec = explicit_args.iter().map(|a| a.var_sys()).collect::<Vec<_>>();
-                    ptrs_vec.as_ptr()
-                };
-                call_with_ptrs(ptrs)
+            let ptrs_vec;
+            let mut ptrs_arr = [std::ptr::null(); sys::MAX_STACK_ARGS];
+            let ptrs: *const sys::GDExtensionConstVariantPtr = if total_count <= sys::MAX_STACK_ARGS {
+                for (i, arg) in explicit_args.iter().enumerate() {
+                    ptrs_arr[i] = arg.var_sys();
+                }
+                for (i, arg) in varargs.iter().enumerate() {
+                    ptrs_arr[explicit_args.len() + i] = arg.var_sys();
+                }
+                ptrs_arr.as_ptr()
             } else {
-                let mut variant_ptrs = Vec::with_capacity(total_count);
-                variant_ptrs.extend(explicit_args.iter().map(Variant::var_sys));
-                variant_ptrs.extend(varargs.iter().map(Variant::var_sys));
-                call_with_ptrs(variant_ptrs.as_ptr())
-            }
+                ptrs_vec = explicit_args
+                    .iter()
+                    .map(Variant::var_sys)
+                    .chain(varargs.iter().map(Variant::var_sys))
+                    .collect::<Vec<_>>();
+                ptrs_vec.as_ptr()
+            };
+            call_with_ptrs(ptrs)
         });
 
         variant.and_then(|v| {
@@ -267,14 +264,31 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
 
         unsafe {
             Self::raw_ptrcall(args, &call_ctx, |explicit_args, return_ptr| {
-                let mut type_ptrs = Vec::with_capacity(explicit_args.len() + varargs.len());
-                type_ptrs.extend(explicit_args.iter());
-                type_ptrs.extend(varargs.iter().map(sys::GodotFfi::sys));
+                let total_count = explicit_args.len() + varargs.len();
+                let type_ptrs_vec;
+                let mut type_ptrs_arr = [std::ptr::null(); sys::MAX_STACK_ARGS];
+
+                let type_ptrs = if total_count <= sys::MAX_STACK_ARGS {
+                    for (i, arg) in explicit_args.iter().enumerate() {
+                        type_ptrs_arr[i] = *arg;
+                    }
+                    for (i, arg) in varargs.iter().enumerate() {
+                        type_ptrs_arr[explicit_args.len() + i] = sys::GodotFfi::sys(arg);
+                    }
+                    type_ptrs_arr.as_ptr()
+                } else {
+                    type_ptrs_vec = explicit_args
+                        .iter()
+                        .copied()
+                        .chain(varargs.iter().map(sys::GodotFfi::sys))
+                        .collect::<Vec<_>>();
+                    type_ptrs_vec.as_ptr()
+                };
 
                 // Important: this calls from_sys_init_default().
                 // SAFETY: `return_ptr` is a pointer to an uninitialized FFI value, which is safe to initialize.
                 // `type_ptrs` contains valid pointers to arguments.
-                utility_fn(return_ptr, type_ptrs.as_ptr(), type_ptrs.len() as i32);
+                utility_fn(return_ptr, type_ptrs, total_count as i32);
             })
         }
     }
@@ -297,17 +311,29 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
 
         unsafe {
             Self::raw_ptrcall(args, &call_ctx, |explicit_args, return_ptr| {
-                let mut type_ptrs = Vec::with_capacity(explicit_args.len() + varargs.len());
-                type_ptrs.extend(explicit_args.iter());
-                type_ptrs.extend(varargs.iter().map(sys::GodotFfi::sys));
+                let total_count = explicit_args.len() + varargs.len();
+                let type_ptrs_vec;
+                let mut type_ptrs_arr = [std::ptr::null(); sys::MAX_STACK_ARGS];
+
+                let type_ptrs = if total_count <= sys::MAX_STACK_ARGS {
+                    for (i, arg) in explicit_args.iter().enumerate() {
+                        type_ptrs_arr[i] = *arg;
+                    }
+                    for (i, arg) in varargs.iter().enumerate() {
+                        type_ptrs_arr[explicit_args.len() + i] = sys::GodotFfi::sys(arg);
+                    }
+                    type_ptrs_arr.as_ptr()
+                } else {
+                    type_ptrs_vec = explicit_args
+                        .iter()
+                        .copied()
+                        .chain(varargs.iter().map(sys::GodotFfi::sys))
+                        .collect::<Vec<_>>();
+                    type_ptrs_vec.as_ptr()
+                };
 
                 // Important: this calls from_sys_init_default().
-                builtin_fn(
-                    type_ptr,
-                    type_ptrs.as_ptr(),
-                    return_ptr,
-                    type_ptrs.len() as i32,
-                );
+                builtin_fn(type_ptr, type_ptrs, return_ptr, total_count as i32);
             })
         }
     }

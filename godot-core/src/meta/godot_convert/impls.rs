@@ -12,7 +12,7 @@ use crate::meta;
 use crate::meta::error::{ConvertError, ErrorKind, FromFfiError};
 use crate::meta::{
     ArrayElement, ClassId, FromGodot, GodotConvert, GodotNullableFfi, GodotType, PropertyHintInfo,
-    PropertyInfo, ToGodot,
+    PropertyInfo, ToGodot, VariantBorrow,
 };
 use crate::registry::method::MethodParamOrReturnInfo;
 
@@ -534,3 +534,83 @@ fn __doctest_native_struct_pointer_return() {}
 /// }
 /// ```
 fn __doctest_u64_return() {}
+
+// ----------------------------------------------------------------------------------------------------------------------------------------------
+// VariantBorrow
+
+impl<'a> VariantBorrow<'a> for Variant {
+    type Borrowed = &'a Variant;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        Ok(variant)
+    }
+}
+
+impl<'a, T: ArrayElement> VariantBorrow<'a> for Array<T> {
+    type Borrowed = Array<T>;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<Array<T>>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::GString {
+    type Borrowed = crate::builtin::GString;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::GString>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::StringName {
+    type Borrowed = crate::builtin::StringName;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::StringName>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::Vector4 {
+    type Borrowed = crate::builtin::Vector4;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::Vector4>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::Rect2 {
+    type Borrowed = crate::builtin::Rect2;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::Rect2>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::Aabb {
+    type Borrowed = crate::builtin::Aabb;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::Aabb>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::Plane {
+    type Borrowed = crate::builtin::Plane;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::Plane>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::Basis {
+    type Borrowed = crate::builtin::Basis;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::Basis>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::Transform3D {
+    type Borrowed = crate::builtin::Transform3D;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::Transform3D>()
+    }
+}
+
+impl<'a> VariantBorrow<'a> for crate::builtin::Color {
+    type Borrowed = crate::builtin::Color;
+    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+        variant.try_to::<crate::builtin::Color>()
+    }
+}

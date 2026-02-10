@@ -17,11 +17,11 @@
 //! * [`notify`]: all notification enums, used when working with the virtual callback to handle lifecycle notifications.
 
 mod class_runtime;
-mod manual_extensions;
+pub mod ext;
 mod match_class;
 mod type_safe_replacements;
 
-pub use manual_extensions::GetNodeError;
+pub use ext::node::GetNodeError;
 
 // Re-exports all generated classes, interface traits and sidecar modules.
 pub use crate::gen::classes::*;

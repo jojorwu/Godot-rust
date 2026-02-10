@@ -125,6 +125,34 @@ impl GlamConv for Vector3i {
     type Glam = glam::IVec3;
 }
 
+impl PartialEq<(i32, i32, i32)> for Vector3i {
+    #[inline]
+    fn eq(&self, other: &(i32, i32, i32)) -> bool {
+        self.x == other.0 && self.y == other.1 && self.z == other.2
+    }
+}
+
+impl PartialEq<Vector3i> for (i32, i32, i32) {
+    #[inline]
+    fn eq(&self, other: &Vector3i) -> bool {
+        other.eq(self)
+    }
+}
+
+impl From<(i32, i32, i32)> for Vector3i {
+    #[inline]
+    fn from(tuple: (i32, i32, i32)) -> Self {
+        Self::new(tuple.0, tuple.1, tuple.2)
+    }
+}
+
+impl From<[i32; 3]> for Vector3i {
+    #[inline]
+    fn from(array: [i32; 3]) -> Self {
+        Self::new(array[0], array[1], array[2])
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

@@ -15,8 +15,8 @@
 
 // Re-export generated enums.
 pub use crate::gen::central::global_reexported_enums::{Corner, EulerOrder, Side, VariantOperator};
-// Not yet public.
-pub(crate) use crate::gen::central::VariantDispatch;
+/// Enumerator to match on a [`Variant`]'s dynamic type.
+pub use crate::gen::central::VariantDispatch;
 pub use crate::sys::VariantType;
 // Re-export macros.
 #[allow(deprecated)] // dict
@@ -56,7 +56,7 @@ pub mod __prelude_reexport {
     #[rustfmt::skip] // Do not reorder.
     pub use crate::dict;
 
-    #[cfg(feature = "trace")] // Test only.
+    pub use crate::static_node_path;
     pub use crate::static_sname;
 }
 
@@ -138,7 +138,9 @@ macro_rules! declare_hash_u32_method {
 // Conversion functions
 
 pub(crate) fn to_i64(i: usize) -> i64 {
-    i.try_into().unwrap()
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: size {i} exceeds i64::MAX, which is not supported by Godot")
+    })
 }
 
 pub(crate) fn to_usize(i: i64) -> usize {

@@ -66,7 +66,9 @@ pub(crate) mod signed_range;
 pub use args::*;
 pub use class_id::ClassId;
 pub use element_type::{ElementScript, ElementType};
-pub use godot_convert::{EngineFromGodot, EngineToGodot, FromGodot, GodotConvert, ToGodot};
+pub use godot_convert::{
+    EngineFromGodot, EngineToGodot, FromGodot, GodotConvert, ToGodot, VariantBorrow,
+};
 pub use method_info::MethodInfo;
 pub use object_to_owned::ObjectToOwned;
 pub use param_tuple::{InParamTuple, OutParamTuple, ParamTuple, TupleFromGodot};

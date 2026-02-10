@@ -288,6 +288,48 @@ impl GlamConv for Vector3 {
     type Glam = RVec3;
 }
 
+impl PartialEq<(real, real, real)> for Vector3 {
+    #[inline]
+    fn eq(&self, other: &(real, real, real)) -> bool {
+        self.x == other.0 && self.y == other.1 && self.z == other.2
+    }
+}
+
+impl PartialEq<Vector3> for (real, real, real) {
+    #[inline]
+    fn eq(&self, other: &Vector3) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<[real; 3]> for Vector3 {
+    #[inline]
+    fn eq(&self, other: &[real; 3]) -> bool {
+        self.x == other[0] && self.y == other[1] && self.z == other[2]
+    }
+}
+
+impl PartialEq<Vector3> for [real; 3] {
+    #[inline]
+    fn eq(&self, other: &Vector3) -> bool {
+        other.eq(self)
+    }
+}
+
+impl From<(real, real, real)> for Vector3 {
+    #[inline]
+    fn from(tuple: (real, real, real)) -> Self {
+        Self::new(tuple.0, tuple.1, tuple.2)
+    }
+}
+
+impl From<[real; 3]> for Vector3 {
+    #[inline]
+    fn from(array: [real; 3]) -> Self {
+        Self::new(array[0], array[1], array[2])
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;

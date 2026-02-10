@@ -142,7 +142,7 @@ fn test_object_get_property_list_typed() {
     let props = node.get_property_list_typed();
 
     assert!(!props.is_empty());
-    assert!(props.iter().any(|p| p.property_name == StringName::from("name")));
+    assert!(props.iter().any(|p| p.property_name == "name"));
 
     node.free();
 }

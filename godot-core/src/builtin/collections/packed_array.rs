@@ -105,6 +105,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Constructs an empty array.
+    #[inline]
     pub fn new() -> Self {
         Self::default()
     }
@@ -112,6 +113,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// Returns a copy of the value at the specified index, or `None` if out-of-bounds.
     ///
     /// If you know the index is valid, use the `[]` operator (`Index`/`IndexMut` traits) instead.
+    #[inline]
     pub fn get(&self, index: usize) -> Option<T> {
         let ptr = self.ptr_or_none(index)?;
 
@@ -123,19 +125,43 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[inline]
     pub fn at(&self, index: usize) -> T {
         self.get(index).unwrap_or_else(|| self.panic_out_of_bounds(index))
+    }
+
+    /// Returns a copy of the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
+    #[inline]
+    pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U>
+    where
+        T: ToGodot,
+    {
+        self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
+    /// ⚠️ Returns the value at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    #[inline]
+    pub fn at_as<U: FromGodot>(&self, index: usize) -> U
+    where
+        T: ToGodot,
+    {
+        self.at(index).to_variant().to::<U>()
     }
 
     /// Returns `true` if the array contains the given value.
     ///
     /// _Godot equivalent: `has`_
     #[doc(alias = "has")]
+    #[inline]
     pub fn contains(&self, value: impl AsArg<T>) -> bool {
         T::op_has(self.as_inner(), value.into_arg())
     }
 
     /// Returns the number of times a value is in the array.
+    #[inline]
     pub fn count(&self, value: impl AsArg<T>) -> usize {
         let count_i64 = T::op_count(self.as_inner(), value.into_arg());
         to_usize(count_i64)
@@ -145,16 +171,19 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// _Godot equivalent: `size`_
     #[doc(alias = "size")]
+    #[inline]
     pub fn len(&self) -> usize {
         to_usize(T::op_size(self.as_inner()))
     }
 
     /// Returns `true` if the array is empty.
+    #[inline]
     pub fn is_empty(&self) -> bool {
         T::op_is_empty(self.as_inner())
     }
 
     /// Clears the array, removing all elements.
+    #[inline]
     pub fn clear(&mut self) {
         T::op_clear(self.as_inner());
     }
@@ -164,6 +193,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// _Godot equivalent: `append`, `push_back`_
     #[doc(alias = "append")]
     #[doc(alias = "push_back")]
+    #[inline]
     pub fn push(&mut self, value: impl AsArg<T>) {
         T::op_push_back(self.as_inner(), value.into_arg());
     }
@@ -227,12 +257,12 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// The array may reserve more space to avoid frequent reallocations.
     ///
     /// _Godot equivalent: `reserve`_
-    #[cfg(since_api = "4.6")]
+    #[cfg(since_api = "4.3")]
     pub fn reserve(&mut self, capacity: usize) {
         let variant = self.to_variant();
-        let method = StringName::from("reserve");
-        let arg = Variant::from(capacity as i64);
-        let _result_variant = variant.call(&method, &[arg]);
+        let method = crate::static_sname!(c"reserve");
+        let arg = Variant::from(crate::builtin::to_i64(capacity));
+        let _result_variant = variant.call(method, &[arg]);
 
         // Variant::call() on a PackedArray modifies it in-place.
         // We re-assign from the variant to ensure COW changes are picked up.
@@ -295,6 +325,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// The resulting slice can be further subdivided or converted into raw pointers.
     ///
     /// See also [`as_mut_slice`][Self::as_mut_slice] to get exclusive slices, and [`subarray`][Self::subarray] to get a sub-array as a copy.
+    #[inline]
     pub fn as_slice(&self) -> &[T] {
         if self.is_empty() {
             &[]
@@ -312,6 +343,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// The resulting slice can be further subdivided or converted into raw pointers.
     ///
     /// See also [`as_slice`][Self::as_slice] to get shared slices, and [`subarray`][Self::subarray] to get a sub-array as a copy.
+    #[inline]
     pub fn as_mut_slice(&mut self) -> &mut [T] {
         if self.is_empty() {
             &mut []
@@ -322,6 +354,13 @@ impl<T: PackedArrayElement> PackedArray<T> {
             // The array uses copy-on-write semantics. ptr_mut() triggers a copy if non-unique, after which the slice is never aliased.
             unsafe { std::slice::from_raw_parts_mut(data, self.len()) }
         }
+    }
+
+    /// Returns an iterator over the elements of the array.
+    ///
+    /// The iterator yields shared references to the elements.
+    pub fn iter_shared(&self) -> std::slice::Iter<'_, T> {
+        self.as_slice().iter()
     }
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if not found.
@@ -834,7 +873,9 @@ impl<T: PackedArrayElement> fmt::Debug for PackedArray<T> {
 
 /// An iterator over elements of a [`PackedArray`].
 pub struct PackedIter<T: PackedArrayElement> {
-    array: PackedArray<T>,
+    _array: PackedArray<T>,
+    ptr: *const T,
+    len: usize,
     index: usize,
 }
 
@@ -842,15 +883,19 @@ impl<T: PackedArrayElement> Iterator for PackedIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let item = self.array.get(self.index);
-        if item.is_some() {
+        if self.index < self.len {
+            // SAFETY: index is within bounds, pointer remains valid as long as COW array is not modified.
+            // Iterator owns the array and doesn't modify it.
+            let item = unsafe { &*self.ptr.add(self.index) };
             self.index += 1;
+            Some(item.clone())
+        } else {
+            None
         }
-        item
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let remaining = self.array.len() - self.index;
+        let remaining = self.len - self.index;
         (remaining, Some(remaining))
     }
 }
@@ -862,8 +907,17 @@ impl<T: PackedArrayElement> IntoIterator for PackedArray<T> {
     type IntoIter = PackedIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
+        let len = self.len();
+        let ptr = if len == 0 {
+            std::ptr::null()
+        } else {
+            self.ptr(0)
+        };
+
         PackedIter {
-            array: self,
+            _array: self,
+            ptr,
+            len,
             index: 0,
         }
     }
@@ -996,9 +1050,9 @@ impl PackedStringArray {
     pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
         use meta::GodotFfiVariant;
         let variant = self.ffi_to_variant();
-        let method = StringName::from("join");
+        let method = crate::static_sname!(c"join");
         meta::arg_into_ref!(delimiter);
-        let result = variant.call(&method, &[delimiter.to_variant()]);
+        let result = variant.call(method, &[delimiter.to_variant()]);
         result.to::<GString>()
     }
 }

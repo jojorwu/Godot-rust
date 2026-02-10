@@ -349,20 +349,143 @@ impl std::ops::Index<usize> for StringName {
     }
 }
 
+#[cfg(since_api = "4.5")]
+impl<'a> IntoIterator for &'a StringName {
+    type Item = char;
+    type IntoIter = std::iter::Copied<std::slice::Iter<'a, char>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.chars().iter().copied()
+    }
+}
+
+#[cfg(since_api = "4.5")]
+impl IntoIterator for StringName {
+    type Item = char;
+    type IntoIter = IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        let gstring = GString::from(&self);
+        let (ptr, len) = gstring.raw_slice();
+
+        IntoIter {
+            _string: gstring,
+            ptr,
+            len,
+            index: 0,
+        }
+    }
+}
+
+#[cfg(since_api = "4.5")]
+/// An iterator that consumes a [`StringName`] and yields its characters.
+pub struct IntoIter {
+    _string: GString,
+    ptr: *const char,
+    len: usize,
+    index: usize,
+}
+
+#[cfg(since_api = "4.5")]
+impl Iterator for IntoIter {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.len {
+            // SAFETY: index is within bounds, pointer remains valid as long as COW string name is not modified.
+            // Iterator owns the string name and doesn't modify it.
+            let ch = unsafe { *self.ptr.add(self.index) };
+            self.index += 1;
+            Some(ch)
+        } else {
+            None
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let remaining = self.len - self.index;
+        (remaining, Some(remaining))
+    }
+}
+
+#[cfg(since_api = "4.5")]
+impl ExactSizeIterator for IntoIter {}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Comparison with Rust strings
 
 // API design: see PartialEq for GString.
 impl PartialEq<&str> for StringName {
-    #[cfg(since_api = "4.5")]
     fn eq(&self, other: &&str) -> bool {
-        self.chars().iter().copied().eq(other.chars())
+        let other_bytes = other.as_bytes();
+        let gstring = GString::from(self);
+        let s = gstring.string_sys();
+        unsafe {
+            // Get length in UTF-8 bytes.
+            let len = sys::interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
+            if len as usize != other_bytes.len() {
+                return false;
+            }
+            if len == 0 {
+                return true;
+            }
+
+            // We need a temporary buffer to hold the GString's UTF-8 representation.
+            // For short strings, we can use the stack.
+            const STACK_BUF_SIZE: usize = 128;
+            if len as usize <= STACK_BUF_SIZE {
+                let mut buf = [0u8; STACK_BUF_SIZE];
+                sys::interface_fn!(string_to_utf8_chars)(
+                    s,
+                    buf.as_mut_ptr() as *mut std::ffi::c_char,
+                    len,
+                );
+                &buf[..len as usize] == other_bytes
+            } else {
+                // For long strings, character-by-character comparison is likely better than heap allocation.
+                #[cfg(since_api = "4.5")]
+                {
+                    self.chars().iter().copied().eq(other.chars())
+                }
+
+                #[cfg(before_api = "4.5")]
+                {
+                    gstring == *other
+                }
+            }
+        }
+    }
+}
+
+impl PartialEq<StringName> for &str {
+    fn eq(&self, other: &StringName) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<String> for StringName {
+    fn eq(&self, other: &String) -> bool {
+        self.eq(&other.as_str())
+    }
+}
+
+impl PartialEq<GString> for StringName {
+    #[cfg(since_api = "4.5")]
+    fn eq(&self, other: &GString) -> bool {
+        self.chars() == other.chars()
     }
 
-    // Polyfill for older Godot versions -- StringName->GString conversion still requires allocation in older versions.
     #[cfg(before_api = "4.5")]
-    fn eq(&self, other: &&str) -> bool {
-        GString::from(self) == *other
+    fn eq(&self, other: &GString) -> bool {
+        // Godot strings (GString) can be compared with StringNames efficiently.
+        // But for consistency we use GString's implementation if available, or just convert.
+        GString::from(self).eq(other)
+    }
+}
+
+impl PartialEq<NodePath> for StringName {
+    fn eq(&self, other: &NodePath) -> bool {
+        other.eq(self)
     }
 }
 
@@ -413,6 +536,12 @@ impl From<&str> for StringName {
 
 impl From<&String> for StringName {
     fn from(value: &String) -> Self {
+        value.as_str().into()
+    }
+}
+
+impl From<String> for StringName {
+    fn from(value: String) -> Self {
         value.as_str().into()
     }
 }
@@ -542,7 +671,6 @@ mod serialize {
     }
 }
 
-// TODO(v0.4.x): consider re-exposing in public API. Open questions: thread-safety, performance, memory leaks, global overhead.
 // Possibly in a more general StringName cache, similar to ClassId. See https://github.com/godot-rust/gdext/pull/1316.
 /// Creates and gets a reference to a static `StringName` from a ASCII/Latin-1 `c"string"`.
 ///

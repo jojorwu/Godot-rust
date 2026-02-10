@@ -36,6 +36,12 @@ pub struct NodePath {
     opaque: sys::types::OpaqueNodePath,
 }
 
+// SAFETY: NodePath is immutable once constructed and Godot uses atomic reference counting.
+unsafe impl Send for NodePath {}
+
+// SAFETY: NodePath is immutable once constructed. Access from multiple threads is safe because Godot handles internal synchronization.
+unsafe impl Sync for NodePath {}
+
 impl NodePath {
     fn from_opaque(opaque: sys::types::OpaqueNodePath) -> Self {
         Self { opaque }
@@ -136,7 +142,7 @@ impl NodePath {
     ///
     /// // If upper bound is not defined, `exclusive_end` will span to the end of the `NodePath`.
     /// let sub = path.subpath(2..);
-    /// assert_eq!(sub, ":props".into());
+    /// assert_eq!(sub, ":props");
     ///
     /// // If either `begin` or `exclusive_end` are negative, they will be relative to the end of the `NodePath`.
     /// let total_count = path.get_total_count();
@@ -243,6 +249,42 @@ impl fmt::Debug for NodePath {
     }
 }
 
+impl PartialEq<&str> for NodePath {
+    fn eq(&self, other: &&str) -> bool {
+        GString::from(self) == *other
+    }
+}
+
+impl PartialEq<NodePath> for &str {
+    fn eq(&self, other: &NodePath) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<String> for NodePath {
+    fn eq(&self, other: &String) -> bool {
+        self.eq(&other.as_str())
+    }
+}
+
+impl PartialEq<NodePath> for String {
+    fn eq(&self, other: &NodePath) -> bool {
+        other.eq(&self.as_str())
+    }
+}
+
+impl PartialEq<GString> for NodePath {
+    fn eq(&self, other: &GString) -> bool {
+        GString::from(self).eq(other)
+    }
+}
+
+impl PartialEq<StringName> for NodePath {
+    fn eq(&self, other: &StringName) -> bool {
+        GString::from(self).eq(other)
+    }
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Conversion from/into other string-types
 
@@ -251,6 +293,13 @@ impl_rust_string_conv!(NodePath);
 impl From<&str> for NodePath {
     // NodePath doesn't offer direct construction from bytes; go via GString.
     fn from(s: &str) -> Self {
+        Self::from(&GString::from(s))
+    }
+}
+
+impl From<String> for NodePath {
+    fn from(s: String) -> Self {
+        // NodePath doesn't offer direct construction from bytes; go via GString.
         Self::from(&GString::from(s))
     }
 }
@@ -272,6 +321,19 @@ impl From<&GString> for NodePath {
             })
         }
     }
+}
+
+/// Creates and gets a reference to a static `NodePath` from a string literal.
+///
+/// This is the fastest way to create a NodePath repeatedly, with the result being cached and never released. Suitable for scenarios where high performance is required.
+#[macro_export]
+macro_rules! static_node_path {
+    ($str:literal) => {{
+        use std::sync::OnceLock;
+
+        static NODE_PATH: OnceLock<$crate::builtin::NodePath> = OnceLock::new();
+        NODE_PATH.get_or_init(|| $crate::builtin::NodePath::from($str))
+    }};
 }
 
 impl From<&StringName> for NodePath {

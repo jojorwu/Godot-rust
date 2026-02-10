@@ -134,6 +134,7 @@ impl<T: GodotClass> RawGd<T> {
     }
 
     /// Returns `Ok(cast_obj)` on success, `Err(self)` on error
+    #[inline]
     pub(super) fn owned_cast<U>(self) -> Result<RawGd<U>, Self>
     where
         U: GodotClass,
@@ -157,6 +158,31 @@ impl<T: GodotClass> RawGd<T> {
         }
     }
 
+    /// ⚠️ **Downcast:** convert into a low-level smart pointer to a derived class, without checking the type.
+    ///
+    /// # Safety
+    /// The caller must ensure that the object's dynamic type is indeed `U` or a subclass of it.
+    #[inline]
+    pub(super) unsafe fn cast_unchecked<U>(self) -> RawGd<U>
+    where
+        U: GodotClass,
+    {
+        let obj_ptr = self.obj_sys();
+        let result = RawGd::<U>::from_obj_sys_weak(obj_ptr);
+
+        // We need to preserve the cached storage ptr if possible, but they might have different types.
+        // Actually, for unchecked cast, we can just let it re-resolve if needed, or assume it's an engine class.
+        // If U is a user class, it will re-resolve.
+
+        // If the source was a strong ref, we must ensure the destination is also treated as one.
+        // RawGd doesn't explicitly track strong/weak, but its Drop impl calls maybe_dec_ref.
+        // maybe_dec_ref only decrements if T inherits RefCounted.
+        // Since we move the pointer, the new RawGd will also decrement it on drop.
+
+        std::mem::forget(self);
+        result
+    }
+
     /// Low-level cast that allows selective use of either input or output type.
     ///
     /// On success, you'll get a `CastSuccess<T, U>` instance, which holds a weak `RawGd<U>`. You can only extract that one by trading
@@ -164,6 +190,7 @@ impl<T: GodotClass> RawGd<T> {
     ///
     /// This function is unreliable when invoked _during_ destruction (e.g. C++ `~RefCounted()` destructor). This can occur when debug-logging
     /// instances during cleanups. `Object::object_cast_to()` is a virtual function, but virtual dispatch during destructor doesn't work in C++.
+    #[inline]
     pub(super) fn ffi_cast<U>(&self) -> Result<CastSuccess<T, U>, ()>
     where
         U: GodotClass,
@@ -493,6 +520,7 @@ where
     ///
     /// See [`Gd::bind()`] for a more in depth explanation.
     // Note: possible names: write/read, hold/hold_mut, r/w, r/rw, ...
+    #[inline]
     pub(crate) fn bind(&self) -> GdRef<'_, T> {
         self.check_rtti("bind");
         GdRef::from_guard(self.storage().unwrap().get())
@@ -501,26 +529,30 @@ where
     /// Hands out a guard for an exclusive borrow, through which the user instance can be read and written.
     ///
     /// See [`Gd::bind_mut()`] for a more in depth explanation.
+    #[inline]
     pub(crate) fn bind_mut(&mut self) -> GdMut<'_, T> {
         self.check_rtti("bind_mut");
         GdMut::from_guard(self.storage().unwrap().get_mut())
     }
 
+    #[inline]
     pub(crate) fn try_bind(&self) -> Result<GdRef<'_, T>, Box<dyn std::error::Error>> {
         self.check_rtti("try_bind");
-        let storage = self.storage().ok_or_else(|| "storage not found")?;
+        let storage = self.storage().ok_or("storage not found")?;
         storage.try_get().map(GdRef::from_guard)
     }
 
+    #[inline]
     pub(crate) fn try_bind_mut(&mut self) -> Result<GdMut<'_, T>, Box<dyn std::error::Error>> {
         self.check_rtti("try_bind_mut");
-        let storage = self.storage().ok_or_else(|| "storage not found")?;
+        let storage = self.storage().ok_or("storage not found")?;
         storage.try_get_mut().map(GdMut::from_guard)
     }
 
     /// Storage object associated with the extension instance.
     ///
     /// Returns `None` if self is null.
+    #[inline]
     pub(crate) fn storage(&self) -> Option<&InstanceStorage<T>> {
         // SAFETY:
         // - We have a `&self`, so the storage must already have been created.
@@ -541,6 +573,7 @@ where
     /// The only time when a `&mut` reference can be taken to a `InstanceStorage` is when it is constructed
     /// or destroyed. So it is sufficient to ensure that the storage is not created or destroyed during the
     /// lifetime `'b`.
+    #[inline]
     pub(crate) unsafe fn storage_unbounded<'b>(&self) -> Option<&'b InstanceStorage<T>> {
         // SAFETY: instance pointer belongs to this instance. We only get a shared reference, no exclusive access, so even
         // calling this from multiple Gd pointers is safe.

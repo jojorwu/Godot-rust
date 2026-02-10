@@ -42,10 +42,20 @@ pub struct Variant {
 }
 
 impl Variant {
+    #[cold]
+    #[inline(never)]
+    fn panic_op(op: &str, lhs: VariantType, rhs: Option<VariantType>) -> ! {
+        match rhs {
+            Some(rhs) => panic!("Variant operator {op} failed between {lhs:?} and {rhs:?}"),
+            None => panic!("Variant operator {op} failed for {lhs:?}"),
+        }
+    }
+
     /// Create an empty variant (`null` value in GDScript).
     ///
     /// If a Godot engine API accepts object (not variant) parameters and you'd like to pass `null`, use
     /// [`Gd::null_arg()`][crate::obj::Gd::null_arg] instead.
+    #[inline]
     pub fn nil() -> Self {
         Self::default()
     }
@@ -53,6 +63,7 @@ impl Variant {
     /// Create a variant holding a non-nil value.
     ///
     /// Equivalent to [`value.to_variant()`][ToGodot::to_variant], but consumes the argument.
+    #[inline]
     pub fn from<T: ToGodot>(value: T) -> Self {
         value.to_variant()
     }
@@ -144,21 +155,7 @@ impl Variant {
         }
 
         if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
-            #[cfg(since_api = "4.4")]
-            return unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
-
-            #[cfg(before_api = "4.4")]
-            {
-                let is_null_object = unsafe {
-                    let object_ptr = crate::obj::raw_object_init(|type_ptr| {
-                        let converter = sys::builtin_fn!(object_from_variant);
-                        converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
-                    });
-
-                    object_ptr.is_null()
-                };
-                return is_null_object;
-            }
+            return self.is_null_object();
         }
 
         false
@@ -227,16 +224,19 @@ impl Variant {
     }
 
     /// Returns the variant as an `Array<Variant>`, or `Err` if it is not an array.
+    #[inline]
     pub fn try_to_array(&self) -> Result<crate::builtin::Array<Variant>, ConvertError> {
         self.try_to()
     }
 
     /// Returns the variant as a `VarDictionary`, or `Err` if it is not a dictionary.
+    #[inline]
     pub fn try_to_dictionary(&self) -> Result<crate::builtin::VarDictionary, ConvertError> {
         self.try_to()
     }
 
     /// Returns the variant as a `Gd<T>`, or `Err` if it is not an object of type `T`.
+    #[inline]
     pub fn try_to_object<T: crate::obj::Inherits<crate::classes::Object> + crate::obj::GodotClass>(
         &self,
     ) -> Result<crate::obj::Gd<T>, ConvertError> {
@@ -244,29 +244,34 @@ impl Variant {
     }
 
     /// Returns the variant as a `GString`, or `Err` if it is not a string.
+    #[inline]
     pub fn try_to_gstring(&self) -> Result<GString, ConvertError> {
         self.try_to()
     }
 
     /// ⚠️ Returns the variant as an integer, using relaxed conversion rules, panicking if it fails.
+    #[inline]
     pub fn to_int(&self) -> i64 {
         self.try_to_relaxed::<i64>()
             .unwrap_or_else(|err| panic!("Variant::to_int(): {err}"))
     }
 
     /// ⚠️ Returns the variant as a float, using relaxed conversion rules, panicking if it fails.
+    #[inline]
     pub fn to_float(&self) -> f64 {
         self.try_to_relaxed::<f64>()
             .unwrap_or_else(|err| panic!("Variant::to_float(): {err}"))
     }
 
     /// ⚠️ Returns the variant as a boolean, using relaxed conversion rules, panicking if it fails.
+    #[inline]
     pub fn to_bool(&self) -> bool {
         self.try_to_relaxed::<bool>()
             .unwrap_or_else(|err| panic!("Variant::to_bool(): {err}"))
     }
 
     /// ⚠️ Returns the variant as a `GString`, using relaxed conversion rules, panicking if it fails.
+    #[inline]
     pub fn to_gstring(&self) -> GString {
         self.try_to_relaxed::<GString>()
             .unwrap_or_else(|err| panic!("Variant::to_gstring(): {err}"))
@@ -274,37 +279,29 @@ impl Variant {
 
     /// Returns the type that is currently held by this variant.
     ///
-    /// If this variant holds a type `Object` but no instance (represented as a null object pointer), then `Nil` will be returned for
-    /// consistency. This may deviate from Godot behavior -- for example, calling [`Node::get_node_or_null()`][crate::classes::Node::get_node_or_null]
-    ///  with an invalid path returns a variant that has type `Object` but acts like `Nil` for all practical purposes.
+    /// Note that this returns `OBJECT` even if the variant holds a null object pointer. To check for
+    /// null objects, use [`is_nil()`][Self::is_nil].
     #[inline]
     pub fn get_type(&self) -> VariantType {
-        let sys_type = self.sys_type();
+        VariantType::from_sys(self.sys_type())
+    }
 
-        // There is a special case when the Variant has type OBJECT, but the Object* is null.
-        if sys_type == sys::GDEXTENSION_VARIANT_TYPE_OBJECT {
-            // Faster check available from 4.4 onwards.
-            #[cfg(since_api = "4.4")]
-            let is_null_object =
-                unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
+    #[inline]
+    fn is_null_object(&self) -> bool {
+        // Faster check available from 4.4 onwards.
+        #[cfg(since_api = "4.4")]
+        return unsafe { interface_fn!(variant_get_object_instance_id)(self.var_sys()) == 0 };
 
-            #[cfg(before_api = "4.4")]
-            // SAFETY: we checked that the raw type is OBJECT, so we can interpret the type-ptr as address of an object-ptr.
-            let is_null_object = unsafe {
-                let object_ptr = crate::obj::raw_object_init(|type_ptr| {
-                    let converter = sys::builtin_fn!(object_from_variant);
-                    converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
-                });
+        #[cfg(before_api = "4.4")]
+        // SAFETY: caller verified that the raw type is OBJECT, so we can interpret the type-ptr as address of an object-ptr.
+        unsafe {
+            let object_ptr = crate::obj::raw_object_init(|type_ptr| {
+                let converter = sys::builtin_fn!(object_from_variant);
+                converter(type_ptr, sys::SysPtr::force_mut(self.var_sys()));
+            });
 
-                object_ptr.is_null()
-            };
-
-            if is_null_object {
-                return VariantType::NIL;
-            }
+            object_ptr.is_null()
         }
-
-        VariantType::from_sys(sys_type)
     }
 
     /// For variants holding an object, returns the object's instance ID.
@@ -889,101 +886,225 @@ impl PartialEq for Variant {
     }
 }
 
-macro_rules! impl_variant_partial_eq {
+macro_rules! impl_variant_partial_eq_int {
     ($($ty:ty),*) => {
         $(
             impl PartialEq<$ty> for Variant {
+                #[inline]
                 fn eq(&self, other: &$ty) -> bool {
-                    self.eq(&other.to_variant())
+                    match self.get_type() {
+                        VariantType::INT => self.to_int() == *other as i64,
+                        VariantType::FLOAT => self.to_float() == *other as f64,
+                        _ => false,
+                    }
                 }
             }
 
             impl PartialEq<Variant> for $ty {
+                #[inline]
                 fn eq(&self, other: &Variant) -> bool {
-                    self.to_variant().eq(other)
+                    other.eq(self)
                 }
             }
         )*
     };
 }
 
-impl_variant_partial_eq!(i64, f64, bool);
+impl_variant_partial_eq_int!(i64, i32, i16, i8, u32, u16, u8);
+
+impl PartialEq<f64> for Variant {
+    #[inline]
+    fn eq(&self, other: &f64) -> bool {
+        match self.get_type() {
+            VariantType::INT => self.to_int() as f64 == *other,
+            VariantType::FLOAT => self.to_float() == *other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for f64 {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<f32> for Variant {
+    #[inline]
+    fn eq(&self, other: &f32) -> bool {
+        match self.get_type() {
+            VariantType::INT => self.to_int() as f64 == *other as f64,
+            VariantType::FLOAT => self.to_float() == *other as f64,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for f32 {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
+    }
+}
+
+impl PartialEq<bool> for Variant {
+    #[inline]
+    fn eq(&self, other: &bool) -> bool {
+        if self.is_bool() {
+            return self.to_bool() == *other;
+        }
+        false
+    }
+}
+
+impl PartialEq<Variant> for bool {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
+    }
+}
 
 impl PartialEq<GString> for Variant {
+    #[inline]
     fn eq(&self, other: &GString) -> bool {
-        self.eq(&other.to_variant())
+        match self.get_type() {
+            VariantType::STRING => self.to::<GString>() == *other,
+            VariantType::STRING_NAME => self.to::<StringName>() == *other,
+            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for GString {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
     }
 }
 
 impl PartialEq<StringName> for Variant {
+    #[inline]
     fn eq(&self, other: &StringName) -> bool {
-        self.eq(&other.to_variant())
+        match self.get_type() {
+            VariantType::STRING => self.to::<GString>() == *other,
+            VariantType::STRING_NAME => self.to::<StringName>() == *other,
+            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for StringName {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
     }
 }
 
 impl PartialEq<NodePath> for Variant {
+    #[inline]
     fn eq(&self, other: &NodePath) -> bool {
-        self.eq(&other.to_variant())
+        match self.get_type() {
+            VariantType::STRING => self.to::<GString>() == *other,
+            VariantType::STRING_NAME => self.to::<StringName>() == *other,
+            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
+            _ => false,
+        }
+    }
+}
+
+impl PartialEq<Variant> for NodePath {
+    #[inline]
+    fn eq(&self, other: &Variant) -> bool {
+        other.eq(self)
     }
 }
 
 impl<T: crate::obj::GodotClass> PartialEq<crate::obj::Gd<T>> for Variant {
+    #[inline]
     fn eq(&self, other: &crate::obj::Gd<T>) -> bool {
-        self.eq(&other.to_variant())
+        if self.is_object() {
+            if let Some(id) = self.object_id() {
+                return id == other.instance_id();
+            }
+        }
+        false
     }
 }
 
 impl<T: crate::obj::GodotClass> PartialEq<Variant> for crate::obj::Gd<T> {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        self.to_variant().eq(other)
+        other.eq(self)
     }
 }
 
 impl<T: crate::obj::GodotClass> PartialEq<Option<crate::obj::Gd<T>>> for Variant {
+    #[inline]
     fn eq(&self, other: &Option<crate::obj::Gd<T>>) -> bool {
-        self.eq(&other.to_variant())
+        match other {
+            Some(gd) => self.eq(gd),
+            None => self.is_nil(),
+        }
     }
 }
 
 impl<T: crate::obj::GodotClass> PartialEq<Variant> for Option<crate::obj::Gd<T>> {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        self.to_variant().eq(other)
+        other.eq(self)
     }
 }
 
 impl PartialEq<crate::builtin::Callable> for Variant {
+    #[inline]
     fn eq(&self, other: &crate::builtin::Callable) -> bool {
-        self.eq(&other.to_variant())
+        if self.is_type(VariantType::CALLABLE) {
+            return self.to::<crate::builtin::Callable>() == *other;
+        }
+        false
     }
 }
 
 impl PartialEq<Variant> for crate::builtin::Callable {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        self.to_variant().eq(other)
+        other.eq(self)
     }
 }
 
 impl PartialEq<&str> for Variant {
+    #[inline]
     fn eq(&self, other: &&str) -> bool {
-        self.eq(&GString::from(*other).to_variant())
+        match self.get_type() {
+            VariantType::STRING => self.to::<GString>() == *other,
+            VariantType::STRING_NAME => self.to::<StringName>() == *other,
+            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
+            _ => false,
+        }
     }
 }
 
 impl PartialEq<Variant> for &str {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        GString::from(*self).to_variant().eq(other)
+        other.eq(self)
     }
 }
 
 impl PartialEq<String> for Variant {
+    #[inline]
     fn eq(&self, other: &String) -> bool {
-        self.eq(&GString::from(other).to_variant())
+        self.eq(&other.as_str())
     }
 }
 
 impl PartialEq<Variant> for String {
+    #[inline]
     fn eq(&self, other: &Variant) -> bool {
-        GString::from(self).to_variant().eq(other)
+        other.eq(self)
     }
 }
 
@@ -1011,84 +1132,104 @@ impl PartialOrd for Variant {
     }
 }
 
-macro_rules! impl_variant_bin_op {
-    ($trait:ident, $method:ident, $op:expr) => {
+macro_rules! impl_variant_op {
+    (bin $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
         impl std::ops::$trait for Variant {
             type Output = Self;
+            #[inline]
             fn $method(self, rhs: Self) -> Self::Output {
-                self.evaluate(&rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"))
+                self.evaluate(&rhs, $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())))
             }
         }
 
         impl std::ops::$trait<&Variant> for Variant {
             type Output = Self;
+            #[inline]
             fn $method(self, rhs: &Variant) -> Self::Output {
-                self.evaluate(rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"))
+                self.evaluate(rhs, $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())))
             }
         }
     };
-}
 
-macro_rules! impl_variant_assign_op {
-    ($trait:ident, $method:ident, $op:expr) => {
+    (assign $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
         impl std::ops::$trait for Variant {
+            #[inline]
             fn $method(&mut self, rhs: Self) {
-                *self = self.evaluate(&rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"));
+                *self = self.evaluate(&rhs, $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())));
             }
         }
 
         impl std::ops::$trait<&Variant> for Variant {
+            #[inline]
             fn $method(&mut self, rhs: &Variant) {
-                *self = self.evaluate(rhs, $op).expect(concat!("Variant ", stringify!($method), " failed"));
+                *self = self.evaluate(rhs, $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())));
+            }
+        }
+    };
+
+    (unary $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
+        impl std::ops::$trait for Variant {
+            type Output = Self;
+            #[inline]
+            fn $method(self) -> Self::Output {
+                let from_type = self.get_type();
+                self.evaluate(&Variant::nil(), $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, from_type, None))
             }
         }
     };
 }
 
-impl_variant_bin_op!(Add, add, VariantOperator::ADD);
-impl_variant_bin_op!(Sub, sub, VariantOperator::SUBTRACT);
-impl_variant_bin_op!(Mul, mul, VariantOperator::MULTIPLY);
-impl_variant_bin_op!(Div, div, VariantOperator::DIVIDE);
-impl_variant_bin_op!(Rem, rem, VariantOperator::MODULO);
+impl_variant_op!(bin Add, add, VariantOperator::ADD, "+");
+impl_variant_op!(bin Sub, sub, VariantOperator::SUBTRACT, "-");
+impl_variant_op!(bin Mul, mul, VariantOperator::MULTIPLY, "*");
+impl_variant_op!(bin Div, div, VariantOperator::DIVIDE, "/");
+impl_variant_op!(bin Rem, rem, VariantOperator::MODULO, "%");
 
-impl_variant_assign_op!(AddAssign, add_assign, VariantOperator::ADD);
-impl_variant_assign_op!(SubAssign, sub_assign, VariantOperator::SUBTRACT);
-impl_variant_assign_op!(MulAssign, mul_assign, VariantOperator::MULTIPLY);
-impl_variant_assign_op!(DivAssign, div_assign, VariantOperator::DIVIDE);
-impl_variant_assign_op!(RemAssign, rem_assign, VariantOperator::MODULO);
+impl_variant_op!(assign AddAssign, add_assign, VariantOperator::ADD, "+=");
+impl_variant_op!(assign SubAssign, sub_assign, VariantOperator::SUBTRACT, "-=");
+impl_variant_op!(assign MulAssign, mul_assign, VariantOperator::MULTIPLY, "*=");
+impl_variant_op!(assign DivAssign, div_assign, VariantOperator::DIVIDE, "/=");
+impl_variant_op!(assign RemAssign, rem_assign, VariantOperator::MODULO, "%=");
 
-impl std::ops::Neg for Variant {
-    type Output = Self;
-    fn neg(self) -> Self::Output {
-        self.evaluate(&Variant::nil(), VariantOperator::NEGATE)
-            .expect("Variant neg failed")
-    }
-}
+impl_variant_op!(unary Neg, neg, VariantOperator::NEGATE, "-");
 
 impl std::ops::Not for Variant {
     type Output = Self;
+    #[inline]
     fn not(self) -> Self::Output {
-        let op = if self.get_type() == VariantType::BOOL {
+        let from_type = self.get_type();
+        let op = if from_type == VariantType::BOOL {
             VariantOperator::NOT
         } else {
             VariantOperator::BIT_NEGATE
         };
+        let op_str = if from_type == VariantType::BOOL {
+            "!"
+        } else {
+            "~"
+        };
+
         self.evaluate(&Variant::nil(), op)
-            .expect("Variant not failed")
+            .unwrap_or_else(|| Variant::panic_op(op_str, from_type, None))
     }
 }
 
-impl_variant_bin_op!(BitAnd, bitand, VariantOperator::BIT_AND);
-impl_variant_bin_op!(BitOr, bitor, VariantOperator::BIT_OR);
-impl_variant_bin_op!(BitXor, bitxor, VariantOperator::BIT_XOR);
-impl_variant_bin_op!(Shl, shl, VariantOperator::SHIFT_LEFT);
-impl_variant_bin_op!(Shr, shr, VariantOperator::SHIFT_RIGHT);
+impl_variant_op!(bin BitAnd, bitand, VariantOperator::BIT_AND, "&");
+impl_variant_op!(bin BitOr, bitor, VariantOperator::BIT_OR, "|");
+impl_variant_op!(bin BitXor, bitxor, VariantOperator::BIT_XOR, "^");
+impl_variant_op!(bin Shl, shl, VariantOperator::SHIFT_LEFT, "<<");
+impl_variant_op!(bin Shr, shr, VariantOperator::SHIFT_RIGHT, ">>");
 
-impl_variant_assign_op!(BitAndAssign, bitand_assign, VariantOperator::BIT_AND);
-impl_variant_assign_op!(BitOrAssign, bitor_assign, VariantOperator::BIT_OR);
-impl_variant_assign_op!(BitXorAssign, bitxor_assign, VariantOperator::BIT_XOR);
-impl_variant_assign_op!(ShlAssign, shl_assign, VariantOperator::SHIFT_LEFT);
-impl_variant_assign_op!(ShrAssign, shr_assign, VariantOperator::SHIFT_RIGHT);
+impl_variant_op!(assign BitAndAssign, bitand_assign, VariantOperator::BIT_AND, "&=");
+impl_variant_op!(assign BitOrAssign, bitor_assign, VariantOperator::BIT_OR, "|=");
+impl_variant_op!(assign BitXorAssign, bitxor_assign, VariantOperator::BIT_XOR, "^=");
+impl_variant_op!(assign ShlAssign, shl_assign, VariantOperator::SHIFT_LEFT, "<<=");
+impl_variant_op!(assign ShrAssign, shr_assign, VariantOperator::SHIFT_RIGHT, ">>=");
 
 impl fmt::Display for Variant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
