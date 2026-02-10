@@ -13,7 +13,7 @@ use sys::types::OpaqueString;
 use sys::{ffi_methods, interface_fn, ExtVariantType, GodotFfi};
 
 use crate::builtin::strings::{pad_if_needed, Encoding};
-use crate::builtin::{inner, NodePath, StringName, Variant};
+use crate::builtin::{inner, to_usize, NodePath, StringName, Variant};
 use crate::meta::error::StringError;
 use crate::meta::AsArg;
 use crate::{impl_shared_string_api, meta};
@@ -157,7 +157,7 @@ impl GString {
     /// _Godot equivalent: `length`_
     #[doc(alias = "length")]
     pub fn len(&self) -> usize {
-        self.as_inner().length().try_into().unwrap()
+        to_usize(self.as_inner().length())
     }
 
     crate::declare_hash_u32_method! {

@@ -144,7 +144,9 @@ pub(crate) fn to_i64(i: usize) -> i64 {
 }
 
 pub(crate) fn to_usize(i: i64) -> usize {
-    i.try_into().unwrap()
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} is negative or exceeds usize::MAX, cannot convert to usize")
+    })
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

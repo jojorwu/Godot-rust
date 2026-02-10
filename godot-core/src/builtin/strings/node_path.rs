@@ -11,7 +11,7 @@ use godot_ffi as sys;
 use godot_ffi::{ffi_methods, ExtVariantType, GdextBuild, GodotFfi};
 
 use super::{GString, StringName};
-use crate::builtin::inner;
+use crate::builtin::{inner, to_usize};
 use crate::meta::signed_range::SignedRange;
 
 /// A pre-parsed scene tree path.
@@ -103,18 +103,12 @@ impl NodePath {
 
     /// Returns the number of node names in the path. Property subnames are not included.
     pub fn get_name_count(&self) -> usize {
-        self.as_inner()
-            .get_name_count()
-            .try_into()
-            .expect("Godot name counts are non-negative ints")
+        to_usize(self.as_inner().get_name_count())
     }
 
     /// Returns the number of property names ("subnames") in the path. Each subname in the node path is listed after a colon character (`:`).
     pub fn get_subname_count(&self) -> usize {
-        self.as_inner()
-            .get_subname_count()
-            .try_into()
-            .expect("Godot subname counts are non-negative ints")
+        to_usize(self.as_inner().get_subname_count())
     }
 
     /// Returns the total number of names + subnames.

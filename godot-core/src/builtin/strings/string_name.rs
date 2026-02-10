@@ -10,7 +10,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
-use crate::builtin::{inner, Encoding, GString, NodePath, Variant};
+use crate::builtin::{inner, to_usize, Encoding, GString, NodePath, Variant};
 use crate::meta::error::StringError;
 use crate::meta::AsArg;
 use crate::{impl_shared_string_api, meta};
@@ -136,7 +136,7 @@ impl StringName {
     /// _Godot equivalent: `length`_
     #[doc(alias = "length")]
     pub fn len(&self) -> usize {
-        self.as_inner().length() as usize
+        to_usize(self.as_inner().length())
     }
 
     crate::declare_hash_u32_method! {

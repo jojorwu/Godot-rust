@@ -16,7 +16,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi, SysPtr};
 
 use crate::builtin::collections::extend_buffer::ExtendBufferTrait;
-use crate::builtin::*;
+use crate::builtin::{to_i64, to_usize, Variant, VariantType, *};
 use crate::classes::file_access::CompressionMode;
 use crate::meta;
 use crate::meta::signed_range::SignedRange;
@@ -372,7 +372,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
         let from = to_i64(from.unwrap_or(0));
         let index = T::op_find(self.as_inner(), value.into_arg(), from);
         if index >= 0 {
-            Some(index.try_into().unwrap())
+            Some(to_usize(index))
         } else {
             None
         }
@@ -1200,9 +1200,7 @@ impl PackedByteArray {
 
         let variant = self.as_inner().decode_var(byte_offset, allow_objects);
         let decoded_size = self.as_inner().decode_var_size(byte_offset, allow_objects);
-        let decoded_size = decoded_size.try_into().unwrap_or_else(|_| {
-            panic!("unexpected value {decoded_size} returned from decode_var_size()")
-        });
+        let decoded_size = to_usize(decoded_size);
 
         (variant, decoded_size)
     }
