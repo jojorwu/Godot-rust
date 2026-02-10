@@ -278,7 +278,8 @@ impl VarDictionary {
     }
 
     /// Internal method to set a value without checking mutability.
-    fn set_inner(&mut self, key: Variant, value: Variant) {
+    #[doc(hidden)]
+    pub fn set_inner(&mut self, key: Variant, value: Variant) {
         // SAFETY: `self.get_ptr_mut(key)` always returns a valid pointer to a value in the dictionary; either pre-existing or newly inserted.
         unsafe {
             value.move_into_var_ptr(self.get_ptr_mut(key));
@@ -848,11 +849,12 @@ impl<'a> DictionaryIter<'a> {
 
     fn next_key_value(&mut self) -> Option<(Variant, Variant)> {
         let key = self.next_key()?;
-        if !self.dictionary.contains_key(key.clone()) {
-            return None;
-        }
 
+        // Use as_inner().get() directly to avoid redundant contains_key() check.
+        // Note: if the dictionary was modified during iteration, this may return Nil for a key that
+        // was present in the initial state but is now gone. This matches GDScript behavior.
         let value = self.dictionary.as_inner().get(&key, &Variant::nil());
+
         Some((key, value))
     }
 
@@ -1180,16 +1182,23 @@ fn u8_to_bool(u: u8) -> bool {
 macro_rules! vdict {
     ($($key:tt: $value:expr),* $(,)?) => {
         {
+            use $crate::meta::ToGodot as _;
             let mut d = $crate::builtin::VarDictionary::new();
-            $(
-                // `cargo check` complains that `(1 + 2): true` has unused parens, even though it's not
-                // possible to omit the parens.
-                #[allow(unused_parens)]
-                d.set($key, $value);
-            )*
+
+            let count = 0usize $( + $crate::vdict!(@unit $key) )*;
+            if count > 0 {
+                #[cfg(since_api = "4.3")]
+                d.reserve(count);
+
+                $(
+                    #[allow(unused_parens)]
+                    d.set_inner($key.to_variant(), $value.to_variant());
+                )*
+            }
             d
         }
     };
+    (@unit $key:tt) => { 1usize };
 }
 
 #[macro_export]

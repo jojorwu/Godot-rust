@@ -1672,11 +1672,9 @@ macro_rules! varray {
     ($($elements:expr),* $(,)?) => {
         {
             use $crate::meta::ToGodot as _;
-            let mut array = $crate::builtin::VarArray::default();
-            $(
-                array.push(&$elements.to_variant());
-            )*
-            array
+            $crate::builtin::VarArray::from(&[
+                $($elements.to_variant()),*
+            ])
         } as $crate::builtin::VarArray
         // The `as` cast is necessary for Deref coercion to AnyArray; type inference doesn't seem to pick it up otherwise.
     };
