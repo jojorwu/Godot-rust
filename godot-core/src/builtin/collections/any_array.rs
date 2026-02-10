@@ -136,11 +136,7 @@ impl AnyArray {
     /// Arrays with equal content will always produce identical hash values. However, the reverse is not true:
     /// Different arrays can have identical hash values due to hash collisions.
     pub fn hash_u32(&self) -> u32 {
-        self.array
-            .as_inner()
-            .hash()
-            .try_into()
-            .expect("Godot hashes are uint32_t")
+        to_usize(self.array.as_inner().hash()) as u32
     }
 
     /// Returns the first element in the array, or `None` if the array is empty.

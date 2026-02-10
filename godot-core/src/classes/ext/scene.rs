@@ -31,4 +31,13 @@ impl PackedScene {
     {
         self.instantiate().and_then(|gd| gd.try_cast::<T>().ok())
     }
+
+    /// Alias for [`instantiate_as()`][Self::instantiate_as].
+    #[inline]
+    pub fn instantiate_typed<T>(&self) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.instantiate_as::<T>()
+    }
 }
