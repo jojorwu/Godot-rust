@@ -66,3 +66,4 @@ mod common;
 
 #[cfg(feature = "serde")]
 mod serde_test;
+mod variant_test;

@@ -42,6 +42,15 @@ pub struct Variant {
 }
 
 impl Variant {
+    #[cold]
+    #[inline(never)]
+    fn panic_op(op: &str, lhs: VariantType, rhs: Option<VariantType>) -> ! {
+        match rhs {
+            Some(rhs) => panic!("Variant operator {op} failed between {lhs:?} and {rhs:?}"),
+            None => panic!("Variant operator {op} failed for {lhs:?}"),
+        }
+    }
+
     /// Create an empty variant (`null` value in GDScript).
     ///
     /// If a Godot engine API accepts object (not variant) parameters and you'd like to pass `null`, use
@@ -1123,91 +1132,75 @@ impl PartialOrd for Variant {
     }
 }
 
-macro_rules! impl_variant_bin_op {
-    ($trait:ident, $method:ident, $op:expr, $op_str:expr) => {
+macro_rules! impl_variant_op {
+    (bin $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
         impl std::ops::$trait for Variant {
             type Output = Self;
+            #[inline]
             fn $method(self, rhs: Self) -> Self::Output {
-                self.evaluate(&rhs, $op).unwrap_or_else(|| {
-                    panic!(
-                        "Variant operator {} failed between {:?} and {:?}",
-                        $op_str,
-                        self.get_type(),
-                        rhs.get_type()
-                    )
-                })
+                self.evaluate(&rhs, $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())))
             }
         }
 
         impl std::ops::$trait<&Variant> for Variant {
             type Output = Self;
+            #[inline]
             fn $method(self, rhs: &Variant) -> Self::Output {
-                self.evaluate(rhs, $op).unwrap_or_else(|| {
-                    panic!(
-                        "Variant operator {} failed between {:?} and {:?}",
-                        $op_str,
-                        self.get_type(),
-                        rhs.get_type()
-                    )
-                })
+                self.evaluate(rhs, $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())))
             }
         }
     };
-}
 
-macro_rules! impl_variant_assign_op {
-    ($trait:ident, $method:ident, $op:expr, $op_str:expr) => {
+    (assign $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
         impl std::ops::$trait for Variant {
+            #[inline]
             fn $method(&mut self, rhs: Self) {
-                *self = self.evaluate(&rhs, $op).unwrap_or_else(|| {
-                    panic!(
-                        "Variant operator {} failed between {:?} and {:?}",
-                        $op_str,
-                        self.get_type(),
-                        rhs.get_type()
-                    )
-                });
+                *self = self.evaluate(&rhs, $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())));
             }
         }
 
         impl std::ops::$trait<&Variant> for Variant {
+            #[inline]
             fn $method(&mut self, rhs: &Variant) {
-                *self = self.evaluate(rhs, $op).unwrap_or_else(|| {
-                    panic!(
-                        "Variant operator {} failed between {:?} and {:?}",
-                        $op_str,
-                        self.get_type(),
-                        rhs.get_type()
-                    )
-                });
+                *self = self.evaluate(rhs, $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())));
+            }
+        }
+    };
+
+    (unary $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
+        impl std::ops::$trait for Variant {
+            type Output = Self;
+            #[inline]
+            fn $method(self) -> Self::Output {
+                let from_type = self.get_type();
+                self.evaluate(&Variant::nil(), $op)
+                    .unwrap_or_else(|| Variant::panic_op($op_str, from_type, None))
             }
         }
     };
 }
 
-impl_variant_bin_op!(Add, add, VariantOperator::ADD, "+");
-impl_variant_bin_op!(Sub, sub, VariantOperator::SUBTRACT, "-");
-impl_variant_bin_op!(Mul, mul, VariantOperator::MULTIPLY, "*");
-impl_variant_bin_op!(Div, div, VariantOperator::DIVIDE, "/");
-impl_variant_bin_op!(Rem, rem, VariantOperator::MODULO, "%");
+impl_variant_op!(bin Add, add, VariantOperator::ADD, "+");
+impl_variant_op!(bin Sub, sub, VariantOperator::SUBTRACT, "-");
+impl_variant_op!(bin Mul, mul, VariantOperator::MULTIPLY, "*");
+impl_variant_op!(bin Div, div, VariantOperator::DIVIDE, "/");
+impl_variant_op!(bin Rem, rem, VariantOperator::MODULO, "%");
 
-impl_variant_assign_op!(AddAssign, add_assign, VariantOperator::ADD, "+=");
-impl_variant_assign_op!(SubAssign, sub_assign, VariantOperator::SUBTRACT, "-=");
-impl_variant_assign_op!(MulAssign, mul_assign, VariantOperator::MULTIPLY, "*=");
-impl_variant_assign_op!(DivAssign, div_assign, VariantOperator::DIVIDE, "/=");
-impl_variant_assign_op!(RemAssign, rem_assign, VariantOperator::MODULO, "%=");
+impl_variant_op!(assign AddAssign, add_assign, VariantOperator::ADD, "+=");
+impl_variant_op!(assign SubAssign, sub_assign, VariantOperator::SUBTRACT, "-=");
+impl_variant_op!(assign MulAssign, mul_assign, VariantOperator::MULTIPLY, "*=");
+impl_variant_op!(assign DivAssign, div_assign, VariantOperator::DIVIDE, "/=");
+impl_variant_op!(assign RemAssign, rem_assign, VariantOperator::MODULO, "%=");
 
-impl std::ops::Neg for Variant {
-    type Output = Self;
-    fn neg(self) -> Self::Output {
-        let from_type = self.get_type();
-        self.evaluate(&Variant::nil(), VariantOperator::NEGATE)
-            .unwrap_or_else(|| panic!("Variant unary operator - failed for {from_type:?}"))
-    }
-}
+impl_variant_op!(unary Neg, neg, VariantOperator::NEGATE, "-");
 
 impl std::ops::Not for Variant {
     type Output = Self;
+    #[inline]
     fn not(self) -> Self::Output {
         let from_type = self.get_type();
         let op = if from_type == VariantType::BOOL {
@@ -1222,21 +1215,21 @@ impl std::ops::Not for Variant {
         };
 
         self.evaluate(&Variant::nil(), op)
-            .unwrap_or_else(|| panic!("Variant unary operator {op_str} failed for {from_type:?}"))
+            .unwrap_or_else(|| Variant::panic_op(op_str, from_type, None))
     }
 }
 
-impl_variant_bin_op!(BitAnd, bitand, VariantOperator::BIT_AND, "&");
-impl_variant_bin_op!(BitOr, bitor, VariantOperator::BIT_OR, "|");
-impl_variant_bin_op!(BitXor, bitxor, VariantOperator::BIT_XOR, "^");
-impl_variant_bin_op!(Shl, shl, VariantOperator::SHIFT_LEFT, "<<");
-impl_variant_bin_op!(Shr, shr, VariantOperator::SHIFT_RIGHT, ">>");
+impl_variant_op!(bin BitAnd, bitand, VariantOperator::BIT_AND, "&");
+impl_variant_op!(bin BitOr, bitor, VariantOperator::BIT_OR, "|");
+impl_variant_op!(bin BitXor, bitxor, VariantOperator::BIT_XOR, "^");
+impl_variant_op!(bin Shl, shl, VariantOperator::SHIFT_LEFT, "<<");
+impl_variant_op!(bin Shr, shr, VariantOperator::SHIFT_RIGHT, ">>");
 
-impl_variant_assign_op!(BitAndAssign, bitand_assign, VariantOperator::BIT_AND, "&=");
-impl_variant_assign_op!(BitOrAssign, bitor_assign, VariantOperator::BIT_OR, "|=");
-impl_variant_assign_op!(BitXorAssign, bitxor_assign, VariantOperator::BIT_XOR, "^=");
-impl_variant_assign_op!(ShlAssign, shl_assign, VariantOperator::SHIFT_LEFT, "<<=");
-impl_variant_assign_op!(ShrAssign, shr_assign, VariantOperator::SHIFT_RIGHT, ">>=");
+impl_variant_op!(assign BitAndAssign, bitand_assign, VariantOperator::BIT_AND, "&=");
+impl_variant_op!(assign BitOrAssign, bitor_assign, VariantOperator::BIT_OR, "|=");
+impl_variant_op!(assign BitXorAssign, bitxor_assign, VariantOperator::BIT_XOR, "^=");
+impl_variant_op!(assign ShlAssign, shl_assign, VariantOperator::SHIFT_LEFT, "<<=");
+impl_variant_op!(assign ShrAssign, shr_assign, VariantOperator::SHIFT_RIGHT, ">>=");
 
 impl fmt::Display for Variant {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
