@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::prelude::*;
 use crate::framework::itest;
+use godot::prelude::*;
 
 #[itest]
 fn test_dictionary_typed_iterators() {
@@ -17,7 +17,10 @@ fn test_dictionary_typed_iterators() {
     // iter_typed
     let mut items: Vec<(GString, i64)> = dict.iter_typed::<GString, i64>().collect();
     items.sort_by_key(|(k, _)| k.to_string());
-    assert_eq!(items, vec![(GString::from("a"), 1), (GString::from("b"), 2)]);
+    assert_eq!(
+        items,
+        vec![(GString::from("a"), 1), (GString::from("b"), 2)]
+    );
 
     // keys_typed
     let mut keys: Vec<GString> = dict.keys_typed::<GString>().collect();

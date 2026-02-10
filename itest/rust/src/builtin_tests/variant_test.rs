@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::prelude::*;
-use godot::meta::VariantBorrow;
 use crate::framework::itest;
+use godot::meta::VariantBorrow;
+use godot::prelude::*;
 
 #[itest]
 fn variant_borrow_variant() {

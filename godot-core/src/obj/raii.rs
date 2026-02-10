@@ -27,7 +27,10 @@ macro_rules! impl_owned_rid {
 
             /// # Safety
             /// The RID must have been created by the server and must not be freed elsewhere.
-            pub unsafe fn from_rid(rid: crate::builtin::Rid, server: crate::obj::Gd<crate::classes::$server>) -> Self {
+            pub unsafe fn from_rid(
+                rid: crate::builtin::Rid,
+                server: crate::obj::Gd<crate::classes::$server>,
+            ) -> Self {
                 Self { rid, server }
             }
         }

@@ -7,6 +7,7 @@
 
 //! RAII wrappers for `RenderingDevice` resources.
 
+pub mod helper;
 pub mod owned_rd_buffer;
 pub mod owned_rd_framebuffer;
 pub mod owned_rd_index_array;
@@ -16,7 +17,6 @@ pub mod owned_rd_shader;
 pub mod owned_rd_texture;
 pub mod owned_rd_uniform_set;
 pub mod owned_rd_vertex_array;
-pub mod helper;
 
 pub use owned_rd_buffer::OwnedRdBuffer;
 pub use owned_rd_framebuffer::OwnedRdFramebuffer;

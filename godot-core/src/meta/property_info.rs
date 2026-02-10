@@ -129,9 +129,7 @@ impl PropertyInfo {
             .map(|ty| VariantType::from_sys(ty as sys::GDExtensionVariantType))
             .unwrap_or(VariantType::NIL);
 
-        let property_name = dict
-            .get_as::<&str, StringName>("name")
-            .unwrap_or_default();
+        let property_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();
 
         let class_id = dict
             .get_as::<&str, StringName>("class_name")

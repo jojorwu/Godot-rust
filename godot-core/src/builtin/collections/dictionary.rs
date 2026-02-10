@@ -339,7 +339,10 @@ impl VarDictionary {
     /// # Panics
     /// If any key cannot be converted to `K`.
     pub fn typed_keys<K: FromGodot>(&self) -> Vec<K> {
-        self.keys_array().iter_shared().map(|k| k.to::<K>()).collect()
+        self.keys_array()
+            .iter_shared()
+            .map(|k| k.to::<K>())
+            .collect()
     }
 
     /// Creates a new `Array` containing all the values currently in the dictionary.
@@ -362,7 +365,10 @@ impl VarDictionary {
     /// # Panics
     /// If any value cannot be converted to `V`.
     pub fn typed_values<V: FromGodot>(&self) -> Vec<V> {
-        self.values_array().iter_shared().map(|v| v.to::<V>()).collect()
+        self.values_array()
+            .iter_shared()
+            .map(|v| v.to::<V>())
+            .collect()
     }
 
     /// Copies all keys and values from `other` into `self`.
@@ -987,7 +993,9 @@ impl<V: FromGodot> Iterator for TypedValues<'_, V> {
     type Item = V;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next_key_value().map(|(_k, v)| V::from_variant(&v))
+        self.iter
+            .next_key_value()
+            .map(|(_k, v)| V::from_variant(&v))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

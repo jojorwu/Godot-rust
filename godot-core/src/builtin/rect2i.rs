@@ -320,6 +320,61 @@ impl std::fmt::Display for Rect2i {
     }
 }
 
+impl From<(Vector2i, Vector2i)> for Rect2i {
+    #[inline]
+    fn from((position, size): (Vector2i, Vector2i)) -> Self {
+        Self { position, size }
+    }
+}
+
+impl PartialEq<(Vector2i, Vector2i)> for Rect2i {
+    #[inline]
+    fn eq(&self, other: &(Vector2i, Vector2i)) -> bool {
+        self.position == other.0 && self.size == other.1
+    }
+}
+
+impl PartialEq<Rect2i> for (Vector2i, Vector2i) {
+    #[inline]
+    fn eq(&self, other: &Rect2i) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<(i32, i32, i32, i32)> for Rect2i {
+    #[inline]
+    fn eq(&self, other: &(i32, i32, i32, i32)) -> bool {
+        self.position.x == other.0
+            && self.position.y == other.1
+            && self.size.x == other.2
+            && self.size.y == other.3
+    }
+}
+
+impl PartialEq<Rect2i> for (i32, i32, i32, i32) {
+    #[inline]
+    fn eq(&self, other: &Rect2i) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<[i32; 4]> for Rect2i {
+    #[inline]
+    fn eq(&self, other: &[i32; 4]) -> bool {
+        self.position.x == other[0]
+            && self.position.y == other[1]
+            && self.size.x == other[2]
+            && self.size.y == other[3]
+    }
+}
+
+impl PartialEq<Rect2i> for [i32; 4] {
+    #[inline]
+    fn eq(&self, other: &Rect2i) -> bool {
+        other == self
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -631,54 +686,5 @@ mod test {
         let expected_json = "{\"position\":{\"x\":0,\"y\":0},\"size\":{\"x\":0,\"y\":0}}";
 
         crate::builtin::test_utils::roundtrip(&rect, expected_json);
-    }
-}
-
-impl From<(Vector2i, Vector2i)> for Rect2i {
-    #[inline]
-    fn from((position, size): (Vector2i, Vector2i)) -> Self {
-        Self { position, size }
-    }
-}
-
-impl PartialEq<(Vector2i, Vector2i)> for Rect2i {
-    #[inline]
-    fn eq(&self, other: &(Vector2i, Vector2i)) -> bool {
-        self.position == other.0 && self.size == other.1
-    }
-}
-
-impl PartialEq<Rect2i> for (Vector2i, Vector2i) {
-    #[inline]
-    fn eq(&self, other: &Rect2i) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<(i32, i32, i32, i32)> for Rect2i {
-    #[inline]
-    fn eq(&self, other: &(i32, i32, i32, i32)) -> bool {
-        self.position.x == other.0 && self.position.y == other.1 && self.size.x == other.2 && self.size.y == other.3
-    }
-}
-
-impl PartialEq<Rect2i> for (i32, i32, i32, i32) {
-    #[inline]
-    fn eq(&self, other: &Rect2i) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<[i32; 4]> for Rect2i {
-    #[inline]
-    fn eq(&self, other: &[i32; 4]) -> bool {
-        self.position.x == other[0] && self.position.y == other[1] && self.size.x == other[2] && self.size.y == other[3]
-    }
-}
-
-impl PartialEq<Rect2i> for [i32; 4] {
-    #[inline]
-    fn eq(&self, other: &Rect2i) -> bool {
-        other == self
     }
 }

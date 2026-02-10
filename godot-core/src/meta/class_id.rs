@@ -16,8 +16,8 @@ use godot_ffi as sys;
 use sys::Global;
 
 use crate::builtin::*;
-use crate::obj::Singleton;
 use crate::obj::GodotClass;
+use crate::obj::Singleton;
 
 // Alternative optimizations:
 // - Small-array optimization for common string lengths.
@@ -29,8 +29,7 @@ use crate::obj::GodotClass;
 static CLASS_ID_CACHE: Global<ClassIdCache> = Global::new(ClassIdCache::new);
 
 /// Cache for class inheritance queries.
-static INHERITANCE_CACHE: Global<std::collections::HashSet<(ClassId, ClassId)>> =
-    Global::default();
+static INHERITANCE_CACHE: Global<std::collections::HashSet<(ClassId, ClassId)>> = Global::default();
 
 /// # Safety
 /// Must not use any `ClassId` APIs after this call.

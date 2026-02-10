@@ -868,9 +868,11 @@ fn dictionary_functional_ops() {
     let d = vdict! { "a": 1, "b": 2, "c": 3 };
 
     // Filter
-    let even = d.functional_ops().filter(&Callable::from_fn("is_even", |args| {
-        args[1].to::<i64>() % 2 == 0
-    }));
+    let even = d
+        .functional_ops()
+        .filter(&Callable::from_fn("is_even", |args| {
+            args[1].to::<i64>() % 2 == 0
+        }));
     assert_eq!(even.len(), 1);
     assert_eq!(even.get("b"), Some(2.to_variant()));
 

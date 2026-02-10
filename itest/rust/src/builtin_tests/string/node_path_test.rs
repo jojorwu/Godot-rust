@@ -96,10 +96,7 @@ fn node_path_subpath() {
     assert_eq!(path.subpath(4..5), ":props");
 
     assert_eq!(path.subpath(wrapped(1..-1)), "to/Node:with");
-    assert_eq!(
-        path.subpath(wrapped(1..parts as i32 - 1)),
-        "to/Node:with"
-    );
+    assert_eq!(path.subpath(wrapped(1..parts as i32 - 1)), "to/Node:with");
     assert_eq!(path.subpath(wrapped(0..-2)), "path/to/Node");
     assert_eq!(path.subpath(wrapped(-3..-1)), "Node:with");
     assert_eq!(path.subpath(wrapped(-2..)), ":with:props");

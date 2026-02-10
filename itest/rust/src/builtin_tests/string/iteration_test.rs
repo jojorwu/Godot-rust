@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::builtin::{GString, NodePath, StringName, PackedByteArray, Array};
-use godot::obj::{Gd, NewGd};
 use crate::framework::itest;
+use godot::builtin::{Array, GString, NodePath, PackedByteArray, StringName};
+use godot::obj::{Gd, NewGd};
 
 #[itest]
 fn string_from_string_owned() {

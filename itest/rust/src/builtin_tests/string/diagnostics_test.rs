@@ -5,10 +5,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
+use crate::framework::{expect_panic, itest};
 use godot::builtin::Variant;
 use godot::classes::{Node, Object};
 use godot::obj::{Gd, NewAlloc};
-use crate::framework::{itest, expect_panic};
 
 #[itest]
 fn object_get_as_diagnostics() {

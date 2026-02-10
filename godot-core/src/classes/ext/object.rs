@@ -63,11 +63,7 @@ impl Object {
 
     /// ⚠️ Calls a method and converts the return value to `T`, panicking if it fails.
     #[inline]
-    pub fn call_as<T: FromGodot>(
-        &mut self,
-        method: impl AsArg<StringName>,
-        args: &[Variant],
-    ) -> T {
+    pub fn call_as<T: FromGodot>(&mut self, method: impl AsArg<StringName>, args: &[Variant]) -> T {
         arg_into_ref!(method);
         let result = self.call(method, args);
         result.try_to::<T>().unwrap_or_else(|err| {

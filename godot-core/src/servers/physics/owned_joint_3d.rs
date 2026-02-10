@@ -5,7 +5,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-
 use crate::classes::PhysicsServer3D;
 use crate::obj::Singleton;
 

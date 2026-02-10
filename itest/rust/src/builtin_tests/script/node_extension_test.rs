@@ -5,10 +5,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::prelude::*;
+use crate::framework::itest;
 #[cfg(feature = "codegen-full")]
 use godot::classes::Control;
-use crate::framework::itest;
+use godot::prelude::*;
 
 #[itest]
 fn test_node_iter_children_typed() {

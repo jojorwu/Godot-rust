@@ -999,16 +999,8 @@ mod test {
 
     #[test]
     fn test_hmd() {
-        let proj = Projection::create_for_hmd(
-            ProjectionEye::LEFT,
-            1.0,
-            0.065,
-            0.1,
-            0.05,
-            1.0,
-            0.1,
-            100.0,
-        );
+        let proj =
+            Projection::create_for_hmd(ProjectionEye::LEFT, 1.0, 0.065, 0.1, 0.05, 1.0, 0.1, 100.0);
         assert!(!proj.is_orthogonal());
 
         let proj2 = Projection::create_perspective_hmd(

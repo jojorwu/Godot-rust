@@ -5,7 +5,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-
 crate::obj::impl_owned_rid!(
     OwnedRdSampler,
     RenderingDevice,

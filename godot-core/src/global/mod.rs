@@ -46,7 +46,8 @@ mod print;
 pub use crate::gen::central::global_enums::*;
 pub use crate::gen::utilities::*;
 pub use crate::{
-    godot_dbg, godot_error, godot_print, godot_print_rich, godot_script_error, godot_str, godot_warn,
+    godot_dbg, godot_error, godot_print, godot_print_rich, godot_script_error, godot_str,
+    godot_warn,
 };
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

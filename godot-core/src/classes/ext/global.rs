@@ -25,7 +25,9 @@ impl crate::classes::ClassDb {
         arg_into_ref!(class);
         let variant = self.instantiate(class);
         if variant.is_nil() {
-            panic!("ClassDB::instantiate_as(): failed to instantiate class '{class}' (returned Nil)");
+            panic!(
+                "ClassDB::instantiate_as(): failed to instantiate class '{class}' (returned Nil)"
+            );
         }
         let obj = variant.try_to::<Gd<Object>>().unwrap_or_else(|err| {
             panic!("ClassDB::instantiate_as(): failed to convert instance of '{class}' to Gd<Object>: {err}");
@@ -173,7 +175,8 @@ impl crate::classes::Engine {
         T: Inherits<crate::classes::Object>,
     {
         arg_into_ref!(name);
-        self.get_singleton(name).and_then(|obj| obj.try_cast::<T>().ok())
+        self.get_singleton(name)
+            .and_then(|obj| obj.try_cast::<T>().ok())
     }
 
     /// Alias for [`get_singleton_as()`][Self::get_singleton_as].

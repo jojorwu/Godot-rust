@@ -806,11 +806,8 @@ fn packed_array_array_conversions_gstring() {
 
 #[itest]
 fn packed_string_array_join() {
-    let array = PackedStringArray::from([
-        GString::from("a"),
-        GString::from("b"),
-        GString::from("c"),
-    ]);
+    let array =
+        PackedStringArray::from([GString::from("a"), GString::from("b"), GString::from("c")]);
 
     assert_eq!(array.join(", "), GString::from("a, b, c"));
     assert_eq!(array.join("-"), GString::from("a-b-c"));

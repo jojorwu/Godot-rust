@@ -291,7 +291,8 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the element at the given index, converted to `U`, or `None` if out of bounds or conversion fails.
     #[inline]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
-        self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
+        self.get(index)
+            .and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.

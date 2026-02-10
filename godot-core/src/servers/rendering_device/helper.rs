@@ -36,13 +36,16 @@ impl ComputePipeline {
     /// Dispatches the compute shader.
     pub fn dispatch(&mut self, x_groups: u32, y_groups: u32, z_groups: u32) {
         let compute_list = self.rd.compute_list_begin();
-        self.rd.compute_list_bind_compute_pipeline(compute_list, self.pipeline.rid());
+        self.rd
+            .compute_list_bind_compute_pipeline(compute_list, self.pipeline.rid());
 
         for (i, uniform_set) in self.uniform_sets.iter().enumerate() {
-            self.rd.compute_list_bind_uniform_set(compute_list, uniform_set.rid(), i as u32);
+            self.rd
+                .compute_list_bind_uniform_set(compute_list, uniform_set.rid(), i as u32);
         }
 
-        self.rd.compute_list_dispatch(compute_list, x_groups, y_groups, z_groups);
+        self.rd
+            .compute_list_dispatch(compute_list, x_groups, y_groups, z_groups);
         self.rd.compute_list_end();
     }
 

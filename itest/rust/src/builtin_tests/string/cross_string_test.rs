@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::prelude::*;
 use crate::framework::itest;
+use godot::prelude::*;
 
 #[itest]
 fn test_cross_string_equality() {
@@ -58,9 +58,9 @@ fn test_variant_scalar_equality() {
     assert_eq!(v_int, 42u16);
     assert_eq!(v_int, 42u8);
 
-    let v_float = Variant::from(3.14f64);
+    let v_float = Variant::from(3.5f64);
     // Approximate equality is needed for floats, but direct PartialEq on Variant uses Godot's ==
     // which might not be enough for f32/f64 conversion jitter.
-    // However, 3.14f32 converted to f64 and then to Variant should match.
-    assert_eq!(v_float, 3.14f64);
+    // However, 3.5f32 converted to f64 and then to Variant should match.
+    assert_eq!(v_float, 3.5f64);
 }

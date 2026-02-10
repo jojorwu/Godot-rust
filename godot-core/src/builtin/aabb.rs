@@ -534,6 +534,44 @@ impl ApproxEq for Aabb {
     }
 }
 
+impl PartialEq<(real, real, real, real, real, real)> for Aabb {
+    #[inline]
+    fn eq(&self, other: &(real, real, real, real, real, real)) -> bool {
+        self.position.x == other.0
+            && self.position.y == other.1
+            && self.position.z == other.2
+            && self.size.x == other.3
+            && self.size.y == other.4
+            && self.size.z == other.5
+    }
+}
+
+impl PartialEq<Aabb> for (real, real, real, real, real, real) {
+    #[inline]
+    fn eq(&self, other: &Aabb) -> bool {
+        other == self
+    }
+}
+
+impl PartialEq<[real; 6]> for Aabb {
+    #[inline]
+    fn eq(&self, other: &[real; 6]) -> bool {
+        self.position.x == other[0]
+            && self.position.y == other[1]
+            && self.position.z == other[2]
+            && self.size.x == other[3]
+            && self.size.y == other[4]
+            && self.size.z == other[5]
+    }
+}
+
+impl PartialEq<Aabb> for [real; 6] {
+    #[inline]
+    fn eq(&self, other: &Aabb) -> bool {
+        other == self
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -972,35 +1010,5 @@ mod test {
             !aabb.intersects_segment(Vector3::new(0.0, 300.0, 0.0), Vector3::new(0.0, 300.0, 0.0)),
             "intersects_segment(), segment of length 0 *outside* the box -> false"
         );
-    }
-}
-
-impl PartialEq<(real, real, real, real, real, real)> for Aabb {
-    #[inline]
-    fn eq(&self, other: &(real, real, real, real, real, real)) -> bool {
-        self.position.x == other.0 && self.position.y == other.1 && self.position.z == other.2 &&
-        self.size.x == other.3 && self.size.y == other.4 && self.size.z == other.5
-    }
-}
-
-impl PartialEq<Aabb> for (real, real, real, real, real, real) {
-    #[inline]
-    fn eq(&self, other: &Aabb) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<[real; 6]> for Aabb {
-    #[inline]
-    fn eq(&self, other: &[real; 6]) -> bool {
-        self.position.x == other[0] && self.position.y == other[1] && self.position.z == other[2] &&
-        self.size.x == other[3] && self.size.y == other[4] && self.size.z == other[5]
-    }
-}
-
-impl PartialEq<Aabb> for [real; 6] {
-    #[inline]
-    fn eq(&self, other: &Aabb) -> bool {
-        other == self
     }
 }

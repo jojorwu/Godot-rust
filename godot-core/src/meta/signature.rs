@@ -176,7 +176,8 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
 
             let ptrs_vec;
             let mut ptrs_arr = [std::ptr::null(); sys::MAX_STACK_ARGS];
-            let ptrs: *const sys::GDExtensionConstVariantPtr = if total_count <= sys::MAX_STACK_ARGS {
+            let ptrs: *const sys::GDExtensionConstVariantPtr = if total_count <= sys::MAX_STACK_ARGS
+            {
                 for (i, arg) in explicit_args.iter().enumerate() {
                     ptrs_arr[i] = arg.var_sys();
                 }

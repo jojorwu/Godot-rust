@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::prelude::*;
 use crate::framework::itest;
+use godot::prelude::*;
 
 #[itest]
 fn test_dictionary_functional_ops() {
@@ -38,16 +38,12 @@ fn test_dictionary_functional_ops() {
     assert_eq!(mapped.at("c"), 9.to_variant());
 
     // any
-    let any_even = Callable::from_fn("any_even", |args| {
-        args[1].to::<i64>() % 2 == 0
-    });
+    let any_even = Callable::from_fn("any_even", |args| args[1].to::<i64>() % 2 == 0);
     assert!(dict.any(&any_even));
     assert!(dict.functional_ops().any(&any_even));
 
     // all
-    let all_positive = Callable::from_fn("all_positive", |args| {
-        args[1].to::<i64>() > 0
-    });
+    let all_positive = Callable::from_fn("all_positive", |args| args[1].to::<i64>() > 0);
     assert!(dict.all(&all_positive));
     assert!(dict.functional_ops().all(&all_positive));
 

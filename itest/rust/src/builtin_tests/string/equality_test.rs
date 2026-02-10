@@ -5,10 +5,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::builtin::{GString, NodePath, StringName, Variant};
 use crate::framework::itest;
+use godot::builtin::{GString, NodePath, StringName, Variant};
 
 #[itest]
+#[allow(clippy::cmp_owned)]
 fn string_equality() {
     let s = "Godot";
     let gs = GString::from(s);
@@ -66,6 +67,7 @@ fn variant_equality_scalars() {
 }
 
 #[itest]
+#[allow(clippy::cmp_owned)]
 fn variant_equality_strings() {
     let s = "Godot";
     let v = Variant::from(s);
