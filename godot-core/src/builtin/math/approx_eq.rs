@@ -35,14 +35,23 @@ macro_rules! assert_eq_approx {
     };
     ($actual:expr, $expected:expr $(,)?) => {
         match ($actual, $expected) {
-             (a, b) => assert!($crate::builtin::math::ApproxEq::approx_eq(&a, &b), "\n  left: {:?},\n right: {:?}", $actual, $expected),
-            // (a, b) => $crate::assert_eq_approx!($actual, $expected, fn = $crate::builtin::ApproxEq::approx_eq),
+            (a, b) => assert!(
+                $crate::builtin::math::ApproxEq::approx_eq(&a, &b),
+                "\n  left: {:?},\n right: {:?}",
+                $actual,
+                $expected
+            ),
         }
     };
     ($actual:expr, $expected:expr, $($t:tt)+) => {
         match ($actual, $expected) {
-            (a, b) => assert!($crate::builtin::math::ApproxEq::approx_eq(&a, &b), "\n  left: {:?},\n right: {:?},\n{}", $actual, $expected, format_args!($($t)+)),
-            // (a, b) => $crate::assert_eq_approx!($actual, $expected, fn = $crate::builtin::ApproxEq::approx_eq, $($t)+),
+            (a, b) => assert!(
+                $crate::builtin::math::ApproxEq::approx_eq(&a, &b),
+                "\n  left: {:?},\n right: {:?},\n{}",
+                $actual,
+                $expected,
+                format_args!($($t)+)
+            ),
         }
     };
 }
