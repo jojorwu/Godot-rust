@@ -841,11 +841,13 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     fn ptr(&self, index: usize) -> sys::GDExtensionConstVariantPtr {
         let ptr = self.ptr_or_null(index);
-        assert!(
-            !ptr.is_null(),
-            "Array index {index} out of bounds (len {len})",
-            len = self.len(),
-        );
+        if ptr.is_null() {
+            panic!(
+                "{} index {index} out of bounds (len {len})",
+                std::any::type_name::<Self>(),
+                len = self.len()
+            );
+        }
         ptr
     }
 
@@ -868,11 +870,13 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     fn ptr_mut(&mut self, index: usize) -> sys::GDExtensionVariantPtr {
         let ptr = self.ptr_mut_or_null(index);
-        assert!(
-            !ptr.is_null(),
-            "Array index {index} out of bounds (len {len})",
-            len = self.len(),
-        );
+        if ptr.is_null() {
+            panic!(
+                "{} index {index} out of bounds (len {len})",
+                std::any::type_name::<Self>(),
+                len = self.len()
+            );
+        }
         ptr
     }
 
