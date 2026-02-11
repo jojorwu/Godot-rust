@@ -11,7 +11,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
-use crate::builtin::math::{FloatExt, GlamConv, GlamType};
+use crate::builtin::math::{ApproxEq, FloatExt, GlamConv, GlamType};
 use crate::builtin::vectors::Vector2Axis;
 use crate::builtin::{inner, real, RAffine2, RVec2, Vector2i};
 
@@ -162,6 +162,12 @@ impl Vector2 {
     #[inline]
     pub fn as_inner(&self) -> inner::InnerVector2<'_> {
         inner::InnerVector2::from_outer(self)
+    }
+
+    /// Returns `true` if this vector and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 }
 

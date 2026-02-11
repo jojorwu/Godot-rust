@@ -584,8 +584,10 @@ impl Ord for TransientStringNameOrd<'_> {
             std::cmp::Ordering::Equal
         } else {
             panic!(
-                "Godot provides inconsistent StringName ordering for \"{}\" and \"{}\"",
-                self.0, other.0
+                "{}::cmp(): Godot provides inconsistent StringName ordering for \"{}\" and \"{}\"",
+                std::any::type_name::<Self>(),
+                self.0,
+                other.0
             );
         }
     }

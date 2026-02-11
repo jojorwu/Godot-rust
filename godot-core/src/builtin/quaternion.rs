@@ -159,6 +159,12 @@ impl Quaternion {
         Basis::from_quaternion(self).get_euler_with(order)
     }
 
+    /// Returns `true` if this quaternion and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     pub fn inverse(self) -> Self {
         Self::new(-self.x, -self.y, -self.z, self.w)
     }

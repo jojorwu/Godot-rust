@@ -11,7 +11,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
-use crate::builtin::math::{FloatExt, GlamConv, GlamType};
+use crate::builtin::math::{ApproxEq, FloatExt, GlamConv, GlamType};
 use crate::builtin::vectors::Vector3Axis;
 use crate::builtin::{inner, real, Basis, RVec3, Vector2, Vector3i};
 
@@ -208,6 +208,11 @@ impl Vector3 {
     /// Length is also interpolated in the case that the input vectors have different lengths. If both
     /// input vectors have zero length or are collinear to each other, the method instead behaves like
     /// [`Vector3::lerp`].
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     #[inline]
     pub fn slerp(self, to: Self, weight: real) -> Self {
         let start_length_sq: real = self.length_squared();

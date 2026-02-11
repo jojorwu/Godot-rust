@@ -239,6 +239,12 @@ impl Plane {
         Plane::new(self.normal.normalized(), self.d / length)
     }
 
+    /// Returns `true` if this plane and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     /// Returns the orthogonal projection of `point` to the plane.
     #[inline]
     pub fn project(self, point: Vector3) -> Vector3 {

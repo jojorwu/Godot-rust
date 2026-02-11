@@ -245,6 +245,12 @@ impl Transform3D {
         }
     }
 
+    /// Returns `true` if this transform and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     /// Returns a copy of the transform translated by the given offset.
     /// This method is an optimized version of multiplying the given transform `X`
     /// with a corresponding translation transform `T` from the left, i.e., `T * X`.

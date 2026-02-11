@@ -263,6 +263,12 @@ impl Rect2 {
         self.size = end - self.position
     }
 
+    /// Returns `true` if this rectangle and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     /// Assert that the size of the `Rect2` is not negative.
     ///
     /// Certain functions will fail to give a correct result if the size is negative.

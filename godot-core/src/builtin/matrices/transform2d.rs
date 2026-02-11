@@ -318,6 +318,12 @@ impl Transform2D {
         self.to_basis() * v
     }
 
+    /// Returns `true` if this transform and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     /// Returns a vector transformed (multiplied) by the inverse basis matrix.
     /// This method does not account for translation (the origin vector).
     ///

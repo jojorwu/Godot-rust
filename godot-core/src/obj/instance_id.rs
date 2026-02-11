@@ -41,7 +41,12 @@ impl InstanceId {
     /// # Panics
     /// If `id` is zero. Use [`try_from_i64`][Self::try_from_i64] if you are unsure.
     pub fn from_i64(id: i64) -> Self {
-        Self::try_from_i64(id).expect("expected non-zero instance ID")
+        Self::try_from_i64(id).unwrap_or_else(|| {
+            panic!(
+                "{}::from_i64(): expected non-zero instance ID, found 0",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     // Private: see rationale above

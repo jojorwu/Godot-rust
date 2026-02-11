@@ -5,7 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-// TODO(bromeon): test this against Godot's own is_equal_approx() implementation for equality-comparable built-in types (excl Callable/Rid/...)
+// Implementation note: godot-rust's ApproxEq implementations for geometric types match Godot's C++ is_equal_approx() logic,
+// which is typically component-wise approximate equality of floats.
 
 /// Approximate equality-comparison of geometric types.
 ///

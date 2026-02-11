@@ -11,7 +11,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
-use crate::builtin::math::{FloatExt, GlamConv, GlamType};
+use crate::builtin::math::{ApproxEq, FloatExt, GlamConv, GlamType};
 use crate::builtin::{inner, real, RVec4, Vector4Axis, Vector4i};
 
 /// Vector used for 4D math using floating point coordinates.
@@ -76,6 +76,12 @@ impl Vector4 {
     #[inline]
     pub fn as_inner(&self) -> inner::InnerVector4<'_> {
         inner::InnerVector4::from_outer(self)
+    }
+
+    /// Returns `true` if this vector and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 }
 

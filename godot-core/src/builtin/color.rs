@@ -339,6 +339,12 @@ impl Color {
         }
     }
 
+    /// Returns `true` if this color and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     // For internal checks before transformations between different color representation.
     pub(crate) fn is_normalized(&self) -> bool {
         self.r >= 0.0

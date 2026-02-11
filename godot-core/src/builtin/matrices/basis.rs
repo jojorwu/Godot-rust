@@ -527,6 +527,12 @@ impl Basis {
         Vector3::new(self.rows[0].z, self.rows[1].z, self.rows[2].z)
     }
 
+    /// Returns `true` if this basis and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     /// Set the values of the third column of the matrix.
     #[inline]
     pub fn set_col_c(&mut self, col: Vector3) {

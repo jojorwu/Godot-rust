@@ -490,6 +490,12 @@ impl Aabb {
         Some(from + (to - from) * t_min)
     }
 
+    /// Returns `true` if this AABB and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     /// Assert that the size of the `Aabb` is not negative.
     ///
     /// Most functions will fail to give a correct result if the size is negative.
