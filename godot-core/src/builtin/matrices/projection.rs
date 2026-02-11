@@ -443,6 +443,11 @@ impl Projection {
         // (self.cols[0].w == 0.0) && (self.cols[1].w == 0.0) && (self.cols[2] == 0.0) && (self.cols[3].w == 1.0)
     }
 
+    /// Returns `true` if this projection and `other` are approximately equal.
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
+    }
+
     /// Returns a Projection with the X and Y values from the given [`Vector2`]
     /// added to the first and second values of the final column respectively.
     ///
