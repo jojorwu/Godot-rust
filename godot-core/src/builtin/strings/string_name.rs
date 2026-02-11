@@ -10,7 +10,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
-use crate::builtin::{inner, to_usize, Encoding, GString, NodePath, Variant};
+use crate::builtin::{inner, Encoding, GString, NodePath, Variant};
 use crate::meta::error::StringError;
 use crate::meta::AsArg;
 use crate::{impl_shared_string_api, meta};
@@ -136,7 +136,7 @@ impl StringName {
     /// _Godot equivalent: `length`_
     #[doc(alias = "length")]
     pub fn len(&self) -> usize {
-        to_usize(self.as_inner().length())
+        self.as_inner().length() as usize
     }
 
     crate::declare_hash_u32_method! {
@@ -417,18 +417,43 @@ impl ExactSizeIterator for IntoIter {}
 // API design: see PartialEq for GString.
 impl PartialEq<&str> for StringName {
     fn eq(&self, other: &&str) -> bool {
-        #[cfg(since_api = "4.5")]
-        {
-            // optimized comparison using self.chars() if the string is long.
-            // For short strings, the UTF-8 stack-buffer approach is likely still faster.
-            let other_bytes = other.as_bytes();
-            if other_bytes.len() > 128 {
-                return self.chars().iter().copied().eq(other.chars());
+        let other_bytes = other.as_bytes();
+        let gstring = GString::from(self);
+        let s = gstring.string_sys();
+        unsafe {
+            // Get length in UTF-8 bytes.
+            let len = sys::interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
+            if len as usize != other_bytes.len() {
+                return false;
+            }
+            if len == 0 {
+                return true;
+            }
+
+            // We need a temporary buffer to hold the GString's UTF-8 representation.
+            // For short strings, we can use the stack.
+            const STACK_BUF_SIZE: usize = 128;
+            if len as usize <= STACK_BUF_SIZE {
+                let mut buf = [0u8; STACK_BUF_SIZE];
+                sys::interface_fn!(string_to_utf8_chars)(
+                    s,
+                    buf.as_mut_ptr() as *mut std::ffi::c_char,
+                    len,
+                );
+                &buf[..len as usize] == other_bytes
+            } else {
+                // For long strings, character-by-character comparison is likely better than heap allocation.
+                #[cfg(since_api = "4.5")]
+                {
+                    self.chars().iter().copied().eq(other.chars())
+                }
+
+                #[cfg(before_api = "4.5")]
+                {
+                    gstring == *other
+                }
             }
         }
-
-        let gstring = GString::from(self);
-        super::compare_gstring_to_str(&gstring, other)
     }
 }
 
@@ -584,10 +609,8 @@ impl Ord for TransientStringNameOrd<'_> {
             std::cmp::Ordering::Equal
         } else {
             panic!(
-                "{}::cmp(): Godot provides inconsistent StringName ordering for \"{}\" and \"{}\"",
-                std::any::type_name::<Self>(),
-                self.0,
-                other.0
+                "Godot provides inconsistent StringName ordering for \"{}\" and \"{}\"",
+                self.0, other.0
             );
         }
     }

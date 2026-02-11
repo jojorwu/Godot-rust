@@ -3,14 +3,9 @@ use crate::obj::Singleton;
 
 crate::obj::impl_owned_rid!(
     OwnedParticles,
-    "A RAII wrapper for a particles RID that is owned by this type.\nThe particles are freed when this object is dropped."
+    "A RAII wrapper for a particles RID that is owned by this type.\nThe particles are freed when this object is dropped.",
+    @default
 );
-
-impl Default for OwnedParticles {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl OwnedParticles {
     /// Creates a new particles and returns a wrapper that will free it on drop.

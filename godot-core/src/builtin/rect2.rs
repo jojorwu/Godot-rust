@@ -302,20 +302,6 @@ impl ApproxEq for Rect2 {
     }
 }
 
-impl From<(real, real, real, real)> for Rect2 {
-    #[inline]
-    fn from(tuple: (real, real, real, real)) -> Self {
-        Self::from_components(tuple.0, tuple.1, tuple.2, tuple.3)
-    }
-}
-
-impl From<[real; 4]> for Rect2 {
-    #[inline]
-    fn from(array: [real; 4]) -> Self {
-        Self::from_components(array[0], array[1], array[2], array[3])
-    }
-}
-
 impl std::fmt::Display for Rect2 {
     /// Formats `Rect2` to match Godot's string representation.
     ///
@@ -353,39 +339,8 @@ impl PartialEq<Rect2> for (Vector2, Vector2) {
     }
 }
 
-impl PartialEq<(real, real, real, real)> for Rect2 {
-    #[inline]
-    fn eq(&self, other: &(real, real, real, real)) -> bool {
-        self.position.x == other.0
-            && self.position.y == other.1
-            && self.size.x == other.2
-            && self.size.y == other.3
-    }
-}
-
-impl PartialEq<Rect2> for (real, real, real, real) {
-    #[inline]
-    fn eq(&self, other: &Rect2) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<[real; 4]> for Rect2 {
-    #[inline]
-    fn eq(&self, other: &[real; 4]) -> bool {
-        self.position.x == other[0]
-            && self.position.y == other[1]
-            && self.size.x == other[2]
-            && self.size.y == other[3]
-    }
-}
-
-impl PartialEq<Rect2> for [real; 4] {
-    #[inline]
-    fn eq(&self, other: &Rect2) -> bool {
-        other == self
-    }
-}
+impl_geometric_interop!(Rect2, (real, real, real, real),
+    [real; 4], from_components, [x, y, w, h], self => [self.position.x, self.position.y, self.size.x, self.size.y]);
 
 #[cfg(test)]
 mod test {

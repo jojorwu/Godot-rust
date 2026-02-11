@@ -41,6 +41,22 @@ pub struct Aabb {
 }
 
 impl Aabb {
+    /// Create a new `Aabb` from six reals representing position `(x,y,z)` and size `(width,height,depth)`.
+    #[inline]
+    pub const fn from_components(
+        x: real,
+        y: real,
+        z: real,
+        width: real,
+        height: real,
+        depth: real,
+    ) -> Self {
+        Self {
+            position: Vector3::new(x, y, z),
+            size: Vector3::new(width, height, depth),
+        }
+    }
+
     /// Create a new `Aabb` from a position and a size.
     ///
     /// _Godot equivalent: `Aabb(Vector3 position, Vector3 size)`_
@@ -544,43 +560,15 @@ impl ApproxEq for Aabb {
     }
 }
 
-impl PartialEq<(real, real, real, real, real, real)> for Aabb {
-    #[inline]
-    fn eq(&self, other: &(real, real, real, real, real, real)) -> bool {
-        self.position.x == other.0
-            && self.position.y == other.1
-            && self.position.z == other.2
-            && self.size.x == other.3
-            && self.size.y == other.4
-            && self.size.z == other.5
-    }
-}
-
-impl PartialEq<Aabb> for (real, real, real, real, real, real) {
-    #[inline]
-    fn eq(&self, other: &Aabb) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<[real; 6]> for Aabb {
-    #[inline]
-    fn eq(&self, other: &[real; 6]) -> bool {
-        self.position.x == other[0]
-            && self.position.y == other[1]
-            && self.position.z == other[2]
-            && self.size.x == other[3]
-            && self.size.y == other[4]
-            && self.size.z == other[5]
-    }
-}
-
-impl PartialEq<Aabb> for [real; 6] {
-    #[inline]
-    fn eq(&self, other: &Aabb) -> bool {
-        other == self
-    }
-}
+impl_geometric_interop!(Aabb, (real, real, real, real, real, real),
+    [real; 6], from_components, [x, y, z, w, h, d], self => [
+        self.position.x,
+        self.position.y,
+        self.position.z,
+        self.size.x,
+        self.size.y,
+        self.size.z
+    ]);
 
 #[cfg(test)]
 mod test {

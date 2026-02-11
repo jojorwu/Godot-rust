@@ -11,7 +11,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
-use crate::builtin::math::{ApproxEq, FloatExt, GlamConv, GlamType};
+use crate::builtin::math::{FloatExt, GlamConv, GlamType};
 use crate::builtin::vectors::Vector2Axis;
 use crate::builtin::{inner, real, RAffine2, RVec2, Vector2i};
 
@@ -163,12 +163,6 @@ impl Vector2 {
     pub fn as_inner(&self) -> inner::InnerVector2<'_> {
         inner::InnerVector2::from_outer(self)
     }
-
-    /// Returns `true` if this vector and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
-    }
 }
 
 impl_float_vector_fns!(Vector2, Vector2i, (x, y));
@@ -210,47 +204,8 @@ impl GlamType for RVec2 {
     }
 }
 
-impl PartialEq<(real, real)> for Vector2 {
-    #[inline]
-    fn eq(&self, other: &(real, real)) -> bool {
-        self.x == other.0 && self.y == other.1
-    }
-}
-
-impl PartialEq<Vector2> for (real, real) {
-    #[inline]
-    fn eq(&self, other: &Vector2) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<[real; 2]> for Vector2 {
-    #[inline]
-    fn eq(&self, other: &[real; 2]) -> bool {
-        self.x == other[0] && self.y == other[1]
-    }
-}
-
-impl PartialEq<Vector2> for [real; 2] {
-    #[inline]
-    fn eq(&self, other: &Vector2) -> bool {
-        other.eq(self)
-    }
-}
-
-impl From<(real, real)> for Vector2 {
-    #[inline]
-    fn from(tuple: (real, real)) -> Self {
-        Self::new(tuple.0, tuple.1)
-    }
-}
-
-impl From<[real; 2]> for Vector2 {
-    #[inline]
-    fn from(array: [real; 2]) -> Self {
-        Self::new(array[0], array[1])
-    }
-}
+impl_geometric_interop!(Vector2, (real, real),
+    [real; 2], new, [x, y], self => [self.x, self.y]);
 
 #[cfg(test)]
 mod test {

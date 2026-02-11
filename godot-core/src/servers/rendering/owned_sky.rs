@@ -1,16 +1,7 @@
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-crate::obj::impl_owned_rid!(
-    OwnedSky,
-    "A RAII wrapper for a sky RID that is owned by this type.\nThe sky is freed when this object is dropped."
-);
-
-impl Default for OwnedSky {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+crate::obj::impl_owned_rid!(OwnedSky, "A RAII wrapper for a sky RID that is owned by this type.\nThe sky is freed when this object is dropped.", @default);
 
 impl OwnedSky {
     /// Creates a new sky and returns a wrapper that will free it on drop.

@@ -11,7 +11,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
-use crate::builtin::math::{ApproxEq, FloatExt, GlamConv, GlamType};
+use crate::builtin::math::{FloatExt, GlamConv, GlamType};
 use crate::builtin::vectors::Vector3Axis;
 use crate::builtin::{inner, real, Basis, RVec3, Vector2, Vector3i};
 
@@ -209,11 +209,6 @@ impl Vector3 {
     /// input vectors have zero length or are collinear to each other, the method instead behaves like
     /// [`Vector3::lerp`].
     #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
-    }
-
-    #[inline]
     pub fn slerp(self, to: Self, weight: real) -> Self {
         let start_length_sq: real = self.length_squared();
         let end_length_sq = to.length_squared();
@@ -293,47 +288,8 @@ impl GlamConv for Vector3 {
     type Glam = RVec3;
 }
 
-impl PartialEq<(real, real, real)> for Vector3 {
-    #[inline]
-    fn eq(&self, other: &(real, real, real)) -> bool {
-        self.x == other.0 && self.y == other.1 && self.z == other.2
-    }
-}
-
-impl PartialEq<Vector3> for (real, real, real) {
-    #[inline]
-    fn eq(&self, other: &Vector3) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<[real; 3]> for Vector3 {
-    #[inline]
-    fn eq(&self, other: &[real; 3]) -> bool {
-        self.x == other[0] && self.y == other[1] && self.z == other[2]
-    }
-}
-
-impl PartialEq<Vector3> for [real; 3] {
-    #[inline]
-    fn eq(&self, other: &Vector3) -> bool {
-        other.eq(self)
-    }
-}
-
-impl From<(real, real, real)> for Vector3 {
-    #[inline]
-    fn from(tuple: (real, real, real)) -> Self {
-        Self::new(tuple.0, tuple.1, tuple.2)
-    }
-}
-
-impl From<[real; 3]> for Vector3 {
-    #[inline]
-    fn from(array: [real; 3]) -> Self {
-        Self::new(array[0], array[1], array[2])
-    }
-}
+impl_geometric_interop!(Vector3, (real, real, real),
+    [real; 3], new, [x, y, z], self => [self.x, self.y, self.z]);
 
 #[cfg(test)]
 mod test {

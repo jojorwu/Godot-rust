@@ -128,33 +128,8 @@ impl GlamConv for Vector4i {
     type Glam = glam::IVec4;
 }
 
-impl PartialEq<(i32, i32, i32, i32)> for Vector4i {
-    #[inline]
-    fn eq(&self, other: &(i32, i32, i32, i32)) -> bool {
-        self.x == other.0 && self.y == other.1 && self.z == other.2 && self.w == other.3
-    }
-}
-
-impl PartialEq<Vector4i> for (i32, i32, i32, i32) {
-    #[inline]
-    fn eq(&self, other: &Vector4i) -> bool {
-        other.eq(self)
-    }
-}
-
-impl From<(i32, i32, i32, i32)> for Vector4i {
-    #[inline]
-    fn from(tuple: (i32, i32, i32, i32)) -> Self {
-        Self::new(tuple.0, tuple.1, tuple.2, tuple.3)
-    }
-}
-
-impl From<[i32; 4]> for Vector4i {
-    #[inline]
-    fn from(array: [i32; 4]) -> Self {
-        Self::new(array[0], array[1], array[2], array[3])
-    }
-}
+impl_geometric_interop!(Vector4i, (i32, i32, i32, i32),
+    [i32; 4], new, [x, y, z, w], self => [self.x, self.y, self.z, self.w]);
 
 #[cfg(test)]
 mod test {

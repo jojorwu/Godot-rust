@@ -318,12 +318,6 @@ impl Transform2D {
         self.to_basis() * v
     }
 
-    /// Returns `true` if this transform and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
-    }
-
     /// Returns a vector transformed (multiplied) by the inverse basis matrix.
     /// This method does not account for translation (the origin vector).
     ///
@@ -824,4 +818,32 @@ mod test {
 
         crate::builtin::test_utils::roundtrip(&transform, expected_json);
     }
+
+    #[test]
+    fn test_geometric_interop() {
+        use crate::builtin::Vector2;
+        let a = Vector2::new(1.0, 2.0);
+        let b = Vector2::new(3.0, 4.0);
+        let o = Vector2::new(5.0, 6.0);
+
+        let trans = Transform2D::from((a, b, o));
+        assert_eq!(trans.a, a);
+        assert_eq!(trans.b, b);
+        assert_eq!(trans.origin, o);
+
+        let trans_arr = Transform2D::from([a, b, o]);
+        assert_eq!(trans, trans_arr);
+
+        assert_eq!(trans, (a, b, o));
+        assert_eq!(trans, [a, b, o]);
+    }
 }
+
+impl_geometric_interop!(
+    Transform2D,
+    (Vector2, Vector2, Vector2),
+    [Vector2; 3],
+    from_cols,
+    [a, b, origin],
+    self => [self.a, self.b, self.origin]
+);

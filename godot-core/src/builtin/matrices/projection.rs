@@ -443,11 +443,6 @@ impl Projection {
         // (self.cols[0].w == 0.0) && (self.cols[1].w == 0.0) && (self.cols[2] == 0.0) && (self.cols[3].w == 1.0)
     }
 
-    /// Returns `true` if this projection and `other` are approximately equal.
-    pub fn is_equal_approx(&self, other: &Self) -> bool {
-        self.approx_eq(other)
-    }
-
     /// Returns a Projection with the X and Y values from the given [`Vector2`]
     /// added to the first and second values of the final column respectively.
     ///
@@ -1118,4 +1113,34 @@ mod test {
 
         crate::builtin::test_utils::roundtrip(&projection, expected_json);
     }
+
+    #[test]
+    fn test_geometric_interop() {
+        use crate::builtin::Vector4;
+        let x = Vector4::new(1.0, 2.0, 3.0, 4.0);
+        let y = Vector4::new(5.0, 6.0, 7.0, 8.0);
+        let z = Vector4::new(9.0, 10.0, 11.0, 12.0);
+        let w = Vector4::new(13.0, 14.0, 15.0, 16.0);
+
+        let proj = Projection::from((x, y, z, w));
+        assert_eq!(proj.cols[0], x);
+        assert_eq!(proj.cols[1], y);
+        assert_eq!(proj.cols[2], z);
+        assert_eq!(proj.cols[3], w);
+
+        let proj_arr = Projection::from([x, y, z, w]);
+        assert_eq!(proj, proj_arr);
+
+        assert_eq!(proj, (x, y, z, w));
+        assert_eq!(proj, [x, y, z, w]);
+    }
 }
+
+impl_geometric_interop!(
+    Projection,
+    (Vector4, Vector4, Vector4, Vector4),
+    [Vector4; 4],
+    from_cols,
+    [x, y, z, w],
+    self => [self.cols[0], self.cols[1], self.cols[2], self.cols[3]]
+);

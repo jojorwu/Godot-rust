@@ -285,20 +285,6 @@ unsafe impl GodotFfi for Rect2i {
 
 crate::meta::impl_godot_as_self!(Rect2i: ByValue);
 
-impl From<(i32, i32, i32, i32)> for Rect2i {
-    #[inline]
-    fn from(tuple: (i32, i32, i32, i32)) -> Self {
-        Self::from_components(tuple.0, tuple.1, tuple.2, tuple.3)
-    }
-}
-
-impl From<[i32; 4]> for Rect2i {
-    #[inline]
-    fn from(array: [i32; 4]) -> Self {
-        Self::from_components(array[0], array[1], array[2], array[3])
-    }
-}
-
 impl std::fmt::Display for Rect2i {
     /// Formats `Rect2i` to match Godot's string representation.
     ///
@@ -334,39 +320,8 @@ impl PartialEq<Rect2i> for (Vector2i, Vector2i) {
     }
 }
 
-impl PartialEq<(i32, i32, i32, i32)> for Rect2i {
-    #[inline]
-    fn eq(&self, other: &(i32, i32, i32, i32)) -> bool {
-        self.position.x == other.0
-            && self.position.y == other.1
-            && self.size.x == other.2
-            && self.size.y == other.3
-    }
-}
-
-impl PartialEq<Rect2i> for (i32, i32, i32, i32) {
-    #[inline]
-    fn eq(&self, other: &Rect2i) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<[i32; 4]> for Rect2i {
-    #[inline]
-    fn eq(&self, other: &[i32; 4]) -> bool {
-        self.position.x == other[0]
-            && self.position.y == other[1]
-            && self.size.x == other[2]
-            && self.size.y == other[3]
-    }
-}
-
-impl PartialEq<Rect2i> for [i32; 4] {
-    #[inline]
-    fn eq(&self, other: &Rect2i) -> bool {
-        other == self
-    }
-}
+impl_geometric_interop!(Rect2i, (i32, i32, i32, i32),
+    [i32; 4], from_components, [x, y, w, h], self => [self.position.x, self.position.y, self.size.x, self.size.y]);
 
 #[cfg(test)]
 mod test {

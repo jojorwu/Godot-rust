@@ -11,7 +11,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
-use crate::builtin::math::{ApproxEq, FloatExt, GlamConv, GlamType};
+use crate::builtin::math::{FloatExt, GlamConv, GlamType};
 use crate::builtin::{inner, real, RVec4, Vector4Axis, Vector4i};
 
 /// Vector used for 4D math using floating point coordinates.
@@ -77,12 +77,6 @@ impl Vector4 {
     pub fn as_inner(&self) -> inner::InnerVector4<'_> {
         inner::InnerVector4::from_outer(self)
     }
-
-    /// Returns `true` if this vector and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
-    }
 }
 
 impl_float_vector_fns!(Vector4, Vector4i, (x, y, z, w));
@@ -124,47 +118,8 @@ impl GlamConv for Vector4 {
     type Glam = RVec4;
 }
 
-impl PartialEq<(real, real, real, real)> for Vector4 {
-    #[inline]
-    fn eq(&self, other: &(real, real, real, real)) -> bool {
-        self.x == other.0 && self.y == other.1 && self.z == other.2 && self.w == other.3
-    }
-}
-
-impl PartialEq<Vector4> for (real, real, real, real) {
-    #[inline]
-    fn eq(&self, other: &Vector4) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<[real; 4]> for Vector4 {
-    #[inline]
-    fn eq(&self, other: &[real; 4]) -> bool {
-        self.x == other[0] && self.y == other[1] && self.z == other[2] && self.w == other[3]
-    }
-}
-
-impl PartialEq<Vector4> for [real; 4] {
-    #[inline]
-    fn eq(&self, other: &Vector4) -> bool {
-        other.eq(self)
-    }
-}
-
-impl From<(real, real, real, real)> for Vector4 {
-    #[inline]
-    fn from(tuple: (real, real, real, real)) -> Self {
-        Self::new(tuple.0, tuple.1, tuple.2, tuple.3)
-    }
-}
-
-impl From<[real; 4]> for Vector4 {
-    #[inline]
-    fn from(array: [real; 4]) -> Self {
-        Self::new(array[0], array[1], array[2], array[3])
-    }
-}
+impl_geometric_interop!(Vector4, (real, real, real, real),
+    [real; 4], new, [x, y, z, w], self => [self.x, self.y, self.z, self.w]);
 
 #[cfg(test)]
 mod test {

@@ -17,18 +17,10 @@ impl Object {
         arg_into_ref!(property);
         let variant = self.get(property);
         if variant.is_nil() {
-            panic!(
-                "Object::get_as() for {} failed: property '{property}' not found (returned Nil) (requested {})",
-                self.debug_name(),
-                std::any::type_name::<T>()
-            );
+            panic!("Object::get_as(): property '{property}' not found (returned Nil)");
         }
         variant.try_to::<T>().unwrap_or_else(|err| {
-            panic!(
-                "Object::get_as() for {} failed: property '{property}' conversion to {} failed: {err}",
-                self.debug_name(),
-                std::any::type_name::<T>(),
-            );
+            panic!("Object::get_as(): property '{property}' conversion failed: {err}");
         })
     }
 
@@ -50,18 +42,10 @@ impl Object {
         arg_into_ref!(name);
         let variant = self.get_meta(name);
         if variant.is_nil() {
-            panic!(
-                "Object::get_meta_as() for {} failed: meta '{name}' not found (returned Nil) (requested {})",
-                self.debug_name(),
-                std::any::type_name::<T>()
-            );
+            panic!("Object::get_meta_as(): meta '{name}' not found (returned Nil)");
         }
         variant.try_to::<T>().unwrap_or_else(|err| {
-            panic!(
-                "Object::get_meta_as() for {} failed: meta '{name}' conversion to {} failed: {err}",
-                self.debug_name(),
-                std::any::type_name::<T>(),
-            );
+            panic!("Object::get_meta_as(): meta '{name}' conversion failed: {err}");
         })
     }
 
@@ -83,11 +67,7 @@ impl Object {
         arg_into_ref!(method);
         let result = self.call(method, args);
         result.try_to::<T>().unwrap_or_else(|err| {
-            panic!(
-                "Object::call_as() for {} failed: method '{method}' conversion to {} failed: {err}",
-                self.debug_name(),
-                std::any::type_name::<T>(),
-            )
+            panic!("Object::call_as(): method '{method}' conversion failed: {err}")
         })
     }
 
@@ -99,10 +79,6 @@ impl Object {
         args: &[Variant],
     ) -> Option<T> {
         self.call(method, args).try_to::<T>().ok()
-    }
-
-    fn debug_name(&self) -> String {
-        format!("'{}'", self.get_class())
     }
 
     /// Returns the list of properties for this object as a `Vec<PropertyInfo>`.

@@ -294,6 +294,9 @@ unsafe impl GodotFfi for Plane {
 
 crate::meta::impl_godot_as_self!(Plane: ByValue);
 
+impl_geometric_interop!(Plane, (real, real, real, real),
+    [real; 4], from_components, [nx, ny, nz, d], self => [self.normal.x, self.normal.y, self.normal.z, self.d]);
+
 impl ApproxEq for Plane {
     /// Finds whether the two planes are approximately equal.
     ///

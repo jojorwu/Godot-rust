@@ -50,13 +50,7 @@ impl Node {
 
         match self.try_get_node_as::<T>(path) {
             Ok(node) => node,
-            Err(err) => panic!(
-                "Node::get_node_as() for node '{}' ({}) failed: {} at path `{path}` (requested type {})",
-                self.get_name(),
-                self.get_class(),
-                err,
-                std::any::type_name::<T>()
-            ),
+            Err(err) => panic!("Node::get_node_as(): {err} at path `{path}`"),
         }
     }
 
@@ -107,14 +101,8 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.try_get_parent_as::<T>().unwrap_or_else(|| {
-            panic!(
-                "Node::get_parent_as() for node '{}' ({}) failed: parent not found or has wrong type (requested {})",
-                self.get_name(),
-                self.get_class(),
-                std::any::type_name::<T>()
-            )
-        })
+        self.try_get_parent_as::<T>()
+            .unwrap_or_else(|| panic!("Node::get_parent_as(): parent not found or bad type"))
     }
 
     /// Retrieves the parent node (fallible).
@@ -139,14 +127,8 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.try_get_owner_as::<T>().unwrap_or_else(|| {
-            panic!(
-                "Node::get_owner_as() for node '{}' ({}) failed: owner not found or has wrong type (requested {})",
-                self.get_name(),
-                self.get_class(),
-                std::any::type_name::<T>()
-            )
-        })
+        self.try_get_owner_as::<T>()
+            .unwrap_or_else(|| panic!("Node::get_owner_as(): owner not found or bad type"))
     }
 
     /// Retrieves the owner node (fallible).
@@ -172,12 +154,7 @@ impl Node {
         T: Inherits<Node>,
     {
         self.try_get_child_as::<T>(index).unwrap_or_else(|| {
-            panic!(
-                "Node::get_child_as() for node '{}' ({}) failed: index {index} out of bounds or has wrong type (requested {})",
-                self.get_name(),
-                self.get_class(),
-                std::any::type_name::<T>()
-            )
+            panic!("Node::get_child_as(): index {index} out of bounds or bad type")
         })
     }
 
@@ -274,14 +251,8 @@ impl Node {
     where
         T: Inherits<SceneTree>,
     {
-        self.try_get_tree_as::<T>().unwrap_or_else(|| {
-            panic!(
-                "Node::get_tree_as() for node '{}' ({}) failed: scene tree not found or has wrong type (requested {})",
-                self.get_name(),
-                self.get_class(),
-                std::any::type_name::<T>()
-            )
-        })
+        self.try_get_tree_as::<T>()
+            .expect("Node::get_tree_as(): scene tree not found or bad type")
     }
 
     /// Retrieves the scene tree, cast to type `T` (fallible).

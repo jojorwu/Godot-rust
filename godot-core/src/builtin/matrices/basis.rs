@@ -309,7 +309,7 @@ impl Basis {
             0 => row == Vector3::RIGHT,
             1 => row == Vector3::UP,
             2 => row == Vector3::BACK,
-            _ => unreachable!("Basis::is_identity_index(): unknown index {index}"),
+            _ => panic!("Unknown Index {index}"),
         }
     }
 
@@ -525,12 +525,6 @@ impl Basis {
     #[inline]
     pub fn col_c(&self) -> Vector3 {
         Vector3::new(self.rows[0].z, self.rows[1].z, self.rows[2].z)
-    }
-
-    /// Returns `true` if this basis and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
     }
 
     /// Set the values of the third column of the matrix.
@@ -901,4 +895,32 @@ mod test {
 
         crate::builtin::test_utils::roundtrip(&basis, expected_json);
     }
+
+    #[test]
+    fn test_geometric_interop() {
+        use crate::builtin::Vector3;
+        let r0 = Vector3::new(1.0, 2.0, 3.0);
+        let r1 = Vector3::new(4.0, 5.0, 6.0);
+        let r2 = Vector3::new(7.0, 8.0, 9.0);
+
+        let basis = Basis::from((r0, r1, r2));
+        assert_eq!(basis.rows[0], r0);
+        assert_eq!(basis.rows[1], r1);
+        assert_eq!(basis.rows[2], r2);
+
+        let basis_arr = Basis::from([r0, r1, r2]);
+        assert_eq!(basis, basis_arr);
+
+        assert_eq!(basis, (r0, r1, r2));
+        assert_eq!(basis, [r0, r1, r2]);
+    }
 }
+
+impl_geometric_interop!(
+    Basis,
+    (Vector3, Vector3, Vector3),
+    [Vector3; 3],
+    from_rows,
+    [r0, r1, r2],
+    self => [self.rows[0], self.rows[1], self.rows[2]]
+);

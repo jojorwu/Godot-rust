@@ -171,3 +171,70 @@ macro_rules! impl_builtin_traits {
         )*
     );
 }
+
+macro_rules! impl_geometric_interop {
+    (
+        $Type:ident,
+        $tuple:ty,
+        $array:ty,
+        $constructor:ident,
+        [$($var:ident),+],
+        $self:ident => [$($accessor:expr),+]
+    ) => {
+        impl From<$tuple> for $Type {
+            #[inline]
+            fn from(tuple: $tuple) -> Self {
+                let ($($var,)+) = tuple;
+                Self::$constructor($($var),+)
+            }
+        }
+
+        impl From<$array> for $Type {
+            #[inline]
+            fn from(array: $array) -> Self {
+                let [$($var,)+] = array;
+                Self::$constructor($($var),+)
+            }
+        }
+
+        impl PartialEq<$tuple> for $Type {
+            #[inline]
+            fn eq(&$self, other: &$tuple) -> bool {
+                let ($($var,)+) = other;
+                $(
+                    if $accessor != *$var {
+                        return false;
+                    }
+                )+
+                true
+            }
+        }
+
+        impl PartialEq<$Type> for $tuple {
+            #[inline]
+            fn eq(&self, other: &$Type) -> bool {
+                other.eq(self)
+            }
+        }
+
+        impl PartialEq<$array> for $Type {
+            #[inline]
+            fn eq(&$self, other: &$array) -> bool {
+                let [$($var,)+] = other;
+                $(
+                    if $accessor != *$var {
+                        return false;
+                    }
+                )+
+                true
+            }
+        }
+
+        impl PartialEq<$Type> for $array {
+            #[inline]
+            fn eq(&self, other: &$Type) -> bool {
+                other.eq(self)
+            }
+        }
+    };
+}

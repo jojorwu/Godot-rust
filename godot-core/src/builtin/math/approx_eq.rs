@@ -5,8 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-// Implementation note: godot-rust's ApproxEq implementations for geometric types match Godot's C++ is_equal_approx() logic,
-// which is typically component-wise approximate equality of floats.
+// TODO(bromeon): test this against Godot's own is_equal_approx() implementation for equality-comparable built-in types (excl Callable/Rid/...)
 
 /// Approximate equality-comparison of geometric types.
 ///
@@ -36,23 +35,14 @@ macro_rules! assert_eq_approx {
     };
     ($actual:expr, $expected:expr $(,)?) => {
         match ($actual, $expected) {
-            (a, b) => assert!(
-                $crate::builtin::math::ApproxEq::approx_eq(&a, &b),
-                "\n  left: {:?},\n right: {:?}",
-                $actual,
-                $expected
-            ),
+             (a, b) => assert!($crate::builtin::math::ApproxEq::approx_eq(&a, &b), "\n  left: {:?},\n right: {:?}", $actual, $expected),
+            // (a, b) => $crate::assert_eq_approx!($actual, $expected, fn = $crate::builtin::ApproxEq::approx_eq),
         }
     };
     ($actual:expr, $expected:expr, $($t:tt)+) => {
         match ($actual, $expected) {
-            (a, b) => assert!(
-                $crate::builtin::math::ApproxEq::approx_eq(&a, &b),
-                "\n  left: {:?},\n right: {:?},\n{}",
-                $actual,
-                $expected,
-                format_args!($($t)+)
-            ),
+            (a, b) => assert!($crate::builtin::math::ApproxEq::approx_eq(&a, &b), "\n  left: {:?},\n right: {:?},\n{}", $actual, $expected, format_args!($($t)+)),
+            // (a, b) => $crate::assert_eq_approx!($actual, $expected, fn = $crate::builtin::ApproxEq::approx_eq, $($t)+),
         }
     };
 }

@@ -106,6 +106,18 @@ macro_rules! impl_owned_rid {
     ($name:ident, $doc:literal) => {
         crate::obj::impl_owned_rid!($name, RenderingServer, $doc);
     };
+    ($name:ident, $doc:literal, @default) => {
+        crate::obj::impl_owned_rid!($name, RenderingServer, $doc, @default);
+    };
+    ($name:ident, $server:ident, $doc:literal, @default) => {
+        crate::obj::impl_owned_rid!($name, $server, $doc);
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+    };
 }
 
 pub(crate) use impl_owned_rid;

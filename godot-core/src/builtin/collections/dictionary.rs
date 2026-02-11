@@ -13,7 +13,7 @@ use godot_ffi as sys;
 use sys::types::OpaqueDictionary;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
-use crate::builtin::{inner, to_usize, Callable, StringName, VarArray, Variant, VariantType};
+use crate::builtin::{inner, Callable, StringName, VarArray, Variant, VariantType};
 use crate::meta::{ElementType, ExtVariantType, FromGodot, ToGodot};
 
 use super::dictionary_functional_ops::DictionaryFunctionalOps;
@@ -231,7 +231,7 @@ impl VarDictionary {
     #[doc(alias = "size")]
     #[inline]
     pub fn len(&self) -> usize {
-        to_usize(self.as_inner().size())
+        self.as_inner().size().try_into().unwrap()
     }
 
     /// Returns true if the dictionary is empty.

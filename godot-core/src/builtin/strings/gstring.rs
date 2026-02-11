@@ -13,7 +13,7 @@ use sys::types::OpaqueString;
 use sys::{ffi_methods, interface_fn, ExtVariantType, GodotFfi};
 
 use crate::builtin::strings::{pad_if_needed, Encoding};
-use crate::builtin::{inner, to_i64, to_usize, NodePath, StringName, Variant};
+use crate::builtin::{inner, NodePath, StringName, Variant};
 use crate::meta::error::StringError;
 use crate::meta::AsArg;
 use crate::{impl_shared_string_api, meta};
@@ -157,7 +157,7 @@ impl GString {
     /// _Godot equivalent: `length`_
     #[doc(alias = "length")]
     pub fn len(&self) -> usize {
-        to_usize(self.as_inner().length())
+        self.as_inner().length().try_into().unwrap()
     }
 
     crate::declare_hash_u32_method! {
@@ -295,7 +295,7 @@ impl GString {
         );
 
         unsafe {
-            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), to_i64(index));
+            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), index as i64);
             *ptr = character as u32;
         }
     }
@@ -426,7 +426,34 @@ impl fmt::Debug for GString {
 
 impl PartialEq<&str> for GString {
     fn eq(&self, other: &&str) -> bool {
-        super::compare_gstring_to_str(self, other)
+        let other_bytes = other.as_bytes();
+        let s = self.string_sys();
+        unsafe {
+            // Get length in UTF-8 bytes.
+            let len = interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
+            if len as usize != other_bytes.len() {
+                return false;
+            }
+            if len == 0 {
+                return true;
+            }
+
+            // We need a temporary buffer to hold the GString's UTF-8 representation.
+            // For short strings, we can use the stack.
+            const STACK_BUF_SIZE: usize = 128;
+            if len as usize <= STACK_BUF_SIZE {
+                let mut buf = [0u8; STACK_BUF_SIZE];
+                interface_fn!(string_to_utf8_chars)(
+                    s,
+                    buf.as_mut_ptr() as *mut std::ffi::c_char,
+                    len,
+                );
+                &buf[..len as usize] == other_bytes
+            } else {
+                // For long strings, character-by-character comparison is likely better than heap allocation.
+                self.chars().iter().copied().eq(other.chars())
+            }
+        }
     }
 }
 

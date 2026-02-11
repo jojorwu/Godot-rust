@@ -1,16 +1,7 @@
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-crate::obj::impl_owned_rid!(
-    OwnedFogVolume,
-    "A RAII wrapper for a fog volume RID that is owned by this type.\nThe fog volume is freed when this object is dropped."
-);
-
-impl Default for OwnedFogVolume {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+crate::obj::impl_owned_rid!(OwnedFogVolume, "A RAII wrapper for a fog volume RID that is owned by this type.\nThe fog volume is freed when this object is dropped.", @default);
 
 impl OwnedFogVolume {
     /// Creates a new fog volume and returns a wrapper that will free it on drop.

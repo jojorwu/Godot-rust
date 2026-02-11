@@ -339,12 +339,6 @@ impl Color {
         }
     }
 
-    /// Returns `true` if this color and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
-    }
-
     // For internal checks before transformations between different color representation.
     pub(crate) fn is_normalized(&self) -> bool {
         self.r >= 0.0
@@ -381,19 +375,8 @@ impl ApproxEq for Color {
     }
 }
 
-impl From<(f32, f32, f32, f32)> for Color {
-    #[inline]
-    fn from(tuple: (f32, f32, f32, f32)) -> Self {
-        Self::from_rgba(tuple.0, tuple.1, tuple.2, tuple.3)
-    }
-}
-
-impl From<[f32; 4]> for Color {
-    #[inline]
-    fn from(array: [f32; 4]) -> Self {
-        Self::from_rgba(array[0], array[1], array[2], array[3])
-    }
-}
+impl_geometric_interop!(Color, (f32, f32, f32, f32),
+    [f32; 4], from_rgba, [r, g, b, a], self => [self.r, self.g, self.b, self.a]);
 
 /// Defines how individual color channels are laid out in memory.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]

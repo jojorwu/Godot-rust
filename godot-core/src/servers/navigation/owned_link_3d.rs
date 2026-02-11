@@ -11,14 +11,10 @@ use crate::obj::Singleton;
 crate::obj::impl_owned_rid!(
     OwnedLink3D,
     NavigationServer3D,
-    "A RAII wrapper for a 3D navigation link RID that is owned by this type.\nThe link is freed when this object is dropped."
+    "A RAII wrapper for a 3D navigation link RID that is owned by this type.
+The link is freed when this object is dropped.",
+    @default
 );
-
-impl Default for OwnedLink3D {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl OwnedLink3D {
     /// Creates a new navigation link and returns a wrapper that will free it on drop.

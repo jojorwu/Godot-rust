@@ -1,16 +1,7 @@
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-crate::obj::impl_owned_rid!(
-    OwnedCameraAttributes,
-    "A RAII wrapper for a camera attributes RID that is owned by this type.\nThe camera attributes are freed when this object is dropped."
-);
-
-impl Default for OwnedCameraAttributes {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+crate::obj::impl_owned_rid!(OwnedCameraAttributes, "A RAII wrapper for a camera attributes RID that is owned by this type.\nThe camera attributes are freed when this object is dropped.", @default);
 
 impl OwnedCameraAttributes {
     /// Creates a new camera attributes and returns a wrapper that will free it on drop.

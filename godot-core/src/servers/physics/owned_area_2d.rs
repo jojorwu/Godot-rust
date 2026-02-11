@@ -11,14 +11,9 @@ use crate::obj::Singleton;
 crate::obj::impl_owned_rid!(
     OwnedArea2D,
     PhysicsServer2D,
-    "A RAII wrapper for a 2D physics area RID that is owned by this type.\nThe area is freed when this object is dropped."
+    "A RAII wrapper for a 2D physics area RID that is owned by this type.\nThe area is freed when this object is dropped.",
+    @default
 );
-
-impl Default for OwnedArea2D {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl OwnedArea2D {
     /// Creates a new area and returns a wrapper that will free it on drop.

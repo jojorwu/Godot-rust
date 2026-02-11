@@ -16,7 +16,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi, SysPtr};
 
 use crate::builtin::collections::extend_buffer::ExtendBufferTrait;
-use crate::builtin::{to_i64, to_usize, Variant, VariantType, *};
+use crate::builtin::*;
 use crate::classes::file_access::CompressionMode;
 use crate::meta;
 use crate::meta::signed_range::SignedRange;
@@ -372,7 +372,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
         let from = to_i64(from.unwrap_or(0));
         let index = T::op_find(self.as_inner(), value.into_arg(), from);
         if index >= 0 {
-            Some(to_usize(index))
+            Some(index.try_into().unwrap())
         } else {
             None
         }
@@ -470,8 +470,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// Always.
     fn panic_out_of_bounds(&self, index: usize) -> ! {
         panic!(
-            "{} index {index} is out of bounds: length is {}",
-            std::any::type_name::<Self>(),
+            "Array index {index} is out of bounds: length is {}",
             self.len()
         );
     }
@@ -1201,7 +1200,9 @@ impl PackedByteArray {
 
         let variant = self.as_inner().decode_var(byte_offset, allow_objects);
         let decoded_size = self.as_inner().decode_var_size(byte_offset, allow_objects);
-        let decoded_size = to_usize(decoded_size);
+        let decoded_size = decoded_size.try_into().unwrap_or_else(|_| {
+            panic!("unexpected value {decoded_size} returned from decode_var_size()")
+        });
 
         (variant, decoded_size)
     }

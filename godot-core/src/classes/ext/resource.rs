@@ -50,27 +50,11 @@ impl Resource {
     where
         T: Inherits<Resource>,
     {
-        let dup = self
-            .duplicate_ex()
+        self.duplicate_ex()
             .deep(subresources)
             .done()
-            .unwrap_or_else(|| {
-                panic!(
-                    "Resource::duplicate_as() for resource '{}' ({}) failed: duplicate_ex() returned None",
-                    self.get_path(),
-                    self.get_class()
-                )
-            });
-
-        dup.try_cast::<T>().unwrap_or_else(|_obj| {
-            panic!(
-                "Resource::duplicate_as() for resource '{}' ({}) failed: duplicate is not of type {} (requested {})",
-                self.get_path(),
-                self.get_class(),
-                T::class_id(),
-                std::any::type_name::<T>()
-            )
-        })
+            .expect("Resource::duplicate() failed")
+            .cast::<T>()
     }
 
     /// Alias for [`duplicate_as()`][Self::duplicate_as].

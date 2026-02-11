@@ -11,7 +11,7 @@ use godot_ffi as sys;
 use godot_ffi::{ffi_methods, ExtVariantType, GdextBuild, GodotFfi};
 
 use super::{GString, StringName};
-use crate::builtin::{inner, to_i64, to_usize};
+use crate::builtin::inner;
 use crate::meta::signed_range::SignedRange;
 
 /// A pre-parsed scene tree path.
@@ -64,7 +64,7 @@ impl NodePath {
     /// If `index` is out of bounds. In safeguards-disengaged level, a Godot error is generated and the result is unspecified (but safe).
     pub fn get_name(&self, index: usize) -> StringName {
         let inner = self.as_inner();
-        let index = to_i64(index);
+        let index = index as i64;
 
         // Not safety-critical, Godot will do another check. But better error message.
         sys::balanced_assert!(
@@ -91,7 +91,7 @@ impl NodePath {
     /// If `index` is out of bounds. In safeguards-disengaged level, a Godot error is generated and the result is unspecified (but safe).
     pub fn get_subname(&self, index: usize) -> StringName {
         let inner = self.as_inner();
-        let index = to_i64(index);
+        let index = index as i64;
 
         sys::balanced_assert!(
             index < inner.get_subname_count(),
@@ -103,12 +103,18 @@ impl NodePath {
 
     /// Returns the number of node names in the path. Property subnames are not included.
     pub fn get_name_count(&self) -> usize {
-        to_usize(self.as_inner().get_name_count())
+        self.as_inner()
+            .get_name_count()
+            .try_into()
+            .expect("Godot name counts are non-negative ints")
     }
 
     /// Returns the number of property names ("subnames") in the path. Each subname in the node path is listed after a colon character (`:`).
     pub fn get_subname_count(&self) -> usize {
-        to_usize(self.as_inner().get_subname_count())
+        self.as_inner()
+            .get_subname_count()
+            .try_into()
+            .expect("Godot subname counts are non-negative ints")
     }
 
     /// Returns the total number of names + subnames.
@@ -243,10 +249,10 @@ impl fmt::Debug for NodePath {
     }
 }
 
+#[allow(clippy::cmp_owned)]
 impl PartialEq<&str> for NodePath {
     fn eq(&self, other: &&str) -> bool {
-        let gstring = GString::from(self);
-        super::compare_gstring_to_str(&gstring, other)
+        GString::from(self) == *other
     }
 }
 

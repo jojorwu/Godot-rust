@@ -121,33 +121,8 @@ impl GlamConv for Vector2i {
     type Glam = glam::IVec2;
 }
 
-impl PartialEq<(i32, i32)> for Vector2i {
-    #[inline]
-    fn eq(&self, other: &(i32, i32)) -> bool {
-        self.x == other.0 && self.y == other.1
-    }
-}
-
-impl PartialEq<Vector2i> for (i32, i32) {
-    #[inline]
-    fn eq(&self, other: &Vector2i) -> bool {
-        other.eq(self)
-    }
-}
-
-impl From<(i32, i32)> for Vector2i {
-    #[inline]
-    fn from(tuple: (i32, i32)) -> Self {
-        Self::new(tuple.0, tuple.1)
-    }
-}
-
-impl From<[i32; 2]> for Vector2i {
-    #[inline]
-    fn from(array: [i32; 2]) -> Self {
-        Self::new(array[0], array[1])
-    }
-}
+impl_geometric_interop!(Vector2i, (i32, i32),
+    [i32; 2], new, [x, y], self => [self.x, self.y]);
 
 #[cfg(test)]
 mod test {

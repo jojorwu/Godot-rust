@@ -13,7 +13,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
 use crate::builtin::iter::ArrayFunctionalOps;
-use crate::builtin::{to_i64, to_usize, Variant, *};
+use crate::builtin::*;
 use crate::meta;
 use crate::meta::error::{ArrayMismatch, ConvertError, FromGodotError, FromVariantError};
 use crate::meta::signed_range::SignedRange;
@@ -313,14 +313,20 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "first")]
     #[inline]
     pub fn front(&self) -> Option<T> {
-        self.get_and_convert(|inner| inner.front())
+        (!self.is_empty()).then(|| {
+            let variant = self.as_inner().front();
+            T::from_variant(&variant)
+        })
     }
 
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
     pub fn back(&self) -> Option<T> {
-        self.get_and_convert(|inner| inner.back())
+        (!self.is_empty()).then(|| {
+            let variant = self.as_inner().back();
+            T::from_variant(&variant)
+        })
     }
 
     ///  ⚠️ Sets the value at the specified index.
@@ -378,7 +384,13 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "pop_back")]
     #[inline]
     pub fn pop(&mut self) -> Option<T> {
-        self.pop_and_convert(|inner| inner.pop_back())
+        self.balanced_ensure_mutable();
+
+        (!self.is_empty()).then(|| {
+            // SAFETY: We do not write any values to the array, we just remove one.
+            let variant = unsafe { self.as_inner_mut() }.pop_back();
+            T::from_variant(&variant)
+        })
     }
 
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
@@ -387,7 +399,13 @@ impl<T: ArrayElement> Array<T> {
     /// array's elements. The larger the array, the slower `pop_front()` will be.
     #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
-        self.pop_and_convert(|inner| inner.pop_front())
+        self.balanced_ensure_mutable();
+
+        (!self.is_empty()).then(|| {
+            // SAFETY: We do not write any values to the array, we just remove one.
+            let variant = unsafe { self.as_inner_mut() }.pop_front();
+            T::from_variant(&variant)
+        })
     }
 
     /// ⚠️ Inserts a new element before the index. The index must be valid or the end of the array (`index == len()`).
@@ -623,7 +641,10 @@ impl<T: ArrayElement> Array<T> {
     /// Returns a random element from the array, or `None` if it is empty.
     #[inline]
     pub fn pick_random(&self) -> Option<T> {
-        self.get_and_convert(|inner| inner.pick_random())
+        (!self.is_empty()).then(|| {
+            let variant = self.as_inner().pick_random();
+            T::from_variant(&variant)
+        })
     }
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if
@@ -637,7 +658,7 @@ impl<T: ArrayElement> Array<T> {
         let from = to_i64(from.unwrap_or(0));
         let index = self.as_inner().find(&value.to_variant(), from);
         if index >= 0 {
-            Some(to_usize(index))
+            Some(index.try_into().unwrap())
         } else {
             None
         }
@@ -841,13 +862,11 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     fn ptr(&self, index: usize) -> sys::GDExtensionConstVariantPtr {
         let ptr = self.ptr_or_null(index);
-        if ptr.is_null() {
-            panic!(
-                "{} index {index} out of bounds (len {len})",
-                std::any::type_name::<Self>(),
-                len = self.len()
-            );
-        }
+        assert!(
+            !ptr.is_null(),
+            "Array index {index} out of bounds (len {len})",
+            len = self.len(),
+        );
         ptr
     }
 
@@ -870,13 +889,11 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     fn ptr_mut(&mut self, index: usize) -> sys::GDExtensionVariantPtr {
         let ptr = self.ptr_mut_or_null(index);
-        if ptr.is_null() {
-            panic!(
-                "{} index {index} out of bounds (len {len})",
-                std::any::type_name::<Self>(),
-                len = self.len()
-            );
-        }
+        assert!(
+            !ptr.is_null(),
+            "Array index {index} out of bounds (len {len})",
+            len = self.len(),
+        );
         ptr
     }
 
@@ -907,30 +924,6 @@ impl<T: ArrayElement> Array<T> {
             // SAFETY: We can only read from the array.
             inner: unsafe { self.as_inner_mut() },
         }
-    }
-
-    fn get_and_convert<F>(&self, f: F) -> Option<T>
-    where
-        F: FnOnce(&ImmutableInnerArray<'_>) -> Variant,
-    {
-        (!self.is_empty()).then(|| {
-            let variant = f(&self.as_inner());
-            T::from_variant(&variant)
-        })
-    }
-
-    fn pop_and_convert<F>(&mut self, f: F) -> Option<T>
-    where
-        F: FnOnce(&mut inner::InnerArray<'_>) -> Variant,
-    {
-        self.balanced_ensure_mutable();
-
-        (!self.is_empty()).then(|| {
-            // SAFETY: No new values are written to the array, we only remove one.
-            let mut inner = unsafe { self.as_inner_mut() };
-            let variant = f(&mut inner);
-            T::from_variant(&variant)
-        })
     }
 
     /// Changes the generic type on this array, without changing its contents. Needed for API functions

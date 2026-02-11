@@ -9,7 +9,6 @@ use crate::framework::itest;
 use godot::builtin::{GString, NodePath, StringName, Variant};
 
 #[itest]
-#[allow(clippy::cmp_owned)]
 fn string_equality() {
     let s = "Godot";
     let gs = GString::from(s);
@@ -19,18 +18,14 @@ fn string_equality() {
     // GString
     assert!(gs == s);
     assert!(s == gs);
-    assert!(gs == String::from(s));
-    assert!(String::from(s) == gs);
 
     // StringName
     assert!(sn == s);
     assert!(s == sn);
-    assert!(sn == String::from(s));
 
     // NodePath
     assert!(np == s);
     assert!(s == np);
-    assert!(np == String::from(s));
 
     // Cross-comparisons
     assert!(gs == sn);
@@ -67,16 +62,10 @@ fn variant_equality_scalars() {
 }
 
 #[itest]
-#[allow(clippy::cmp_owned)]
 fn variant_equality_strings() {
     let s = "Godot";
     let v = Variant::from(s);
 
     assert!(v == s);
     assert!(s == v);
-    assert!(v == String::from(s));
-    assert!(String::from(s) == v);
-    assert!(v == GString::from(s));
-    assert!(v == StringName::from(s));
-    assert!(v == NodePath::from(s));
 }

@@ -1,16 +1,7 @@
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-crate::obj::impl_owned_rid!(
-    OwnedLightmap,
-    "A RAII wrapper for a lightmap RID that is owned by this type.\nThe lightmap is freed when this object is dropped."
-);
-
-impl Default for OwnedLightmap {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+crate::obj::impl_owned_rid!(OwnedLightmap, "A RAII wrapper for a lightmap RID that is owned by this type.\nThe lightmap is freed when this object is dropped.", @default);
 
 impl OwnedLightmap {
     /// Creates a new lightmap and returns a wrapper that will free it on drop.

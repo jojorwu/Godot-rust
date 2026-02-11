@@ -18,15 +18,8 @@ impl PackedScene {
     where
         T: Inherits<Node>,
     {
-        self.try_instantiate_as::<T>().unwrap_or_else(|| {
-            panic!(
-                "PackedScene::instantiate_as() for scene '{}' ({}) failed: root node is not of type {} (requested {})",
-                self.get_path(),
-                self.get_class(),
-                T::class_id(),
-                std::any::type_name::<T>()
-            )
-        })
+        self.try_instantiate_as::<T>()
+            .unwrap_or_else(|| panic!("Failed to instantiate {to}", to = T::class_id()))
     }
 
     /// Instantiates the scene as type `T` (fallible).
@@ -37,14 +30,5 @@ impl PackedScene {
         T: Inherits<Node>,
     {
         self.instantiate().and_then(|gd| gd.try_cast::<T>().ok())
-    }
-
-    /// Alias for [`instantiate_as()`][Self::instantiate_as].
-    #[inline]
-    pub fn instantiate_typed<T>(&self) -> Gd<T>
-    where
-        T: Inherits<Node>,
-    {
-        self.instantiate_as::<T>()
     }
 }

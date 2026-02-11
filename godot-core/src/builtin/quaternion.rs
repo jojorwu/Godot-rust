@@ -159,12 +159,6 @@ impl Quaternion {
         Basis::from_quaternion(self).get_euler_with(order)
     }
 
-    /// Returns `true` if this quaternion and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
-    }
-
     pub fn inverse(self) -> Self {
         Self::new(-self.x, -self.y, -self.z, self.w)
     }
@@ -343,6 +337,9 @@ unsafe impl GodotFfi for Quaternion {
 }
 
 crate::meta::impl_godot_as_self!(Quaternion: ByValue);
+
+impl_geometric_interop!(Quaternion, (real, real, real, real),
+    [real; 4], new, [x, y, z, w], self => [self.x, self.y, self.z, self.w]);
 
 impl std::fmt::Display for Quaternion {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

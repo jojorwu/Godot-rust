@@ -11,7 +11,8 @@ use crate::obj::Singleton;
 crate::obj::impl_owned_rid!(
     OwnedJoint3D,
     PhysicsServer3D,
-    "A RAII wrapper for a 3D physics joint RID that is owned by this type.\nThe joint is freed when this object is dropped."
+    "A RAII wrapper for a 3D physics joint RID that is owned by this type.\nThe joint is freed when this object is dropped.",
+    @default
 );
 
 impl OwnedJoint3D {
@@ -23,8 +24,3 @@ impl OwnedJoint3D {
     }
 }
 
-impl Default for OwnedJoint3D {
-    fn default() -> Self {
-        Self::new()
-    }
-}

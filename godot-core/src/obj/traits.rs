@@ -193,12 +193,8 @@ pub trait EngineEnum: Copy {
     fn ord(self) -> i32;
 
     fn from_ord(ord: i32) -> Self {
-        Self::try_from_ord(ord).unwrap_or_else(|| {
-            panic!(
-                "{}::from_ord(): ordinal {ord} does not map to any enumerator",
-                std::any::type_name::<Self>()
-            )
-        })
+        Self::try_from_ord(ord)
+            .unwrap_or_else(|| panic!("ordinal {ord} does not map to any enumerator"))
     }
 
     /// The name of the enumerator, as it appears in Rust.
@@ -256,12 +252,8 @@ pub trait EngineBitfield: Copy {
     fn ord(self) -> u64;
 
     fn from_ord(ord: u64) -> Self {
-        Self::try_from_ord(ord).unwrap_or_else(|| {
-            panic!(
-                "{}::from_ord(): ordinal {ord} does not map to any valid bit flag",
-                std::any::type_name::<Self>()
-            )
-        })
+        Self::try_from_ord(ord)
+            .unwrap_or_else(|| panic!("ordinal {ord} does not map to any valid bit flag"))
     }
 
     /// Returns whether the given `flag` is set.

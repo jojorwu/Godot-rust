@@ -245,12 +245,6 @@ impl Transform3D {
         }
     }
 
-    /// Returns `true` if this transform and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
-    }
-
     /// Returns a copy of the transform translated by the given offset.
     /// This method is an optimized version of multiplying the given transform `X`
     /// with a corresponding translation transform `T` from the left, i.e., `T * X`.
@@ -589,4 +583,34 @@ mod test {
 
         crate::builtin::test_utils::roundtrip(&transform, expected_json);
     }
+
+    #[test]
+    fn test_geometric_interop() {
+        use crate::builtin::Vector3;
+        let a = Vector3::new(1.0, 2.0, 3.0);
+        let b = Vector3::new(4.0, 5.0, 6.0);
+        let c = Vector3::new(7.0, 8.0, 9.0);
+        let o = Vector3::new(10.0, 11.0, 12.0);
+
+        let trans = Transform3D::from((a, b, c, o));
+        assert_eq!(trans.basis.col_a(), a);
+        assert_eq!(trans.basis.col_b(), b);
+        assert_eq!(trans.basis.col_c(), c);
+        assert_eq!(trans.origin, o);
+
+        let trans_arr = Transform3D::from([a, b, c, o]);
+        assert_eq!(trans, trans_arr);
+
+        assert_eq!(trans, (a, b, c, o));
+        assert_eq!(trans, [a, b, c, o]);
+    }
 }
+
+impl_geometric_interop!(
+    Transform3D,
+    (Vector3, Vector3, Vector3, Vector3),
+    [Vector3; 4],
+    from_cols,
+    [a, b, c, origin],
+    self => [self.basis.col_a(), self.basis.col_b(), self.basis.col_c(), self.origin]
+);
