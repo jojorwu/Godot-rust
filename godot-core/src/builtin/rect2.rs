@@ -188,9 +188,10 @@ impl Rect2 {
     #[inline]
     #[doc(alias = "has_point")]
     pub fn contains_point(self, point: Vector2) -> bool {
-        let point = point - self.position;
-
-        point.abs() == point && point.x < self.size.x && point.y < self.size.y
+        point.x >= self.position.x
+            && point.y >= self.position.y
+            && point.x < self.position.x + self.size.x
+            && point.y < self.position.y + self.size.y
     }
 
     /// Returns the intersection of this Rect2 and `b`. If the rectangles do not intersect, an empty Rect2 is returned.
@@ -269,7 +270,8 @@ impl Rect2 {
     pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0,
-            "size {:?} is negative",
+            "{} size {:?} is negative",
+            std::any::type_name::<Self>(),
             self.size
         );
     }

@@ -81,8 +81,16 @@ fn populated_or_none(s: GString) -> Option<GString> {
 pub(super) fn compare_gstring_to_str(gs: &GString, other: &str) -> bool {
     let other_bytes = other.as_bytes();
     let s = gs.string_sys();
+
+    // Fast path: if lengths in characters are different, they can't be equal.
+    // gs.len() is O(1) FFI call.
+    // other.chars().count() is O(n), but we only do it if other is short enough or we really need to.
+    // Actually, gs.len() is number of Unicode code points.
+    // other.len() is number of bytes.
+    // Comparing them is not very useful unless we know one of them.
+
     unsafe {
-        // Get length in UTF-8 bytes.
+        // Get length in UTF-8 bytes. This traverses the GString once.
         let len = sys::interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
         if len as usize != other_bytes.len() {
             return false;
@@ -104,6 +112,7 @@ pub(super) fn compare_gstring_to_str(gs: &GString, other: &str) -> bool {
             &buf[..len as usize] == other_bytes
         } else {
             // For long strings, character-by-character comparison is likely better than heap allocation.
+            // This traverses both strings once more. Total O(n).
             gs.chars().iter().copied().eq(other.chars())
         }
     }

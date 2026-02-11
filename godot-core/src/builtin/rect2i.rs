@@ -270,15 +270,8 @@ impl Rect2i {
     /// Certain functions will fail to give a correct result if the size is negative.
     #[inline]
     pub const fn assert_nonnegative(self) {
-        assert!(
-            !self.is_negative(),
-            "Rect2i size is negative" /* Uncomment once formatting in const contexts is allowed.
-                                         Currently:
-                                         error[E0015]: cannot call non-const formatting macro in constant functions
-                                      "size {:?} is negative",
-                                      self.size
-                                      */
-        );
+        // We can't use type_name or formatting in const assert yet.
+        assert!(!self.is_negative(), "Rect2i size is negative");
     }
 }
 

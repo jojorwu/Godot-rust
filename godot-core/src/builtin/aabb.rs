@@ -146,12 +146,12 @@ impl Aabb {
     pub fn contains_point(self, point: Vector3) -> bool {
         self.assert_nonnegative();
 
-        let point = point - self.position;
-
-        point.abs() == point
-            && point.x < self.size.x
-            && point.y < self.size.y
-            && point.z < self.size.z
+        point.x >= self.position.x
+            && point.y >= self.position.y
+            && point.z >= self.position.z
+            && point.x < self.position.x + self.size.x
+            && point.y < self.position.y + self.size.y
+            && point.z < self.position.z + self.size.z
     }
 
     /// Returns if this bounding box has a surface or a length, i.e. at least one component of [`Self::size`] is greater than 0.
@@ -494,7 +494,8 @@ impl Aabb {
     fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0 && self.size.z >= 0.0,
-            "size {:?} is negative",
+            "{} size {:?} is negative",
+            std::any::type_name::<Self>(),
             self.size
         );
     }
