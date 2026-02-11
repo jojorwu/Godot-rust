@@ -22,7 +22,7 @@ use crate::registry::property::SimpleVar;
 /// Covariant `Array` that can be either typed or untyped.
 ///
 /// Unlike [`Array<T>`], which carries compile-time type information, `AnyArray` is a type-erased version of arrays.
-/// It can point to any `Array<T>`, for both typed and untyped arrays. See [`Array`: Element type](struct.Array.html#element-type) section.
+/// It can point to any `Array<T>`, for both typed and untyped arrays. See [Array: Element type][crate::builtin::Array#element-type] section.
 ///
 /// # Covariance
 /// In GDScript, the subtyping relationship is modeled incorrectly for arrays:
@@ -40,7 +40,7 @@ use crate::registry::property::SimpleVar;
 /// `AnyArray` does not provide any operations where data flows _in_ to the array, such as `push()` or `insert()`.
 ///
 /// ## Conversions
-/// See the [corresponding section in `Array`](struct.Array.html#conversions-between-arrays).
+/// See the [corresponding section in `Array`][crate::builtin::Array#conversions-between-arrays].
 #[derive(PartialEq, PartialOrd)]
 #[repr(transparent)] // Guarantees same layout as VarArray, enabling Deref from Array<T>.
 pub struct AnyArray {

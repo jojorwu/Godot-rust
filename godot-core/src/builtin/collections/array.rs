@@ -73,7 +73,7 @@ use crate::registry::property::{BuiltinExport, Export, Var};
 /// otherwise it would be possible to insert `Base` pointers that aren't actually `Derived`.
 // Note: the above could theoretically be implemented by making AnyArray<T> generic and covariant over T.
 ///
-/// [deref coercion]: struct.Array.html#deref-methods-AnyArray
+/// [deref coercion]: crate::builtin::Array#deref-methods-AnyArray
 ///
 /// ## Typed array example
 /// ```no_run
