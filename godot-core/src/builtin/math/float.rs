@@ -226,6 +226,9 @@ macro_rules! impl_float_ext {
             fn lerp_angle(self, to: Self, weight: Self) -> Self {
                 use $consts;
 
+                // Implementation note: Rust's % operator (rem) behaves the same as C++'s fmod()
+                // regarding the sign of the result (it matches the dividend).
+                // This is consistent with Godot's implementation in C++.
                 let difference = (to - self) % consts::TAU;
                 let distance = (2.0 * difference) % consts::TAU - difference;
                 self + distance * weight

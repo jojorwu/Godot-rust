@@ -255,10 +255,9 @@ impl<T: GodotClass> Gd<T> {
     pub fn from_instance_id(instance_id: InstanceId) -> Self {
         Self::try_from_instance_id(instance_id).unwrap_or_else(|err| {
             panic!(
-                "Instance ID {} does not belong to a valid object of class '{}': {}",
-                instance_id,
+                "Gd::from_instance_id(): ID {instance_id} does not belong to a valid object of class '{}' (target {}): {err}",
                 T::class_id(),
-                err
+                std::any::type_name::<Self>()
             )
         })
     }
@@ -300,8 +299,9 @@ impl<T: GodotClass> Gd<T> {
     pub fn instance_id(&self) -> InstanceId {
         self.instance_id_or_none().unwrap_or_else(|| {
             panic!(
-                "failed to call instance_id() on destroyed object; \
-                use instance_id_or_none() or keep your objects alive"
+                "Gd::instance_id() for {} failed: object is dead or has been destroyed; \
+                use instance_id_or_none() or keep your objects alive",
+                std::any::type_name::<Self>()
             )
         })
     }

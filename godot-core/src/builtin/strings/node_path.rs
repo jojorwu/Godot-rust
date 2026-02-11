@@ -11,7 +11,7 @@ use godot_ffi as sys;
 use godot_ffi::{ffi_methods, ExtVariantType, GdextBuild, GodotFfi};
 
 use super::{GString, StringName};
-use crate::builtin::{inner, to_usize};
+use crate::builtin::{inner, to_i64, to_usize};
 use crate::meta::signed_range::SignedRange;
 
 /// A pre-parsed scene tree path.
@@ -64,7 +64,7 @@ impl NodePath {
     /// If `index` is out of bounds. In safeguards-disengaged level, a Godot error is generated and the result is unspecified (but safe).
     pub fn get_name(&self, index: usize) -> StringName {
         let inner = self.as_inner();
-        let index = index as i64;
+        let index = to_i64(index);
 
         // Not safety-critical, Godot will do another check. But better error message.
         sys::balanced_assert!(
@@ -91,7 +91,7 @@ impl NodePath {
     /// If `index` is out of bounds. In safeguards-disengaged level, a Godot error is generated and the result is unspecified (but safe).
     pub fn get_subname(&self, index: usize) -> StringName {
         let inner = self.as_inner();
-        let index = index as i64;
+        let index = to_i64(index);
 
         sys::balanced_assert!(
             index < inner.get_subname_count(),

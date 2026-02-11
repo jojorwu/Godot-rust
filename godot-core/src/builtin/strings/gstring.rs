@@ -13,7 +13,7 @@ use sys::types::OpaqueString;
 use sys::{ffi_methods, interface_fn, ExtVariantType, GodotFfi};
 
 use crate::builtin::strings::{pad_if_needed, Encoding};
-use crate::builtin::{inner, to_usize, NodePath, StringName, Variant};
+use crate::builtin::{inner, to_i64, to_usize, NodePath, StringName, Variant};
 use crate::meta::error::StringError;
 use crate::meta::AsArg;
 use crate::{impl_shared_string_api, meta};
@@ -295,7 +295,7 @@ impl GString {
         );
 
         unsafe {
-            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), index as i64);
+            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), to_i64(index));
             *ptr = character as u32;
         }
     }

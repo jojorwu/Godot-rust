@@ -211,10 +211,13 @@ impl Aabb {
     #[inline]
     #[doc(alias = "get_endpoint")]
     pub fn get_corner(self, idx: usize) -> Vector3 {
-        *self
-            .corners()
-            .get(idx)
-            .expect("Tried to retrieve vertex no. {idx} from Aabb which has only 8 vertices")
+        if idx >= 8 {
+            panic!(
+                "{}::get_corner(): index {idx} out of bounds (len 8)",
+                std::any::type_name::<Self>()
+            );
+        }
+        self.corners()[idx]
     }
 
     /// Set size based on desired end-point.

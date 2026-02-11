@@ -309,7 +309,7 @@ impl Basis {
             0 => row == Vector3::RIGHT,
             1 => row == Vector3::UP,
             2 => row == Vector3::BACK,
-            _ => panic!("Unknown Index {index}"),
+            _ => unreachable!("Basis::is_identity_index(): unknown index {index}"),
         }
     }
 
