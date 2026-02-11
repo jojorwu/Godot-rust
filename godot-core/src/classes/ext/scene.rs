@@ -18,8 +18,15 @@ impl PackedScene {
     where
         T: Inherits<Node>,
     {
-        self.try_instantiate_as::<T>()
-            .unwrap_or_else(|| panic!("Failed to instantiate {to}", to = T::class_id()))
+        self.try_instantiate_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "PackedScene::instantiate_as() for scene '{}' ({}) failed: root node is not of type {} (requested {})",
+                self.get_path(),
+                self.get_class(),
+                T::class_id(),
+                std::any::type_name::<T>()
+            )
+        })
     }
 
     /// Instantiates the scene as type `T` (fallible).

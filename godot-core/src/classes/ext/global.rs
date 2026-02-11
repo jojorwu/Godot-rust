@@ -26,17 +26,22 @@ impl crate::classes::ClassDb {
         let variant = self.instantiate(class);
         if variant.is_nil() {
             panic!(
-                "ClassDB::instantiate_as(): failed to instantiate class '{class}' (returned Nil)"
+                "ClassDB::instantiate_as() failed: class '{class}' could not be instantiated (returned Nil) (requested type {})",
+                std::any::type_name::<T>()
             );
         }
         let obj = variant.try_to::<Gd<Object>>().unwrap_or_else(|err| {
-            panic!("ClassDB::instantiate_as(): failed to convert instance of '{class}' to Gd<Object>: {err}");
+            panic!(
+                "ClassDB::instantiate_as() failed: instance of class '{class}' could not be converted to Gd<Object>: {err} (requested type {})",
+                std::any::type_name::<T>()
+            );
         });
 
         obj.try_cast::<T>().unwrap_or_else(|obj| {
             panic!(
-                "ClassDB::instantiate_as(): class '{class}' (instance {obj:?}) is not of type {to}",
-                to = T::class_id()
+                "ClassDB::instantiate_as() failed: class '{class}' (instance {obj:?}) is not of type {} (requested {})",
+                T::class_id(),
+                std::any::type_name::<T>()
             );
         })
     }
@@ -118,10 +123,16 @@ impl crate::classes::ProjectSettings {
         arg_into_ref!(name);
         let variant = self.get_setting(name);
         if variant.is_nil() {
-            panic!("ProjectSettings::get_setting_as(): setting '{name}' not found (returned Nil)");
+            panic!(
+                "ProjectSettings::get_setting_as() failed: setting '{name}' not found (returned Nil) (requested {})",
+                std::any::type_name::<T>()
+            );
         }
         variant.try_to::<T>().unwrap_or_else(|err| {
-            panic!("ProjectSettings::get_setting_as(): setting '{name}' conversion failed: {err}");
+            panic!(
+                "ProjectSettings::get_setting_as() failed: setting '{name}' conversion to {} failed: {err}",
+                std::any::type_name::<T>()
+            );
         })
     }
 
@@ -154,13 +165,17 @@ impl crate::classes::Engine {
     {
         arg_into_ref!(name);
         let obj = self.get_singleton(name).unwrap_or_else(|| {
-            panic!("Engine::get_singleton_as(): singleton '{name}' not found");
+            panic!(
+                "Engine::get_singleton_as() failed: singleton '{name}' not found (requested {})",
+                std::any::type_name::<T>()
+            );
         });
 
         obj.try_cast::<T>().unwrap_or_else(|obj| {
             panic!(
-                "Engine::get_singleton_as(): singleton '{name}' (instance {obj:?}) is not of type {to}",
-                to = T::class_id()
+                "Engine::get_singleton_as() failed: singleton '{name}' (instance {obj:?}) is not of type {} (requested {})",
+                T::class_id(),
+                std::any::type_name::<T>()
             );
         })
     }
