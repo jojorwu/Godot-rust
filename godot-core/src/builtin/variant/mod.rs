@@ -41,6 +41,43 @@ pub struct Variant {
     _opaque: sys::types::OpaqueVariant,
 }
 
+macro_rules! impl_variant_is_type {
+    ($($name:ident, $ty:ident, $comment:expr);* $(;)?) => {
+        $(
+            #[doc = $comment]
+            #[inline]
+            pub fn $name(&self) -> bool {
+                self.is_type(VariantType::$ty)
+            }
+        )*
+    };
+}
+
+macro_rules! impl_variant_try_to {
+    ($($name:ident, $ty:ty, $variant_name:expr);* $(;)?) => {
+        $(
+            #[doc = concat!("Returns the variant as a `", stringify!($ty), "`, or `Err` if it is not a ", $variant_name, ".")]
+            #[inline]
+            pub fn $name(&self) -> Result<$ty, ConvertError> {
+                self.try_to()
+            }
+        )*
+    };
+}
+
+macro_rules! impl_variant_to_relaxed {
+    ($($name:ident, $ty:ty);* $(;)?) => {
+        $(
+            #[doc = concat!("⚠️ Returns the variant as a `", stringify!($ty), "`, using relaxed conversion rules, panicking if it fails.")]
+            #[inline]
+            pub fn $name(&self) -> $ty {
+                self.try_to_relaxed::<$ty>()
+                    .unwrap_or_else(|err| panic!("Variant::{}(): {err}", stringify!($name)))
+            }
+        )*
+    };
+}
+
 impl Variant {
     #[cold]
     #[inline(never)]
@@ -175,64 +212,20 @@ impl Variant {
         self.get_type() == ty
     }
 
-    /// Returns true if the variant holds an object.
-    ///
-    /// Alias for `self.is_type(VariantType::OBJECT)`.
-    #[inline]
-    pub fn is_object(&self) -> bool {
-        self.is_type(VariantType::OBJECT)
+    impl_variant_is_type! {
+        is_object, OBJECT, "Returns true if the variant holds an object.\n\nAlias for `self.is_type(VariantType::OBJECT)`.";
+        is_int, INT, "Returns true if the variant holds an integer.";
+        is_float, FLOAT, "Returns true if the variant holds a float.";
+        is_bool, BOOL, "Returns true if the variant holds a boolean.";
+        is_string, STRING, "Returns true if the variant holds a string.";
+        is_array, ARRAY, "Returns true if the variant holds an array.\n\nAlias for `self.is_type(VariantType::ARRAY)`.";
+        is_dictionary, DICTIONARY, "Returns true if the variant holds a dictionary.\n\nAlias for `self.is_type(VariantType::DICTIONARY)`.";
     }
 
-    /// Returns true if the variant holds an integer.
-    #[inline]
-    pub fn is_int(&self) -> bool {
-        self.is_type(VariantType::INT)
-    }
-
-    /// Returns true if the variant holds a float.
-    #[inline]
-    pub fn is_float(&self) -> bool {
-        self.is_type(VariantType::FLOAT)
-    }
-
-    /// Returns true if the variant holds a boolean.
-    #[inline]
-    pub fn is_bool(&self) -> bool {
-        self.is_type(VariantType::BOOL)
-    }
-
-    /// Returns true if the variant holds a string.
-    #[inline]
-    pub fn is_string(&self) -> bool {
-        self.is_type(VariantType::STRING)
-    }
-
-    /// Returns true if the variant holds an array.
-    ///
-    /// Alias for `self.is_type(VariantType::ARRAY)`.
-    #[inline]
-    pub fn is_array(&self) -> bool {
-        self.is_type(VariantType::ARRAY)
-    }
-
-    /// Returns true if the variant holds a dictionary.
-    ///
-    /// Alias for `self.is_type(VariantType::DICTIONARY)`.
-    #[inline]
-    pub fn is_dictionary(&self) -> bool {
-        self.is_type(VariantType::DICTIONARY)
-    }
-
-    /// Returns the variant as an `Array<Variant>`, or `Err` if it is not an array.
-    #[inline]
-    pub fn try_to_array(&self) -> Result<crate::builtin::Array<Variant>, ConvertError> {
-        self.try_to()
-    }
-
-    /// Returns the variant as a `VarDictionary`, or `Err` if it is not a dictionary.
-    #[inline]
-    pub fn try_to_dictionary(&self) -> Result<crate::builtin::VarDictionary, ConvertError> {
-        self.try_to()
+    impl_variant_try_to! {
+        try_to_array, crate::builtin::Array<Variant>, "array";
+        try_to_dictionary, crate::builtin::VarDictionary, "dictionary";
+        try_to_gstring, GString, "string";
     }
 
     /// Returns the variant as a `Gd<T>`, or `Err` if it is not an object of type `T`.
@@ -245,38 +238,11 @@ impl Variant {
         self.try_to()
     }
 
-    /// Returns the variant as a `GString`, or `Err` if it is not a string.
-    #[inline]
-    pub fn try_to_gstring(&self) -> Result<GString, ConvertError> {
-        self.try_to()
-    }
-
-    /// ⚠️ Returns the variant as an integer, using relaxed conversion rules, panicking if it fails.
-    #[inline]
-    pub fn to_int(&self) -> i64 {
-        self.try_to_relaxed::<i64>()
-            .unwrap_or_else(|err| panic!("Variant::to_int(): {err}"))
-    }
-
-    /// ⚠️ Returns the variant as a float, using relaxed conversion rules, panicking if it fails.
-    #[inline]
-    pub fn to_float(&self) -> f64 {
-        self.try_to_relaxed::<f64>()
-            .unwrap_or_else(|err| panic!("Variant::to_float(): {err}"))
-    }
-
-    /// ⚠️ Returns the variant as a boolean, using relaxed conversion rules, panicking if it fails.
-    #[inline]
-    pub fn to_bool(&self) -> bool {
-        self.try_to_relaxed::<bool>()
-            .unwrap_or_else(|err| panic!("Variant::to_bool(): {err}"))
-    }
-
-    /// ⚠️ Returns the variant as a `GString`, using relaxed conversion rules, panicking if it fails.
-    #[inline]
-    pub fn to_gstring(&self) -> GString {
-        self.try_to_relaxed::<GString>()
-            .unwrap_or_else(|err| panic!("Variant::to_gstring(): {err}"))
+    impl_variant_to_relaxed! {
+        to_int, i64;
+        to_float, f64;
+        to_bool, bool;
+        to_gstring, GString;
     }
 
     /// Returns the type that is currently held by this variant.
