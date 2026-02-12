@@ -131,16 +131,11 @@ impl AnyArray {
         self.array.as_inner().is_empty()
     }
 
-    /// Returns a 32-bit integer hash value representing the array and its contents.
-    ///
-    /// Arrays with equal content will always produce identical hash values. However, the reverse is not true:
-    /// Different arrays can have identical hash values due to hash collisions.
-    pub fn hash_u32(&self) -> u32 {
-        self.array
-            .as_inner()
-            .hash()
-            .try_into()
-            .expect("Godot hashes are uint32_t")
+    crate::declare_hash_u32_method! {
+        /// Returns a 32-bit integer hash value representing the array and its contents.
+        ///
+        /// Arrays with equal content will always produce identical hash values. However, the reverse is not true:
+        /// Different arrays can have identical hash values due to hash collisions.
     }
 
     /// Returns the first element in the array, or `None` if the array is empty.
@@ -422,7 +417,11 @@ impl AnyArray {
     /// Returns `true` if the array is read-only. See [`make_read_only`][crate::builtin::Array::make_read_only].
     #[inline]
     pub fn is_read_only(&self) -> bool {
-        self.array.as_inner().is_read_only()
+        self.as_inner().is_read_only()
+    }
+
+    pub(crate) fn as_inner(&self) -> super::array::ImmutableInnerArray<'_> {
+        self.array.as_inner()
     }
 
     /// Best-effort mutability check.

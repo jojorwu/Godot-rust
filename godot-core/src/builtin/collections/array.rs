@@ -191,7 +191,7 @@ pub struct Array<T: ArrayElement> {
 }
 
 /// Guard that can only call immutable methods on the array.
-pub(super) struct ImmutableInnerArray<'a> {
+pub(crate) struct ImmutableInnerArray<'a> {
     inner: inner::InnerArray<'a>,
 }
 
@@ -313,20 +313,14 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "first")]
     #[inline]
     pub fn front(&self) -> Option<T> {
-        (!self.is_empty()).then(|| {
-            let variant = self.as_inner().front();
-            T::from_variant(&variant)
-        })
+        self.get_and_convert(|inner| inner.front())
     }
 
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
     pub fn back(&self) -> Option<T> {
-        (!self.is_empty()).then(|| {
-            let variant = self.as_inner().back();
-            T::from_variant(&variant)
-        })
+        self.get_and_convert(|inner| inner.back())
     }
 
     ///  ⚠️ Sets the value at the specified index.
@@ -384,13 +378,7 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "pop_back")]
     #[inline]
     pub fn pop(&mut self) -> Option<T> {
-        self.balanced_ensure_mutable();
-
-        (!self.is_empty()).then(|| {
-            // SAFETY: We do not write any values to the array, we just remove one.
-            let variant = unsafe { self.as_inner_mut() }.pop_back();
-            T::from_variant(&variant)
-        })
+        self.pop_and_convert(|inner| inner.pop_back())
     }
 
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
@@ -399,13 +387,7 @@ impl<T: ArrayElement> Array<T> {
     /// array's elements. The larger the array, the slower `pop_front()` will be.
     #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
-        self.balanced_ensure_mutable();
-
-        (!self.is_empty()).then(|| {
-            // SAFETY: We do not write any values to the array, we just remove one.
-            let variant = unsafe { self.as_inner_mut() }.pop_front();
-            T::from_variant(&variant)
-        })
+        self.pop_and_convert(|inner| inner.pop_front())
     }
 
     /// ⚠️ Inserts a new element before the index. The index must be valid or the end of the array (`index == len()`).
@@ -641,10 +623,7 @@ impl<T: ArrayElement> Array<T> {
     /// Returns a random element from the array, or `None` if it is empty.
     #[inline]
     pub fn pick_random(&self) -> Option<T> {
-        (!self.is_empty()).then(|| {
-            let variant = self.as_inner().pick_random();
-            T::from_variant(&variant)
-        })
+        self.get_and_convert(|inner| inner.pick_random())
     }
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if
@@ -830,6 +809,32 @@ impl<T: ArrayElement> Array<T> {
     #[inline]
     pub fn is_read_only(&self) -> bool {
         self.as_inner().is_read_only()
+    }
+
+    #[inline]
+    fn get_and_convert<F>(&self, f: F) -> Option<T>
+    where
+        F: FnOnce(&inner::InnerArray<'_>) -> Variant,
+    {
+        (!self.is_empty()).then(|| {
+            let variant = f(&self.as_inner());
+            T::from_variant(&variant)
+        })
+    }
+
+    #[inline]
+    fn pop_and_convert<F>(&mut self, f: F) -> Option<T>
+    where
+        F: FnOnce(&mut inner::InnerArray<'_>) -> Variant,
+    {
+        self.balanced_ensure_mutable();
+
+        (!self.is_empty()).then(|| {
+            // SAFETY: We checked emptiness. pop_* methods on InnerArray do not write any new values
+            // to the array, they just remove and return one.
+            let variant = f(&mut unsafe { self.as_inner_mut() });
+            T::from_variant(&variant)
+        })
     }
 
     /// Best-effort mutability check.
