@@ -89,4 +89,12 @@ impl ResourceSaver {
     {
         crate::tools::try_save(obj, path)
     }
+
+    /// Alias for [`save_as()`][Self::save_as].
+    pub fn save_typed<T>(&self, obj: &Gd<T>, path: impl AsArg<GString>)
+    where
+        T: Inherits<Resource>,
+    {
+        self.save_as(obj, path)
+    }
 }

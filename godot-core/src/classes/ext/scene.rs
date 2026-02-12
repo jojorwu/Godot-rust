@@ -31,6 +31,14 @@ impl PackedScene {
         })
     }
 
+    /// Alias for [`instantiate_as()`][Self::instantiate_as].
+    pub fn instantiate_typed<T>(&self) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.instantiate_as::<T>()
+    }
+
     /// Instantiates the scene as type `T` (fallible).
     ///
     /// If the scene is not type `T` or inherited.
