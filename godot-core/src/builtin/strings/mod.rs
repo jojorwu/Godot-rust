@@ -17,6 +17,9 @@ pub use gstring::{ExFind as GStringExFind, ExSplit as GStringExSplit, *};
 pub use node_path::NodePath;
 pub use string_name::{ExFind as StringNameExFind, ExSplit as StringNameExSplit, *};
 
+use godot_ffi as sys;
+use sys::interface_fn;
+
 use crate::meta;
 use crate::meta::error::ConvertError;
 use crate::meta::{FromGodot, GodotConvert, ToGodot};
@@ -81,6 +84,43 @@ fn populated_or_none(s: GString) -> Option<GString> {
 
 // Used by sub-modules of this module.
 use standard_fmt::pad_if_needed;
+
+pub(crate) fn compare_gstring_to_str(s: sys::GDExtensionConstStringPtr, other: &str) -> bool {
+    let other_bytes = other.as_bytes();
+    unsafe {
+        // Get length in UTF-8 bytes.
+        let len = interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
+        if len as usize != other_bytes.len() {
+            return false;
+        }
+        if len == 0 {
+            return true;
+        }
+
+        // We need a temporary buffer to hold the GString's UTF-8 representation.
+        // For short strings, we can use the stack.
+        const STACK_BUF_SIZE: usize = 128;
+        if len as usize <= STACK_BUF_SIZE {
+            let mut buf = [0u8; STACK_BUF_SIZE];
+            interface_fn!(string_to_utf8_chars)(
+                s,
+                buf.as_mut_ptr() as *mut std::ffi::c_char,
+                len,
+            );
+            &buf[..len as usize] == other_bytes
+        } else {
+            // For long strings, we use a heap-allocated Vec.
+            let mut buffer = Vec::<u8>::with_capacity(len as usize);
+            interface_fn!(string_to_utf8_chars)(
+                s,
+                buffer.as_mut_ptr() as *mut std::ffi::c_char,
+                len,
+            );
+            buffer.set_len(len as usize);
+            buffer == other_bytes
+        }
+    }
+}
 
 mod standard_fmt {
     use std::fmt;
