@@ -1,21 +1,21 @@
    Compiling godot-core v0.4.4 (/app/godot-core)
    Compiling godot v0.4.4 (/app/godot)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.78s
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 57.39s
      Running unittests src/lib.rs (target/debug/deps/godot_core-837fbba54a9dc6f6)
 
-running 107 tests
-test builtin::aabb::test::test_axes_functions ... ok
-test builtin::aabb::test::test_aabb_intersects_segment ... ok
-test builtin::aabb::test::test_intersect_aabb ... ok
+running 108 tests
 test builtin::aabb::test::test_intersect_ray_2 ... ok
-test builtin::aabb::test::test_intersect_ray_zero_dir_outside - should panic ... ok
+test builtin::aabb::test::test_intersect_aabb ... ok
+test builtin::aabb::test::test_aabb_intersects_segment ... ok
+test builtin::aabb::test::test_axes_functions ... ok
 test builtin::aabb::test::test_intersection ... ok
-test builtin::aabb::test::test_intersect_ray_zero_dir_inside - should panic ... ok
 test builtin::aabb::test::test_intersects ... ok
 test builtin::aabb::test::test_intersects_plane ... ok
 test builtin::aabb::test::test_intersects_plane_2 ... ok
-test builtin::aabb::test::test_intersects_segment_2 ... ok
+test builtin::aabb::test::test_intersect_ray_zero_dir_outside - should panic ... ok
+test builtin::aabb::test::test_intersect_ray_zero_dir_inside - should panic ... ok
 test builtin::aabb::test::test_intersects_ray ... ok
+test builtin::aabb::test::test_intersects_segment_2 ... ok
 test builtin::collections::array::correct_variant_t ... ok
 test builtin::collections::extend_buffer::test_extend_buffer_drop ... ok
 test builtin::color::test::arithmetic ... ok
@@ -50,10 +50,10 @@ test builtin::matrices::transform3d::test::scaling ... ok
 test builtin::matrices::transform3d::test::test_geometric_interop ... ok
 test builtin::matrices::transform3d::test::translation ... ok
 test builtin::plane::test::construction_succeeds ... ok
+test builtin::matrices::basis::test::basis_euler_conversions ... ok
 test builtin::plane::test::from_points_colinear_panics - should panic ... ok
 test builtin::plane::test::new_unnormalized_panics - should panic ... ok
 test builtin::plane::test::test_equal ... ok
-test builtin::matrices::basis::test::basis_euler_conversions ... ok
 test builtin::plane::test::test_finite ... ok
 test builtin::plane::test::test_normalization ... ok
 test builtin::plane::test::test_projection ... ok
@@ -63,11 +63,11 @@ test builtin::plane::test::test_spatial_relations ... ok
 test builtin::plane::test::test_three_planes_intersections ... ok
 test builtin::rect2i::test::abs ... ok
 test builtin::rect2i::test::area_and_has_area ... ok
-test builtin::rect2i::test::construction_tests ... ok
-test builtin::rect2i::test::contains_point_self_negative_panics - should panic ... ok
 test builtin::rect2i::test::center ... ok
+test builtin::rect2i::test::construction_tests ... ok
 test builtin::rect2i::test::encloses ... ok
 test builtin::rect2i::test::encloses_other_negative_panics - should panic ... ok
+test builtin::rect2i::test::contains_point_self_negative_panics - should panic ... ok
 test builtin::rect2i::test::encloses_self_negative_panics - should panic ... ok
 test builtin::rect2i::test::end ... ok
 test builtin::rect2i::test::expand_and_contains_point ... ok
@@ -80,7 +80,7 @@ test builtin::rect2i::test::intersects_self_negative_panics - should panic ... o
 test builtin::rect2i::test::merge ... ok
 test builtin::rect2i::test::merge_other_negative_panics - should panic ... ok
 test builtin::rect2i::test::merge_self_negative_panics - should panic ... ok
-test builtin::rect2i::test::set_end ... ok
+test builtin::vectors::vector2::test::arithmetic ... ok
 test builtin::vectors::vector2::test::coord_min_max ... ok
 test builtin::vectors::vector2::test::sign ... ok
 test builtin::vectors::vector2i::test::axis_min_max ... ok
@@ -90,63 +90,64 @@ test builtin::vectors::vector2i::test::mini_maxi_clampi ... ok
 test builtin::vectors::vector2i::test::sign ... ok
 test builtin::vectors::vector2i::test::snappedi ... ok
 test builtin::vectors::vector3::test::coord_min_max ... ok
-test builtin::vectors::vector3::test::rotation ... ok
 test builtin::vectors::vector3::test::iter_sum ... ok
+test builtin::vectors::vector3::test::rotation ... ok
 test builtin::vectors::vector3::test::sign ... ok
-test builtin::vectors::vector3i::test::coord_min_max ... ok
-test builtin::vectors::vector3i::test::axis_min_max ... ok
 test builtin::vectors::vector3::test::test_slerp ... ok
+test builtin::vectors::vector3i::test::axis_min_max ... ok
+test builtin::rect2i::test::set_end ... ok
+test builtin::vectors::vector3i::test::coord_min_max ... ok
 test builtin::vectors::vector3i::test::sign ... ok
 test builtin::vectors::vector4::test::coord_min_max ... ok
 test builtin::vectors::vector4::test::sign ... ok
 test builtin::vectors::vector4i::test::axis_min_max ... ok
+test builtin::vectors::vector4i::test::coord_min_max ... ok
 test builtin::vectors::vector4i::test::sign ... ok
 test builtin::vectors::vector4i::test::test_iter_elementwise_prod ... ok
-test builtin::vectors::vector4i::test::coord_min_max ... ok
 test builtin::vectors::vector_swizzle::test::test_vector_swizzle ... ok
 test meta::param_tuple::impls::test::count_idents_test ... ok
-test task::futures::tests::future_resolver_cloned_hash ... ok
 test meta::param_tuple::impls::test::format_args_test ... ok
+test task::futures::tests::future_resolver_cloned_hash ... ok
 test private::tests::test_call_errors ... ok
-test task::futures::tests::thread_confined_extract ... ok
 test task::futures::tests::thread_confined_leak_on_other_thread ... ok
+test task::futures::tests::thread_confined_extract ... ok
 test builtin::matrices::projection::test::test_is_orthogonal ... ok
 
-test result: ok. 107 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.25s
+test result: ok. 108 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.26s
 
    Doc-tests godot_core
 
 running 152 tests
-test godot-core/src/builtin/collections/array.rs - builtin::collections::array::Array (line 110) - compile ... ok
 test godot-core/src/builtin/collections/array.rs - builtin::collections::array::Array (line 78) - compile ... ok
-test godot-core/src/builtin/collections/array.rs - builtin::collections::array::Array<T>::fmt (line 1231) - compile ... ok
 test godot-core/src/builtin/collections/array.rs - builtin::collections::array::Array (line 132) - compile ... ok
+test godot-core/src/builtin/collections/array.rs - builtin::collections::array::Array (line 110) - compile ... ok
+test godot-core/src/builtin/collections/array.rs - builtin::collections::array::Array<T>::fmt (line 1231) - compile ... ok
 test godot-core/src/builtin/collections/array.rs - builtin::collections::array::__cannot_downcast_from_concrete (line 1828) - compile ... ok
-test godot-core/src/builtin/collections/array.rs - builtin::collections::array::array (line 1630) - compile ... ok
 test godot-core/src/builtin/collections/array.rs - builtin::collections::array::__cannot_downcast_from_concrete (line 1821) - compile fail ... ok
-test godot-core/src/builtin/collections/array.rs - builtin::collections::array::varray (line 1664) - compile ... ok
 test godot-core/src/builtin/collections/array.rs - builtin::collections::array::__cannot_downcast_from_concrete (line 1815) - compile fail ... ok
+test godot-core/src/builtin/collections/array.rs - builtin::collections::array::varray (line 1664) - compile ... ok
 test godot-core/src/builtin/collections/array.rs - builtin::collections::array::vslice (line 1698) - compile ... ok
-test godot-core/src/builtin/collections/array.rs - builtin::collections::array::vslice (line 1707) - compile ... ok
-test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::all (line 129) - compile ... ok
-test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::any (line 110) - compile ... ok
+test godot-core/src/builtin/collections/array.rs - builtin::collections::array::array (line 1630) - compile ... ok
 test godot-core/src/builtin/aabb.rs - builtin::aabb::Aabb::fmt (line 533) ... ok
+test godot-core/src/builtin/collections/array.rs - builtin::collections::array::vslice (line 1707) - compile ... ok
+test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::any (line 110) - compile ... ok
+test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::all (line 129) - compile ... ok
 test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::filter (line 43) - compile ... ok
-test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::map (line 65) - compile ... ok
 test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::find_custom (line 151) - compile ... ok
+test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::map (line 65) - compile ... ok
 test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::reduce (line 87) - compile ... ok
 test godot-core/src/builtin/collections/array_functional_ops.rs - builtin::collections::array_functional_ops::ArrayFunctionalOps<'a,T>::rfind_custom (line 178) - compile ... ok
+test godot-core/src/builtin/collections/dictionary.rs - builtin::collections::dictionary::vdict (line 1174) - compile ... ok
 test godot-core/src/builtin/collections/dictionary.rs - builtin::collections::dictionary::VarDictionary (line 35) - compile ... ok
 test godot-core/src/builtin/collections/packed_array.rs - builtin::collections::packed_array::PackedArray<T>::subarray (line 304) - compile ... ok
-test godot-core/src/builtin/collections/dictionary.rs - builtin::collections::dictionary::vdict (line 1174) - compile ... ok
+test godot-core/src/builtin/color.rs - builtin::color::Color::fmt (line 620) ... ok
 test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv (line 28) ... ok
-test godot-core/src/builtin/color.rs - builtin::color::Color::fmt (line 586) ... ok
-test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv (line 42) ... ok
 test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv (line 37) ... ok
+test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv (line 42) ... ok
 test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv (line 50) ... ok
-test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv (line 67) ... ok
 test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv::normalized_clamped_h (line 133) ... ok
 test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv::normalized_wrapped_h (line 157) ... ok
+test godot-core/src/builtin/color_hsv.rs - builtin::color_hsv::ColorHsv (line 67) ... ok
 test godot-core/src/builtin/real.rs - builtin::real_inner::real (line 182) - compile fail ... ok
 test godot-core/src/builtin/matrices/projection.rs - builtin::matrices::projection::Projection::fmt (line 619) ... ok
 test godot-core/src/builtin/real.rs - builtin::real_inner::real (line 189) ... ok
@@ -154,63 +155,63 @@ test godot-core/src/builtin/plane.rs - builtin::plane::Plane::fmt (line 317) ...
 test godot-core/src/builtin/real.rs - builtin::real_inner::reals (line 207) ... ok
 test godot-core/src/builtin/strings/gstring.rs - builtin::strings::gstring::GString::arg (line 264) - compile ... ok
 test godot-core/src/builtin/strings/gstring.rs - builtin::strings::gstring::GString::find_ex (line 410) - compile ... ok
-test godot-core/src/builtin/strings/node_path.rs - builtin::strings::node_path::NodePath::arg (line 194) - compile ... ok
-test godot-core/src/builtin/strings/node_path.rs - builtin::strings::node_path::NodePath::get_name (line 55) - compile ... ok
 test godot-core/src/builtin/rect2.rs - builtin::rect2::Rect2::fmt (line 309) ... ok
+test godot-core/src/builtin/strings/node_path.rs - builtin::strings::node_path::NodePath::arg (line 194) - compile ... ok
+test godot-core/src/builtin/strings/node_path.rs - builtin::strings::node_path::NodePath::get_subname (line 83) - compile ... ok
+test godot-core/src/builtin/strings/node_path.rs - builtin::strings::node_path::NodePath::get_name (line 55) - compile ... ok
 test godot-core/src/builtin/rect2i.rs - builtin::rect2i::Rect2i::fmt (line 292) ... ok
 test godot-core/src/builtin/strings/node_path.rs - builtin::strings::node_path::NodePath::subpath (line 138) - compile ... ok
-test godot-core/src/builtin/strings/node_path.rs - builtin::strings::node_path::NodePath::get_subname (line 83) - compile ... ok
 test godot-core/src/builtin/strings/string_name.rs - builtin::strings::string_name::StringName::__cstr_with_static (line 287) - compile ... ok
-test godot-core/src/builtin/strings/string_name.rs - builtin::strings::string_name::StringName::find_ex (line 351) - compile ... ok
-test godot-core/src/builtin/strings/string_name.rs - builtin::strings::string_name::StringName::arg (line 153) - compile ... ok
 test godot-core/src/builtin/rid.rs - builtin::rid::Rid::fmt (line 107) ... ok
+test godot-core/src/builtin/strings/string_name.rs - builtin::strings::string_name::StringName::arg (line 153) - compile ... ok
+test godot-core/src/builtin/strings/string_name.rs - builtin::strings::string_name::StringName::find_ex (line 351) - compile ... ok
 test godot-core/src/builtin/vectors/vector2.rs - builtin::vectors::vector2::Vector2::from_angle (line 77) - compile ... ok
 test godot-core/src/classes/match_class.rs - classes::match_class::match_class (line 22) - compile ... ok
 test godot-core/src/global/print.rs - global::print::godot_dbg (line 147) - compile ... ok
 test godot-core/src/global/print.rs - global::print::godot_print (line 101) - compile ... ok
 test godot-core/src/global/print.rs - global::print::godot_str (line 178) - compile ... ok
 test godot-core/src/builtin/vectors/vector_swizzle.rs - builtin::vectors::vector_swizzle::swizzle (line 20) ... ok
-test godot-core/src/builtin/vectors/vector_swizzle.rs - builtin::vectors::vector_swizzle::swizzle (line 39) ... ok
 test godot-core/src/builtin/vectors/vector_swizzle.rs - builtin::vectors::vector_swizzle::swizzle (line 30) ... ok
-test godot-core/src/init/mod.rs - init::ExtensionLibrary::on_main_loop_frame (line 394) - compile ... ok
 test godot-core/src/init/mod.rs - init::ExtensionLibrary (line 305) - compile ... ok
-test godot-core/src/init/mod.rs - init::ExtensionLibrary::override_wasm_binary (line 438) - compile ... ok
+test godot-core/src/init/mod.rs - init::ExtensionLibrary::on_main_loop_frame (line 394) - compile ... ok
+test godot-core/src/builtin/vectors/vector_swizzle.rs - builtin::vectors::vector_swizzle::swizzle (line 39) ... ok
 test godot-core/src/lib.rs - no_compile_tests::__required_param_must_not_take_option (line 105) - compile ... ok
+test godot-core/src/init/mod.rs - init::ExtensionLibrary::override_wasm_binary (line 438) - compile ... ok
 test godot-core/src/lib.rs - no_compile_tests::__required_param_must_not_take_option (line 93) - compile fail ... ok
 test godot-core/src/meta/args/as_arg.rs - meta::args::as_arg::PhantomAsArgDoctests (line 772) - compile ... ok
 test godot-core/src/meta/class_id.rs - meta::class_id::ClassId::new_dynamic (line 110) - compile ... ok
 test godot-core/src/meta/error/call_error.rs - meta::error::call_error::CallError (line 46) - compile ... ok
 test godot-core/src/init/mod.rs - init::ExtensionLibrary (line 286) ... ok
 test godot-core/src/meta/args/as_arg.rs - meta::args::as_arg::owned_into_arg (line 398) ... ok
-test godot-core/src/meta/args/as_arg.rs - meta::args::as_arg::ref_to_arg (line 432) ... ok
 test godot-core/src/meta/godot_convert/impls.rs - meta::godot_convert::impls::__doctest_i32_ptr_to_variant (line 470) - compile fail ... ok
+test godot-core/src/meta/godot_convert/impls.rs - meta::godot_convert::impls::__doctest_native_struct_pointer_param (line 488) - compile fail ... ok
 test godot-core/src/meta/godot_convert/impls.rs - meta::godot_convert::impls::__doctest_u64 (line 462) - compile fail ... ok
+test godot-core/src/meta/godot_convert/impls.rs - meta::godot_convert::impls::__doctest_native_struct_pointer_return (line 505) - compile fail ... ok
+test godot-core/src/meta/args/as_arg.rs - meta::args::as_arg::ref_to_arg (line 432) ... ok
 test godot-core/src/meta/godot_convert/impls.rs - meta::godot_convert::impls::__doctest_void_ptr_from_variant (line 479) - compile fail ... ok
 test godot-core/src/meta/godot_convert/impls.rs - meta::godot_convert::impls::__doctest_u64_return (line 524) - compile fail ... ok
+test godot-core/src/meta/property_info.rs - meta::property_info::PropertyInfo::class_id (line 73) - compile ... ok
 test godot-core/src/meta/property_info.rs - meta::property_info::PropertyInfo (line 34) - compile ... ok
 test godot-core/src/meta/method_info.rs - meta::method_info::MethodInfo (line 26) - compile ... ok
-test godot-core/src/meta/godot_convert/impls.rs - meta::godot_convert::impls::__doctest_native_struct_pointer_return (line 505) - compile fail ... ok
-test godot-core/src/meta/godot_convert/impls.rs - meta::godot_convert::impls::__doctest_native_struct_pointer_param (line 488) - compile fail ... ok
-test godot-core/src/meta/property_info.rs - meta::property_info::PropertyInfo::class_id (line 73) - compile ... ok
 test godot-core/src/meta/property_info.rs - meta::property_info::PropertyInfo::with_hint_info (line 262) - compile ... ok
 test godot-core/src/meta/raw_ptr.rs - meta::raw_ptr::RawPtr (line 21) - compile ... ok
 test godot-core/src/meta/signed_range.rs - meta::signed_range::wrapped (line 22) - compile ... ok
 test godot-core/src/meta/uniform_object_deref.rs - meta::uniform_object_deref::UniformObjectDeref (line 35) - compile ... ok
 test godot-core/src/obj/bounds.rs - obj::bounds::private::implement_godot_bounds (line 119) - compile ... ok
-test godot-core/src/obj/dyn_gd.rs - obj::dyn_gd::DynGd (line 105) - compile ... ok
 test godot-core/src/obj/dyn_gd.rs - obj::dyn_gd::DynGd (line 139) - compile ... ok
 test godot-core/src/obj/dyn_gd.rs - obj::dyn_gd::DynGd (line 214) - compile ... ok
+test godot-core/src/obj/dyn_gd.rs - obj::dyn_gd::DynGd (line 105) - compile ... ok
 test godot-core/src/obj/dyn_gd.rs - obj::dyn_gd::DynGd (line 44) - compile ... ok
 test godot-core/src/obj/dyn_gd.rs - obj::dyn_gd::DynGd (line 249) - compile fail ... ok
 test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::from_init_fn (line 138) - compile ... ok
 test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::try_to_unique (line 920) - compile ... ok
 test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::null_arg (line 963) - compile ... ok
-test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::upcast (line 415) - compile ... ok
 test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::upcast_mut (line 502) - compile ... ok
+test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::upcast (line 415) - compile ... ok
 test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::upcast_ref (line 462) - compile ... ok
 test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::upcast_mut (line 514) - compile fail ... ok
-test godot-core/src/obj/bounds.rs - obj::bounds (line 27) ... ok
 test godot-core/src/obj/gd.rs - obj::gd::Gd<T>::upcast_ref (line 474) - compile fail ... ok
+test godot-core/src/obj/bounds.rs - obj::bounds (line 27) ... ok
 test godot-core/src/obj/on_editor.rs - obj::on_editor::OnEditor (line 136) ... ok
 test godot-core/src/obj/on_editor.rs - obj::on_editor::OnEditor (line 70) ... ok
 test godot-core/src/obj/on_editor.rs - obj::on_editor::OnEditor (line 47) ... ok
@@ -222,52 +223,52 @@ test godot-core/src/obj/traits.rs - obj::traits::EngineBitfield::all_constants (
 test godot-core/src/obj/traits.rs - obj::traits::EngineEnum::all_constants (line 232) - compile ... ok
 test godot-core/src/obj/traits.rs - obj::traits::EngineEnum::values (line 216) - compile ... ok
 test godot-core/src/obj/traits.rs - obj::traits::Inherits (line 105) - compile ... ok
-test godot-core/src/obj/on_ready.rs - obj::on_ready::OnReady (line 55) ... ok
-test godot-core/src/obj/on_ready.rs - obj::on_ready::OnReady (line 88) ... ok
 test godot-core/src/obj/traits.rs - obj::traits::Inherits (line 123) - compile ... ok
-test godot-core/src/obj/on_editor.rs - obj::on_editor::OnEditor (line 94) ... ok
 test godot-core/src/obj/traits.rs - obj::traits::UserSingleton (line 710) - compile ... ok
 test godot-core/src/obj/traits.rs - obj::traits::WithBaseField (line 337) - compile ... ok
+test godot-core/src/obj/on_ready.rs - obj::on_ready::OnReady (line 88) ... ok
+test godot-core/src/obj/on_ready.rs - obj::on_ready::OnReady (line 55) ... ok
+test godot-core/src/obj/on_editor.rs - obj::on_editor::OnEditor (line 94) ... ok
 test godot-core/src/obj/traits.rs - obj::traits::WithBaseField::base (line 377) - compile ... ok
 test godot-core/src/obj/traits.rs - obj::traits::WithBaseField::base_mut (line 440) - compile ... ok
 test godot-core/src/obj/traits.rs - obj::traits::WithUserSignals::signals (line 622) ... ignored
 test godot-core/src/obj/traits.rs - obj::traits::WithUserSignals::signals (line 627) ... ignored
+test godot-core/src/obj/traits.rs - obj::traits::WithBaseField::base (line 398) - compile fail ... ok
 test godot-core/src/obj/traits.rs - obj::traits::WithBaseField::base_mut (line 487) - compile fail ... ok
 test godot-core/src/obj/traits.rs - obj::traits::WithBaseField::base_mut (line 464) - compile ... ok
-test godot-core/src/obj/traits.rs - obj::traits::WithBaseField::base (line 398) - compile fail ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::__export_doctests (line 226) - compile ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::__export_doctests (line 240) - compile fail ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::__export_doctests (line 253) - compile fail ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::__var_doctests (line 175) - compile fail ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::__export_doctests (line 275) - compile fail ... ok
+test godot-core/src/registry/property/mod.rs - registry::property::__export_doctests (line 264) - compile fail ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::export_info_functions::export_enum (line 489) - compile ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::export_info_functions::export_flags (line 522) - compile ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::__var_doctests (line 188) - compile fail ... ok
 test godot-core/src/registry/property/mod.rs - registry::property::__var_doctests (line 206) - compile fail ... ok
 test godot-core/src/registry/property/phantom_var.rs - registry::property::phantom_var::PhantomVarDoctests (line 160) - compile fail ... ok
 test godot-core/src/registry/property/phantom_var.rs - registry::property::phantom_var::PhantomVarDoctests (line 171) - compile fail ... ok
-test godot-core/src/registry/property/mod.rs - registry::property::__export_doctests (line 264) - compile fail ... ok
 test godot-core/src/registry/property/phantom_var.rs - registry::property::phantom_var::PhantomVarDoctests (line 183) - compile fail ... ok
-test godot-core/src/registry/property/phantom_var.rs - registry::property::phantom_var::PhantomVar (line 30) ... ok
 test godot-core/src/registry/property/phantom_var.rs - registry::property::phantom_var::PhantomVarDoctests (line 202) - compile fail ... ok
 test godot-core/src/registry/signal/connect_builder.rs - registry::signal::connect_builder::ConnectBuilder<'_,'_,C,Ps>::connect (line 146) ... ignored
-test godot-core/src/registry/property/mod.rs - registry::property::export_info_functions::export_range (line 383) ... ok
 test godot-core/src/registry/signal/signal_receiver.rs - registry::signal::signal_receiver::IndirectSignalReceiver (line 58) - compile ... ok
-test godot-core/src/registry/signal/typed_signal.rs - registry::signal::typed_signal::TypedSignal<'_,C,Ps>::connect (line 291) ... ignored
-test godot-core/src/registry/signal/signal_receiver.rs - registry::signal::signal_receiver::IndirectSignalReceiver (line 86) - compile ... ok
 test godot-core/src/registry/property/phantom_var.rs - registry::property::phantom_var::PhantomVarDoctests (line 221) - compile fail ... ok
+test godot-core/src/registry/signal/signal_receiver.rs - registry::signal::signal_receiver::IndirectSignalReceiver (line 86) - compile ... ok
+test godot-core/src/registry/signal/typed_signal.rs - registry::signal::typed_signal::TypedSignal<'_,C,Ps>::connect (line 291) ... ignored
+test godot-core/src/registry/signal/typed_signal.rs - registry::signal::typed_signal::TypedSignal (line 65) - compile ... ok
+test godot-core/src/registry/signal/typed_signal.rs - registry::signal::typed_signal::TypedSignal<'_,C,Ps>::connect_once (line 260) - compile ... ok
 test godot-core/src/task/async_runtime.rs - task::async_runtime::spawn (line 73) - compile ... ok
 test godot-core/src/task/async_runtime.rs - task::async_runtime::spawn (line 46) - compile ... ok
-test godot-core/src/registry/signal/typed_signal.rs - registry::signal::typed_signal::TypedSignal<'_,C,Ps>::connect_once (line 260) - compile ... ok
-test godot-core/src/registry/signal/typed_signal.rs - registry::signal::typed_signal::TypedSignal (line 65) - compile ... ok
+test godot-core/src/registry/property/phantom_var.rs - registry::property::phantom_var::PhantomVar (line 30) ... ok
 test godot-core/src/tools/autoload.rs - tools::autoload::get_autoload_by_name (line 32) - compile ... ok
+test godot-core/src/registry/property/mod.rs - registry::property::export_info_functions::export_range (line 383) ... ok
 test godot-core/src/tools/gfile.rs - tools::gfile::GFile (line 51) - compile ... ok
-test godot-core/src/tools/save_load.rs - tools::save_load::load (line 21) - compile ... ok
 test godot-core/src/tools/autoload.rs - tools::autoload::try_get_autoload_by_name (line 69) - compile ... ok
+test godot-core/src/tools/save_load.rs - tools::save_load::load (line 21) - compile ... ok
 test godot-core/src/tools/save_load.rs - tools::save_load::save (line 84) - compile ... ok
 test godot-core/src/tools/save_load.rs - tools::save_load::try_load (line 58) - compile ... ok
 test godot-core/src/tools/translate.rs - tools::translate::tr (line 19) - compile ... ok
 test godot-core/src/tools/translate.rs - tools::translate::tr_n (line 65) - compile ... ok
 test godot-core/src/tools/save_load.rs - tools::save_load::try_save (line 112) - compile ... ok
 
-test result: ok. 148 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 6.54s
+test result: ok. 148 passed; 0 failed; 4 ignored; 0 measured; 0 filtered out; finished in 6.89s

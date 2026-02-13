@@ -222,6 +222,23 @@ mod test {
     }
 
     #[test]
+    fn arithmetic() {
+        let a = Vector2::new(5.0, 10.0);
+        let b = Vector2::new(3.0, 4.0);
+
+        assert_eq_approx!(a % b, Vector2::new(2.0, 2.0));
+        assert_eq_approx!(a % 3.0, Vector2::new(2.0, 1.0));
+
+        let mut c = a;
+        c %= b;
+        assert_eq_approx!(c, a % b);
+
+        let mut d = a;
+        d %= 3.0;
+        assert_eq_approx!(d, a % 3.0);
+    }
+
+    #[test]
     fn sign() {
         let vector = Vector2::new(0.2, -0.5);
         assert_eq!(vector.sign(), Vector2::new(1., -1.));

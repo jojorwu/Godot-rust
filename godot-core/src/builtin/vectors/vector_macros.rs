@@ -213,6 +213,8 @@ macro_rules! impl_vector_operators {
         impl_scalar_vector_binary_operator!($Vector, $Scalar, ($($components),*), Mul, mul);
         impl_vector_vector_binary_operator!($Vector, ($($components),*), Div, div);
         impl_vector_scalar_binary_operator!($Vector, $Scalar, ($($components),*), Div, div);
+        impl_vector_vector_binary_operator!($Vector, ($($components),*), Rem, rem);
+        impl_vector_scalar_binary_operator!($Vector, $Scalar, ($($components),*), Rem, rem);
         impl_iter_vector_reduction!($Vector, Sum, sum);
         impl_iter_vector_reduction!($Vector, Product, product);
         impl_vector_vector_assign_operator!($Vector, ($($components),*), AddAssign, add_assign);
@@ -221,6 +223,8 @@ macro_rules! impl_vector_operators {
         impl_vector_scalar_assign_operator!($Vector, $Scalar, ($($components),*), MulAssign, mul_assign);
         impl_vector_vector_assign_operator!($Vector, ($($components),*), DivAssign, div_assign);
         impl_vector_scalar_assign_operator!($Vector, $Scalar, ($($components),*), DivAssign, div_assign);
+        impl_vector_vector_assign_operator!($Vector, ($($components),*), RemAssign, rem_assign);
+        impl_vector_scalar_assign_operator!($Vector, $Scalar, ($($components),*), RemAssign, rem_assign);
     }
 }
 
