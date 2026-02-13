@@ -73,7 +73,7 @@ use crate::registry::property::{BuiltinExport, Export, Var};
 /// otherwise it would be possible to insert `Base` pointers that aren't actually `Derived`.
 // Note: the above could theoretically be implemented by making AnyArray<T> generic and covariant over T.
 ///
-/// [deref coercion]: crate::builtin::Array#deref-methods-AnyArray
+/// [deref coercion]: struct.Array.html#deref-methods-AnyArray
 ///
 /// ## Typed array example
 /// ```no_run
@@ -291,8 +291,7 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the element at the given index, converted to `U`, or `None` if out of bounds or conversion fails.
     #[inline]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
-        self.get(index)
-            .and_then(|v| v.to_variant().try_to::<U>().ok())
+        self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
@@ -313,14 +312,20 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "first")]
     #[inline]
     pub fn front(&self) -> Option<T> {
-        self.get_and_convert(|inner| inner.front())
+        (!self.is_empty()).then(|| {
+            let variant = self.as_inner().front();
+            T::from_variant(&variant)
+        })
     }
 
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
     pub fn back(&self) -> Option<T> {
-        self.get_and_convert(|inner| inner.back())
+        (!self.is_empty()).then(|| {
+            let variant = self.as_inner().back();
+            T::from_variant(&variant)
+        })
     }
 
     ///  ⚠️ Sets the value at the specified index.
@@ -378,7 +383,13 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "pop_back")]
     #[inline]
     pub fn pop(&mut self) -> Option<T> {
-        self.pop_and_convert(|inner| inner.pop_back())
+        self.balanced_ensure_mutable();
+
+        (!self.is_empty()).then(|| {
+            // SAFETY: We do not write any values to the array, we just remove one.
+            let variant = unsafe { self.as_inner_mut() }.pop_back();
+            T::from_variant(&variant)
+        })
     }
 
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
@@ -387,7 +398,13 @@ impl<T: ArrayElement> Array<T> {
     /// array's elements. The larger the array, the slower `pop_front()` will be.
     #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
-        self.pop_and_convert(|inner| inner.pop_front())
+        self.balanced_ensure_mutable();
+
+        (!self.is_empty()).then(|| {
+            // SAFETY: We do not write any values to the array, we just remove one.
+            let variant = unsafe { self.as_inner_mut() }.pop_front();
+            T::from_variant(&variant)
+        })
     }
 
     /// ⚠️ Inserts a new element before the index. The index must be valid or the end of the array (`index == len()`).
@@ -623,7 +640,10 @@ impl<T: ArrayElement> Array<T> {
     /// Returns a random element from the array, or `None` if it is empty.
     #[inline]
     pub fn pick_random(&self) -> Option<T> {
-        self.get_and_convert(|inner| inner.pick_random())
+        (!self.is_empty()).then(|| {
+            let variant = self.as_inner().pick_random();
+            T::from_variant(&variant)
+        })
     }
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if
@@ -809,32 +829,6 @@ impl<T: ArrayElement> Array<T> {
     #[inline]
     pub fn is_read_only(&self) -> bool {
         self.as_inner().is_read_only()
-    }
-
-    #[inline]
-    fn get_and_convert<F>(&self, f: F) -> Option<T>
-    where
-        F: FnOnce(&inner::InnerArray<'_>) -> Variant,
-    {
-        (!self.is_empty()).then(|| {
-            let variant = f(&self.as_inner());
-            T::from_variant(&variant)
-        })
-    }
-
-    #[inline]
-    fn pop_and_convert<F>(&mut self, f: F) -> Option<T>
-    where
-        F: FnOnce(&mut inner::InnerArray<'_>) -> Variant,
-    {
-        self.balanced_ensure_mutable();
-
-        (!self.is_empty()).then(|| {
-            // SAFETY: We checked emptiness. pop_* methods on InnerArray do not write any new values
-            // to the array, they just remove and return one.
-            let variant = f(&mut unsafe { self.as_inner_mut() });
-            T::from_variant(&variant)
-        })
     }
 
     /// Best-effort mutability check.
@@ -1593,6 +1587,18 @@ impl<T: ArrayElement + FromGodot> Iterator for IntoIter<T> {
 pub struct Iter<'a, T: ArrayElement> {
     slice_iter: std::slice::Iter<'a, Variant>,
     _phantom: PhantomData<T>,
+}
+
+impl<'a> Iter<'a, Variant> {
+    /// Casts this untyped iterator into a typed one.
+    ///
+    /// The resulting iterator will try to convert each element to `U` upon access.
+    pub fn typed<U: ArrayElement + FromGodot>(self) -> Iter<'a, U> {
+        Iter {
+            slice_iter: self.slice_iter,
+            _phantom: PhantomData,
+        }
+    }
 }
 
 impl<T: ArrayElement + FromGodot> Iterator for Iter<'_, T> {

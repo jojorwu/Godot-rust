@@ -262,6 +262,18 @@ impl StringName {
         inner::InnerStringName::from_outer(self)
     }
 
+    /// Converts this `StringName` to a `GString`.
+    #[inline]
+    pub fn to_gstring(&self) -> GString {
+        GString::from(self)
+    }
+
+    /// Converts this `StringName` to a `NodePath`.
+    #[inline]
+    pub fn to_node_path(&self) -> NodePath {
+        NodePath::from(self)
+    }
+
     #[doc(hidden)] // Private for now. Needs API discussion, also regarding overlap with try_from_cstr().
     pub fn __cstr(c_str: &'static std::ffi::CStr) -> Self {
         // This used to be set to true, but `p_is_static` parameter in Godot should only be enabled if the result is indeed stored
@@ -417,8 +429,16 @@ impl ExactSizeIterator for IntoIter {}
 // API design: see PartialEq for GString.
 impl PartialEq<&str> for StringName {
     fn eq(&self, other: &&str) -> bool {
-        let gstring = GString::from(self);
-        super::compare_gstring_to_str(gstring.string_sys(), other)
+        #[cfg(since_api = "4.5")]
+        {
+            self.chars().iter().copied().eq(other.chars())
+        }
+
+        #[cfg(before_api = "4.5")]
+        {
+            let gstring = GString::from(self);
+            super::compare_gstring_to_str(gstring.string_sys(), other)
+        }
     }
 }
 

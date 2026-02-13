@@ -581,6 +581,18 @@ impl VarDictionary {
         )
     }
 
+    /// Returns `true` if this dictionary is typed.
+    pub fn is_typed(&self) -> bool {
+        #[cfg(since_api = "4.4")]
+        {
+            self.key_element_type().is_typed() || self.value_element_type().is_typed()
+        }
+        #[cfg(before_api = "4.4")]
+        {
+            false
+        }
+    }
+
     /// Reserves capacity for at least `capacity` elements.
     ///
     /// The dictionary may reserve more space to avoid frequent reallocations.

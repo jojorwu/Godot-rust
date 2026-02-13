@@ -11,7 +11,9 @@ use godot_ffi as sys;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
 use crate::builtin::{
-    GString, NodePath, StringName, VarArray, VariantDispatch, VariantOperator, VariantType,
+    Aabb, Basis, Color, GString, NodePath, Plane, Projection, Quaternion, Rect2, Rect2i, Rid,
+    StringName, Transform2D, Transform3D, VarArray, VariantDispatch, VariantOperator, VariantType,
+    Vector2, Vector2i, Vector3, Vector3i, Vector4, Vector4i,
 };
 use crate::classes;
 use crate::meta::error::{ConvertError, FromVariantError};
@@ -220,6 +222,32 @@ impl Variant {
         is_string, STRING, "Returns true if the variant holds a string.";
         is_array, ARRAY, "Returns true if the variant holds an array.\n\nAlias for `self.is_type(VariantType::ARRAY)`.";
         is_dictionary, DICTIONARY, "Returns true if the variant holds a dictionary.\n\nAlias for `self.is_type(VariantType::DICTIONARY)`.";
+    }
+
+    /// Returns true if the variant holds a container type (`ARRAY` or `DICTIONARY`).
+    #[inline]
+    pub fn is_container(&self) -> bool {
+        matches!(self.get_type(), VariantType::ARRAY | VariantType::DICTIONARY)
+    }
+
+    /// Returns true if the variant holds a numeric type (`INT` or `FLOAT`).
+    #[inline]
+    pub fn is_numeric(&self) -> bool {
+        matches!(self.get_type(), VariantType::INT | VariantType::FLOAT)
+    }
+
+    /// Returns true if the variant holds a string-like type (`STRING`, `STRING_NAME`, or `NODE_PATH`).
+    #[inline]
+    pub fn is_string_like(&self) -> bool {
+        matches!(
+            self.get_type(),
+            VariantType::STRING | VariantType::STRING_NAME | VariantType::NODE_PATH
+        )
+    }
+
+    /// Returns the Godot type name of the variant as a `GString`.
+    pub fn get_type_name(&self) -> GString {
+        format!("{:?}", self.get_type()).into()
     }
 
     impl_variant_try_to! {
@@ -902,6 +930,27 @@ macro_rules! impl_variant_partial_eq {
             }
         )*
     };
+
+    (ffi $($ty:ty),* => $lhs:ident, $rhs:ident) => {
+        $(
+            impl PartialEq<$ty> for Variant {
+                #[inline]
+                fn eq(&self, other: &$ty) -> bool {
+                    if self.get_type() == <$ty>::VARIANT_TYPE.variant_as_nil() {
+                        return self.try_to::<$ty>().is_ok_and(|v| v == *other);
+                    }
+                    false
+                }
+            }
+
+            impl PartialEq<Variant> for $ty {
+                #[inline]
+                fn eq(&self, other: &Variant) -> bool {
+                    other.eq(self)
+                }
+            }
+        )*
+    };
 }
 
 impl_variant_partial_eq!(i64, i32, i16, i8, u32, u16, u8 => variant, other, {
@@ -926,6 +975,13 @@ impl_variant_partial_eq!(bool => variant, other, {
     }
     false
 });
+
+impl_variant_partial_eq!(
+    ffi
+    Vector2, Vector2i, Rect2, Rect2i, Vector3, Vector3i, Transform2D, Vector4, Vector4i, Plane,
+    Quaternion, Aabb, Basis, Transform3D, Projection, Color, Rid
+    => variant, other
+);
 
 impl_variant_partial_eq!(GString, StringName, NodePath, &str, String => variant, other, {
     match variant.get_type() {

@@ -110,13 +110,12 @@ pub(crate) fn compare_gstring_to_str(s: sys::GDExtensionConstStringPtr, other: &
             &buf[..len as usize] == other_bytes
         } else {
             // For long strings, we use a heap-allocated Vec.
-            let mut buffer = Vec::<u8>::with_capacity(len as usize);
+            let mut buffer = vec![0u8; len as usize];
             interface_fn!(string_to_utf8_chars)(
                 s,
                 buffer.as_mut_ptr() as *mut std::ffi::c_char,
                 len,
             );
-            buffer.set_len(len as usize);
             buffer == other_bytes
         }
     }

@@ -277,6 +277,18 @@ impl GString {
         inner::InnerString::from_outer(self)
     }
 
+    /// Converts this `GString` to a `StringName`.
+    #[inline]
+    pub fn to_string_name(&self) -> StringName {
+        StringName::from(self)
+    }
+
+    /// Converts this `GString` to a `NodePath`.
+    #[inline]
+    pub fn to_node_path(&self) -> NodePath {
+        NodePath::from(self)
+    }
+
     /// Alias for [`begins_with()`][Self::begins_with].
     #[inline]
     pub fn starts_with(&self, text: impl AsArg<GString>) -> bool {

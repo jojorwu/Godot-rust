@@ -239,6 +239,48 @@ impl<T: PackedArrayElement> PackedArray<T> {
         element
     }
 
+    /// Removes and returns the last element of the array. Returns `None` if the array is empty.
+    ///
+    /// _Godot equivalent: `pop_back`_
+    #[doc(alias = "pop_back")]
+    pub fn pop(&mut self) -> Option<T> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(self.remove(self.len() - 1))
+        }
+    }
+
+    /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
+    pub fn pop_front(&mut self) -> Option<T> {
+        if self.is_empty() {
+            None
+        } else {
+            Some(self.remove(0))
+        }
+    }
+
+    /// Adds an element at the beginning of the array, in O(n).
+    pub fn push_front(&mut self, value: impl AsArg<T>) {
+        self.insert(0, value);
+    }
+
+    /// Returns the first element in the array, or `None` if the array is empty.
+    #[doc(alias = "first")]
+    pub fn front(&self) -> Option<T> {
+        self.get(0)
+    }
+
+    /// Returns the last element in the array, or `None` if the array is empty.
+    #[doc(alias = "last")]
+    pub fn back(&self) -> Option<T> {
+        if self.is_empty() {
+            None
+        } else {
+            self.get(self.len() - 1)
+        }
+    }
+
     /// Assigns the given value to all elements in the array.
     ///
     /// This can be used together with `resize` to create an array with a given size and initialized elements.

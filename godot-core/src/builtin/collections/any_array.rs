@@ -414,6 +414,11 @@ impl AnyArray {
         )
     }
 
+    /// Returns `true` if this array is typed.
+    pub fn is_typed(&self) -> bool {
+        self.element_type().is_typed()
+    }
+
     /// Returns `true` if the array is read-only. See [`make_read_only`][crate::builtin::Array::make_read_only].
     #[inline]
     pub fn is_read_only(&self) -> bool {
