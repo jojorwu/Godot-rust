@@ -124,6 +124,12 @@ impl NodePath {
         self.get_name_count() + self.get_subname_count()
     }
 
+    /// Returns `true` if the node path is relative.
+    #[inline]
+    pub fn is_relative(&self) -> bool {
+        !self.is_absolute()
+    }
+
     crate::declare_hash_u32_method! {
         /// Returns a 32-bit integer hash value representing the node path.
     }
