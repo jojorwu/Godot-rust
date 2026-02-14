@@ -289,12 +289,6 @@ impl GString {
         NodePath::from(self)
     }
 
-    /// Alias for [`begins_with()`][Self::begins_with].
-    #[inline]
-    pub fn starts_with(&self, text: impl AsArg<GString>) -> bool {
-        self.begins_with(text)
-    }
-
     /// Sets the Unicode code point ("character") at position `index`.
     ///
     /// # Panics (safeguards-balanced)
@@ -413,8 +407,7 @@ impl_shared_string_api! {
 impl fmt::Display for GString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         pad_if_needed(f, |f| {
-            let s = String::from(self);
-            f.write_str(&s)
+            super::with_utf8_buffer(self.string_sys(), |s| f.write_str(s))
         })
     }
 }
@@ -532,24 +525,7 @@ impl From<String> for GString {
 
 impl From<&GString> for String {
     fn from(string: &GString) -> Self {
-        let s = string.string_sys();
-        unsafe {
-            let len = interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
-            if len == 0 {
-                return String::new();
-            }
-
-            let mut buffer = Vec::with_capacity(len as usize);
-            interface_fn!(string_to_utf8_chars)(
-                s,
-                buffer.as_mut_ptr() as *mut std::ffi::c_char,
-                len,
-            );
-            buffer.set_len(len as usize);
-
-            // SAFETY: Godot guarantees valid UTF-8.
-            String::from_utf8_unchecked(buffer)
-        }
+        super::with_utf8_buffer(string.string_sys(), |s| s.to_owned())
     }
 }
 

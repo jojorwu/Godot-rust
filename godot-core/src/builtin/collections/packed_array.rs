@@ -5,10 +5,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-// Result<..., ()> is used. But we don't have more error info. https://rust-lang.github.io/rust-clippy/master/index.html#result_unit_err.
-// We may want to change () to something like godot::meta::IoError, or a domain-specific one, in the future.
-#![allow(clippy::result_unit_err)]
-
 use std::iter::FromIterator;
 use std::{fmt, ops, ptr};
 
@@ -16,6 +12,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi, SysPtr};
 
 use crate::builtin::collections::extend_buffer::ExtendBufferTrait;
+use crate::meta::error::CollectionError;
 use crate::builtin::*;
 use crate::classes::file_access::CompressionMode;
 use crate::meta;
@@ -1013,11 +1010,14 @@ macro_rules! declare_encode_decode {
         /// **Note:** byte order and encoding pattern is an implementation detail. For portable byte representation and faster encoding, use
         /// [`as_mut_slice()`][Self::as_mut_slice] and the various Rust standard APIs such as
         #[doc = concat!("[`", stringify!($Ty), "::to_be_bytes()`].")]
-        pub fn $encode_fn(&mut self, byte_offset: usize, value: $Ty) -> Result<(), ()> {
+        pub fn $encode_fn(&mut self, byte_offset: usize, value: $Ty) -> Result<(), CollectionError> {
             // sys::static_assert!(std::mem::size_of::<$Ty>() == $bytes); -- used for testing, can't keep enabled due to half-floats.
 
             if byte_offset + $bytes > self.len() {
-                return Err(());
+                return Err(CollectionError::OutOfBounds {
+                    index: byte_offset + $bytes,
+                    len: self.len(),
+                });
             }
 
             self.as_inner()
@@ -1033,9 +1033,12 @@ macro_rules! declare_encode_decode {
         /// **Note:** byte order and encoding pattern is an implementation detail. For portable byte representation and faster decoding, use
         /// [`as_slice()`][Self::as_slice] and the various Rust standard APIs such as
         #[doc = concat!("[`", stringify!($Ty), "::from_be_bytes()`].")]
-        pub fn $decode_fn(&self, byte_offset: usize) -> Result<$Ty, ()> {
+        pub fn $decode_fn(&self, byte_offset: usize) -> Result<$Ty, CollectionError> {
             if byte_offset + $bytes > self.len() {
-                return Err(());
+                return Err(CollectionError::OutOfBounds {
+                    index: byte_offset + $bytes,
+                    len: self.len(),
+                });
             }
 
             let decoded: $Via = self.as_inner().$decode_fn(byte_offset as i64);
@@ -1146,7 +1149,7 @@ impl PackedByteArray {
         byte_offset: usize,
         value: impl AsArg<Variant>,
         allow_objects: bool,
-    ) -> Result<usize, ()> {
+    ) -> Result<usize, CollectionError> {
         meta::arg_into_ref!(value);
 
         let bytes_written: i64 =
@@ -1154,7 +1157,7 @@ impl PackedByteArray {
                 .encode_var(byte_offset as i64, value, allow_objects);
 
         if bytes_written == -1 {
-            Err(())
+            Err(CollectionError::Encoding)
         } else {
             Ok(bytes_written as usize)
         }
@@ -1191,13 +1194,13 @@ impl PackedByteArray {
         &self,
         byte_offset: usize,
         allow_objects: bool,
-    ) -> Result<(Variant, usize), ()> {
+    ) -> Result<(Variant, usize), CollectionError> {
         let variant = self
             .as_inner()
             .decode_var(byte_offset as i64, allow_objects);
 
         if variant.is_nil() {
-            return Err(());
+            return Err(CollectionError::Encoding);
         }
 
         // It's unfortunate that this does another full decoding, but decode_var() is barely useful without also knowing the size, as it won't
@@ -1253,7 +1256,7 @@ impl PackedByteArray {
     ///
     /// On failure, Godot prints an error and this method returns `Err`. (Note that any empty results coming from Godot are mapped to `Err`
     /// in Rust.)
-    pub fn compress(&self, compression_mode: CompressionMode) -> Result<PackedByteArray, ()> {
+    pub fn compress(&self, compression_mode: CompressionMode) -> Result<PackedByteArray, CollectionError> {
         let compressed: PackedByteArray = self.as_inner().compress(compression_mode.ord() as i64);
         populated_or_err(compressed)
     }
@@ -1271,7 +1274,7 @@ impl PackedByteArray {
         &self,
         buffer_size: usize,
         compression_mode: CompressionMode,
-    ) -> Result<PackedByteArray, ()> {
+    ) -> Result<PackedByteArray, CollectionError> {
         let decompressed: PackedByteArray = self
             .as_inner()
             .decompress(buffer_size as i64, compression_mode.ord() as i64);
@@ -1300,7 +1303,7 @@ impl PackedByteArray {
         &self,
         max_output_size: Option<usize>,
         compression_mode: CompressionMode,
-    ) -> Result<PackedByteArray, ()> {
+    ) -> Result<PackedByteArray, CollectionError> {
         let max_output_size = max_output_size.map(|i| i as i64).unwrap_or(-1);
         let decompressed: PackedByteArray = self
             .as_inner()
@@ -1310,9 +1313,9 @@ impl PackedByteArray {
     }
 }
 
-fn populated_or_err(array: PackedByteArray) -> Result<PackedByteArray, ()> {
+fn populated_or_err(array: PackedByteArray) -> Result<PackedByteArray, CollectionError> {
     if array.is_empty() {
-        Err(())
+        Err(CollectionError::Encoding)
     } else {
         Ok(array)
     }

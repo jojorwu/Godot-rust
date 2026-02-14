@@ -83,42 +83,43 @@ fn populated_or_none(s: GString) -> Option<GString> {
 // Padding, alignment and precision support
 
 // Used by sub-modules of this module.
-use standard_fmt::pad_if_needed;
+pub(crate) use standard_fmt::pad_if_needed;
 
-pub(crate) fn compare_gstring_to_str(s: sys::GDExtensionConstStringPtr, other: &str) -> bool {
-    let other_bytes = other.as_bytes();
-    unsafe {
-        // Get length in UTF-8 bytes.
-        let len = interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
-        if len as usize != other_bytes.len() {
-            return false;
-        }
-        if len == 0 {
-            return true;
-        }
+pub(crate) fn with_utf8_buffer<R, F>(s: sys::GDExtensionConstStringPtr, f: F) -> R
+where
+    F: FnOnce(&str) -> R,
+{
+    let len = unsafe { interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0) };
+    if len == 0 {
+        return f("");
+    }
 
-        // We need a temporary buffer to hold the GString's UTF-8 representation.
-        // For short strings, we can use the stack.
-        const STACK_BUF_SIZE: usize = 128;
-        if len as usize <= STACK_BUF_SIZE {
-            let mut buf = [0u8; STACK_BUF_SIZE];
+    const STACK_BUF_SIZE: usize = 1024;
+    if len as usize <= STACK_BUF_SIZE {
+        let mut buf = [0u8; STACK_BUF_SIZE];
+        unsafe {
             interface_fn!(string_to_utf8_chars)(
                 s,
                 buf.as_mut_ptr() as *mut std::ffi::c_char,
                 len,
             );
-            &buf[..len as usize] == other_bytes
-        } else {
-            // For long strings, we use a heap-allocated Vec.
-            let mut buffer = vec![0u8; len as usize];
+            f(std::str::from_utf8_unchecked(&buf[..len as usize]))
+        }
+    } else {
+        let mut buffer = vec![0u8; len as usize];
+        unsafe {
             interface_fn!(string_to_utf8_chars)(
                 s,
                 buffer.as_mut_ptr() as *mut std::ffi::c_char,
                 len,
             );
-            buffer == other_bytes
+            f(std::str::from_utf8_unchecked(&buffer))
         }
     }
+}
+
+pub(crate) fn compare_gstring_to_str(s: sys::GDExtensionConstStringPtr, other: &str) -> bool {
+    with_utf8_buffer(s, |s_str| s_str == other)
 }
 
 mod standard_fmt {

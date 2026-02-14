@@ -10,6 +10,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
+use crate::builtin::strings::pad_if_needed;
 use crate::builtin::{inner, Encoding, GString, NodePath, Variant};
 use crate::meta::error::StringError;
 use crate::meta::AsArg;
@@ -476,8 +477,9 @@ impl PartialEq<NodePath> for StringName {
 
 impl fmt::Display for StringName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = GString::from(self);
-        <GString as fmt::Display>::fmt(&s, f)
+        pad_if_needed(f, |f: &mut fmt::Formatter<'_>| {
+            super::with_utf8_buffer(self.to_gstring().string_sys(), |s| f.write_str(s))
+        })
     }
 }
 

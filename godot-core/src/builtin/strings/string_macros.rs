@@ -323,6 +323,13 @@ macro_rules! impl_shared_string_api {
             pub fn matchn_glob(&self, pattern: impl AsArg<GString>) -> bool {
                 self.as_inner().matchn(pattern)
             }
+
+            /// Alias for [`begins_with()`][Self::begins_with].
+            #[inline]
+            pub fn starts_with(&self, text: impl AsArg<GString>) -> bool {
+                self.find(text) == Some(0)
+            }
+
         }
 
         // --------------------------------------------------------------------------------------------------------------------------------------
