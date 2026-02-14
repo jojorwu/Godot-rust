@@ -318,6 +318,19 @@ impl<T: ArrayElement> Array<T> {
         })
     }
 
+    /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
+        self.pick_random()
+            .and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
+    /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn front_as<U: FromGodot>(&self) -> Option<U> {
+        self.front().and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
@@ -326,6 +339,12 @@ impl<T: ArrayElement> Array<T> {
             let variant = self.as_inner().back();
             T::from_variant(&variant)
         })
+    }
+
+    /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn back_as<U: FromGodot>(&self) -> Option<U> {
+        self.back().and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     ///  ⚠️ Sets the value at the specified index.
@@ -392,6 +411,12 @@ impl<T: ArrayElement> Array<T> {
         })
     }
 
+    /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
+        self.pop().and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
     ///
     /// Note: On large arrays, this method is much slower than `pop()` as it will move all the
@@ -405,6 +430,13 @@ impl<T: ArrayElement> Array<T> {
             let variant = unsafe { self.as_inner_mut() }.pop_front();
             T::from_variant(&variant)
         })
+    }
+
+    /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
+        self.pop_front()
+            .and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// ⚠️ Inserts a new element before the index. The index must be valid or the end of the array (`index == len()`).
@@ -829,6 +861,11 @@ impl<T: ArrayElement> Array<T> {
     #[inline]
     pub fn is_read_only(&self) -> bool {
         self.as_inner().is_read_only()
+    }
+
+    /// Returns `true` if this array is typed.
+    pub fn is_typed(&self) -> bool {
+        self.element_type().is_typed()
     }
 
     /// Best-effort mutability check.

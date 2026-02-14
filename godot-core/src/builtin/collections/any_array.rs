@@ -145,11 +145,23 @@ impl AnyArray {
         self.array.front()
     }
 
+    /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn front_as<U: FromGodot>(&self) -> Option<U> {
+        self.front().and_then(|v| v.try_to::<U>().ok())
+    }
+
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
     pub fn back(&self) -> Option<Variant> {
         self.array.back()
+    }
+
+    /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn back_as<U: FromGodot>(&self) -> Option<U> {
+        self.back().and_then(|v| v.try_to::<U>().ok())
     }
 
     /// Clears the array, removing all elements.
@@ -168,12 +180,24 @@ impl AnyArray {
         self.array.pop()
     }
 
+    /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
+        self.pop().and_then(|v| v.try_to::<U>().ok())
+    }
+
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
     ///
     /// Note: On large arrays, this method is much slower than `pop()` as it will move all the
     /// array's elements. The larger the array, the slower `pop_front()` will be.
     pub fn pop_front(&mut self) -> Option<Variant> {
         self.array.pop_front()
+    }
+
+    /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
+        self.pop_front().and_then(|v| v.try_to::<U>().ok())
     }
 
     /// ⚠️ Removes and returns the element at the specified index. Equivalent of `pop_at` in GDScript.
@@ -317,6 +341,13 @@ impl AnyArray {
     /// Returns a random element from the array, or `None` if it is empty.
     pub fn pick_random(&self) -> Option<Variant> {
         self.array.pick_random()
+    }
+
+    /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
+        self.pick_random()
+            .and_then(|v| v.try_to::<U>().ok())
     }
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if

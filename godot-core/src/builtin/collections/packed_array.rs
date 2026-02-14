@@ -248,6 +248,14 @@ impl<T: PackedArrayElement> PackedArray<T> {
         }
     }
 
+    /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
+    pub fn pop_as<U: FromGodot>(&mut self) -> Option<U>
+    where
+        T: ToGodot,
+    {
+        self.pop().and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
     pub fn pop_front(&mut self) -> Option<T> {
         if self.is_empty() {
@@ -255,6 +263,15 @@ impl<T: PackedArrayElement> PackedArray<T> {
         } else {
             Some(self.remove(0))
         }
+    }
+
+    /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
+    pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U>
+    where
+        T: ToGodot,
+    {
+        self.pop_front()
+            .and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Adds an element at the beginning of the array, in O(n).
@@ -268,6 +285,14 @@ impl<T: PackedArrayElement> PackedArray<T> {
         self.get(0)
     }
 
+    /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
+    pub fn front_as<U: FromGodot>(&self) -> Option<U>
+    where
+        T: ToGodot,
+    {
+        self.front().and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     pub fn back(&self) -> Option<T> {
@@ -276,6 +301,37 @@ impl<T: PackedArrayElement> PackedArray<T> {
         } else {
             self.get(self.len() - 1)
         }
+    }
+
+    /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
+    pub fn back_as<U: FromGodot>(&self) -> Option<U>
+    where
+        T: ToGodot,
+    {
+        self.back().and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
+    /// Returns a random element from the array, or `None` if it is empty.
+    pub fn pick_random(&self) -> Option<T> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let variant = self.to_variant();
+        let method = crate::static_sname!(c"pick_random");
+        let result = variant.call(method, &[]);
+
+        // The result should be T.
+        Some(result.to::<T>())
+    }
+
+    /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
+    pub fn pick_random_as<U: FromGodot>(&self) -> Option<U>
+    where
+        T: ToGodot,
+    {
+        self.pick_random()
+            .and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Assigns the given value to all elements in the array.

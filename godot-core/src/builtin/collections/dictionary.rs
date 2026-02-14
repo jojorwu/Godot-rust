@@ -641,6 +641,16 @@ impl VarDictionary {
         ElementType::transfer_cache(&source.cached_value_type, &self.cached_value_type);
         self
     }
+
+    /// # Safety
+    /// - Variant must have type `VariantType::DICTIONARY`.
+    /// - Subsequent operations on this dictionary must not rely on the type of the dictionary.
+    pub(crate) unsafe fn from_variant_unchecked(variant: &Variant) -> Self {
+        Self::new_with_uninit(|self_ptr| {
+            let dict_from_variant = sys::builtin_fn!(dictionary_from_variant);
+            dict_from_variant(self_ptr, sys::SysPtr::force_mut(variant.var_sys()));
+        })
+    }
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

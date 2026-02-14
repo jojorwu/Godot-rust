@@ -230,6 +230,23 @@ impl Variant {
         matches!(self.get_type(), VariantType::ARRAY | VariantType::DICTIONARY)
     }
 
+    /// Returns true if the variant holds a typed container.
+    pub fn is_typed_container(&self) -> bool {
+        match self.get_type() {
+            VariantType::ARRAY => {
+                // SAFETY: we checked type.
+                let array = unsafe { VarArray::from_variant_unchecked(self) };
+                array.is_typed()
+            }
+            VariantType::DICTIONARY => {
+                // SAFETY: we checked type.
+                let dict = unsafe { VarDictionary::from_variant_unchecked(self) };
+                dict.is_typed()
+            }
+            _ => false,
+        }
+    }
+
     /// Returns true if the variant holds a numeric type (`INT` or `FLOAT`).
     #[inline]
     pub fn is_numeric(&self) -> bool {
