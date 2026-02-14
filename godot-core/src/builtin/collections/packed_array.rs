@@ -181,6 +181,18 @@ impl<T: PackedArrayElement> PackedArray<T> {
         T::op_is_empty(self.as_inner())
     }
 
+    /// Returns `true` if this array is typed. Always true for `PackedArray`.
+    #[inline]
+    pub fn is_typed(&self) -> bool {
+        true
+    }
+
+    /// Returns `true` if the array is read-only.
+    #[inline]
+    pub fn is_read_only(&self) -> bool {
+        false
+    }
+
     /// Clears the array, removing all elements.
     #[inline]
     pub fn clear(&mut self) {

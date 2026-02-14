@@ -12,8 +12,8 @@ use sys::{ffi_methods, interface_fn, GodotFfi};
 
 use crate::builtin::{
     Aabb, Basis, Color, GString, NodePath, Plane, Projection, Quaternion, Rect2, Rect2i, Rid,
-    StringName, Transform2D, Transform3D, VarArray, VariantDispatch, VariantOperator, VariantType,
-    Vector2, Vector2i, Vector3, Vector3i, Vector4, Vector4i,
+    StringName, Transform2D, Transform3D, VarArray, VarDictionary, VariantDispatch,
+    VariantOperator, VariantType, Vector2, Vector2i, Vector3, Vector3i, Vector4, Vector4i,
 };
 use crate::classes;
 use crate::meta::error::{ConvertError, FromVariantError};

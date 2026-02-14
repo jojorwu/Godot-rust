@@ -211,6 +211,14 @@ impl Node {
             .collect()
     }
 
+    /// Alias for [`get_children_as()`][Self::get_children_as].
+    pub fn get_children_typed<T>(&self) -> Vec<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_children_as::<T>()
+    }
+
     /// Finds the first child whose name matches `pattern`, cast to type `T`.
     ///
     /// If no child is found or if it cannot be cast to `T`, `None` is returned.
