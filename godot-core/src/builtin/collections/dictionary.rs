@@ -754,7 +754,17 @@ where
 impl<K: ToGodot, V: ToGodot> Extend<(K, V)> for VarDictionary {
     fn extend<I: IntoIterator<Item = (K, V)>>(&mut self, iter: I) {
         self.balanced_ensure_mutable();
-        for (k, v) in iter.into_iter() {
+        let iter = iter.into_iter();
+
+        #[cfg(since_api = "4.3")]
+        {
+            let (lower, _) = iter.size_hint();
+            if lower > 0 {
+                self.reserve(self.len() + lower);
+            }
+        }
+
+        for (k, v) in iter {
             self.set_inner(k.to_variant(), v.to_variant())
         }
     }

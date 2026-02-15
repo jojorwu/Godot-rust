@@ -220,8 +220,54 @@ impl Variant {
         is_float, FLOAT, "Returns true if the variant holds a float.";
         is_bool, BOOL, "Returns true if the variant holds a boolean.";
         is_string, STRING, "Returns true if the variant holds a string.";
+        is_string_name, STRING_NAME, "Returns true if the variant holds a string name.";
+        is_node_path, NODE_PATH, "Returns true if the variant holds a node path.";
+        is_vector2, VECTOR2, "Returns true if the variant holds a Vector2.";
+        is_vector2i, VECTOR2I, "Returns true if the variant holds a Vector2i.";
+        is_rect2, RECT2, "Returns true if the variant holds a Rect2.";
+        is_rect2i, RECT2I, "Returns true if the variant holds a Rect2i.";
+        is_vector3, VECTOR3, "Returns true if the variant holds a Vector3.";
+        is_vector3i, VECTOR3I, "Returns true if the variant holds a Vector3i.";
+        is_transform2d, TRANSFORM2D, "Returns true if the variant holds a Transform2D.";
+        is_vector4, VECTOR4, "Returns true if the variant holds a Vector4.";
+        is_vector4i, VECTOR4I, "Returns true if the variant holds a Vector4i.";
+        is_plane, PLANE, "Returns true if the variant holds a Plane.";
+        is_quaternion, QUATERNION, "Returns true if the variant holds a Quaternion.";
+        is_aabb, AABB, "Returns true if the variant holds an AABB.";
+        is_basis, BASIS, "Returns true if the variant holds a Basis.";
+        is_transform3d, TRANSFORM3D, "Returns true if the variant holds a Transform3D.";
+        is_projection, PROJECTION, "Returns true if the variant holds a Projection.";
+        is_color, COLOR, "Returns true if the variant holds a Color.";
+        is_rid, RID, "Returns true if the variant holds an RID.";
+        is_callable, CALLABLE, "Returns true if the variant holds a Callable.";
+        is_signal, SIGNAL, "Returns true if the variant holds a Signal.";
         is_array, ARRAY, "Returns true if the variant holds an array.\n\nAlias for `self.is_type(VariantType::ARRAY)`.";
         is_dictionary, DICTIONARY, "Returns true if the variant holds a dictionary.\n\nAlias for `self.is_type(VariantType::DICTIONARY)`.";
+        is_packed_byte_array, PACKED_BYTE_ARRAY, "Returns true if the variant holds a packed byte array.";
+        is_packed_int32_array, PACKED_INT32_ARRAY, "Returns true if the variant holds a packed int32 array.";
+        is_packed_int64_array, PACKED_INT64_ARRAY, "Returns true if the variant holds a packed int64 array.";
+        is_packed_float32_array, PACKED_FLOAT32_ARRAY, "Returns true if the variant holds a packed float32 array.";
+        is_packed_float64_array, PACKED_FLOAT64_ARRAY, "Returns true if the variant holds a packed float64 array.";
+        is_packed_string_array, PACKED_STRING_ARRAY, "Returns true if the variant holds a packed string array.";
+        is_packed_vector2_array, PACKED_VECTOR2_ARRAY, "Returns true if the variant holds a packed vector2 array.";
+        is_packed_vector3_array, PACKED_VECTOR3_ARRAY, "Returns true if the variant holds a packed vector3 array.";
+        is_packed_color_array, PACKED_COLOR_ARRAY, "Returns true if the variant holds a packed color array.";
+    }
+
+    /// Returns true if the variant holds a packed array type.
+    pub fn is_packed_array(&self) -> bool {
+        matches!(
+            self.get_type(),
+            VariantType::PACKED_BYTE_ARRAY
+                | VariantType::PACKED_INT32_ARRAY
+                | VariantType::PACKED_INT64_ARRAY
+                | VariantType::PACKED_FLOAT32_ARRAY
+                | VariantType::PACKED_FLOAT64_ARRAY
+                | VariantType::PACKED_STRING_ARRAY
+                | VariantType::PACKED_VECTOR2_ARRAY
+                | VariantType::PACKED_VECTOR3_ARRAY
+                | VariantType::PACKED_COLOR_ARRAY
+        )
     }
 
     /// Returns true if the variant holds a container type (`ARRAY` or `DICTIONARY`).

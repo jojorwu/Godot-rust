@@ -210,6 +210,16 @@ impl NodePath {
     pub fn as_inner(&self) -> inner::InnerNodePath<'_> {
         inner::InnerNodePath::from_outer(self)
     }
+
+    /// Converts this `NodePath` to a [`GString`].
+    pub fn to_gstring(&self) -> GString {
+        GString::from(self)
+    }
+
+    /// Converts this `NodePath` to a [`StringName`].
+    pub fn to_string_name(&self) -> StringName {
+        StringName::from(self)
+    }
 }
 
 // SAFETY:

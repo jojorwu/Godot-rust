@@ -239,16 +239,18 @@ impl PropertyInfo {
 
     /// Returns a copy of this `PropertyInfo` with the given `hint`.
     pub fn with_hint(self, hint: PropertyHint) -> Self {
-        let mut hint_info = self.hint_info;
-        hint_info.hint = hint;
-        Self { hint_info, ..self }
+        Self {
+            hint_info: self.hint_info.with_hint(hint),
+            ..self
+        }
     }
 
     /// Returns a copy of this `PropertyInfo` with the given `hint_string`.
     pub fn with_hint_string(self, hint_string: impl Into<GString>) -> Self {
-        let mut hint_info = self.hint_info;
-        hint_info.hint_string = hint_string.into();
-        Self { hint_info, ..self }
+        Self {
+            hint_info: self.hint_info.with_hint_string(hint_string),
+            ..self
+        }
     }
 
     /// Change the `hint` and `hint_string` to be the given `hint_info`.
@@ -532,6 +534,19 @@ impl Default for PropertyHintInfo {
 }
 
 impl PropertyHintInfo {
+    /// Returns a copy of this `PropertyHintInfo` with the given `hint`.
+    pub fn with_hint(self, hint: PropertyHint) -> Self {
+        Self { hint, ..self }
+    }
+
+    /// Returns a copy of this `PropertyHintInfo` with the given `hint_string`.
+    pub fn with_hint_string(self, hint_string: impl Into<GString>) -> Self {
+        Self {
+            hint_string: hint_string.into(),
+            ..self
+        }
+    }
+
     /// Create a new `PropertyHintInfo` with a property hint of [`PROPERTY_HINT_NONE`](PropertyHint::NONE), and no hint string.
     pub fn none() -> Self {
         Self {

@@ -300,17 +300,13 @@ impl Basis {
     /// Check if the element at `basis_{i,i}` is 1, and all the other values in
     /// that row and column are 0.
     fn is_identity_index(&self, index: usize) -> bool {
-        let row = self.rows[index];
-        let col = self.transposed().rows[index];
-        if row != col {
-            return false;
-        }
-        match index {
-            0 => row == Vector3::RIGHT,
-            1 => row == Vector3::UP,
-            2 => row == Vector3::BACK,
-            _ => panic!("Unknown Index {index}"),
-        }
+        let (row, col, expected) = match index {
+            0 => (self.rows[0], self.col_a(), Vector3::RIGHT),
+            1 => (self.rows[1], self.col_b(), Vector3::UP),
+            2 => (self.rows[2], self.col_c(), Vector3::BACK),
+            _ => unreachable!("basis index out of bounds: {index}"),
+        };
+        row == col && row == expected
     }
 
     #[allow(clippy::wrong_self_convention)]
