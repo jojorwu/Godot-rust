@@ -212,6 +212,7 @@ impl Aabb {
 
     /// Assert that each component of this AABB is finite.
     #[inline]
+    #[track_caller]
     pub fn assert_finite(self) {
         assert!(
             self.is_finite(),
@@ -527,6 +528,7 @@ impl Aabb {
     ///
     /// Most functions will fail to give a correct result if the size is negative.
     #[inline]
+    #[track_caller]
     pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0 && self.size.z >= 0.0,

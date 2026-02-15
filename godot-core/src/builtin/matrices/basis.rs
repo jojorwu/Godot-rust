@@ -483,6 +483,7 @@ impl Basis {
 
     /// Assert that each component of this basis is finite.
     #[inline]
+    #[track_caller]
     pub fn assert_finite(&self) {
         assert!(
             self.is_finite(),
@@ -544,6 +545,12 @@ impl Basis {
         self.rows[0].z = col.x;
         self.rows[1].z = col.y;
         self.rows[2].z = col.z;
+    }
+
+    /// Returns `true` if this basis and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 }
 

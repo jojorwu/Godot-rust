@@ -258,6 +258,7 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     /// If `index` is out of bounds. To handle out-of-bounds access fallibly, use [`get()`](Self::get) instead.
     #[inline]
+    #[track_caller]
     pub fn at(&self, index: usize) -> T {
         // Panics on out-of-bounds.
         let ptr = self.ptr(index);
@@ -284,6 +285,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// ⚠️ Returns the element at the given index, converted to `U`, panicking if out of bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
         self.at(index).to_variant().to::<U>()
     }
@@ -353,6 +355,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If `index` is out of bounds.
     #[inline]
+    #[track_caller]
     pub fn set(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
         self.check_bounds(index); // Explicitly check bounds for safety.
@@ -447,6 +450,7 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     /// If `index > len()`.
     #[inline]
+    #[track_caller]
     pub fn insert(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -472,6 +476,7 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     #[doc(alias = "pop_at")]
     #[inline]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
         self.balanced_ensure_mutable();
         self.check_bounds(index);

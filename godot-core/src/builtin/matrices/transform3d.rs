@@ -174,6 +174,7 @@ impl Transform3D {
 
     /// Assert that each component of this transform is finite.
     #[inline]
+    #[track_caller]
     pub fn assert_finite(&self) {
         assert!(
             self.is_finite(),
@@ -284,6 +285,12 @@ impl Transform3D {
             basis: self.basis,
             origin: self.origin + (self.basis * offset),
         }
+    }
+
+    /// Returns `true` if this transform and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 }
 

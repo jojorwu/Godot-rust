@@ -168,6 +168,7 @@ impl Quaternion {
     }
 
     /// Assert that each component of this quaternion is finite.
+    #[track_caller]
     pub fn assert_finite(self) {
         assert!(
             self.is_finite(),
@@ -182,6 +183,7 @@ impl Quaternion {
     }
 
     /// Assert that the quaternion is normalized.
+    #[track_caller]
     pub fn assert_normalized(self) {
         assert!(
             self.is_normalized(),
@@ -287,6 +289,12 @@ impl Quaternion {
     #[doc(hidden)]
     fn ensure_normalized(&self, quats: &[&Quaternion]) -> bool {
         quats.iter().all(|v| v.is_normalized()) && self.is_normalized()
+    }
+
+    /// Returns `true` if this quaternion and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 }
 

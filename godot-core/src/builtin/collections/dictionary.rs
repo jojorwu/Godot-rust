@@ -116,6 +116,7 @@ impl VarDictionary {
     ///
     /// If there is no value for the given key. Note that this is distinct from a `NIL` value, which is returned as `Variant::nil()`.
     #[inline]
+    #[track_caller]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
         // Code duplication with get(), to avoid third clone (since K: ToGodot takes ownership).
 
@@ -155,6 +156,7 @@ impl VarDictionary {
     /// # Panics
     /// If there is no value for the given key, or if the value cannot be converted to `V`.
     #[inline]
+    #[track_caller]
     pub fn at_as<K: ToGodot, V: FromGodot>(&self, key: K) -> V {
         self.at(key).to::<V>()
     }

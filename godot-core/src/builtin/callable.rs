@@ -502,6 +502,7 @@ impl Callable {
     }
 
     /// ⚠️ Calls the method represented by this callable and converts the return value to `T`, panicking if it fails.
+    #[track_caller]
     pub fn call_as<T: meta::FromGodot>(&self, args: &[Variant]) -> T {
         self.try_call_as::<T>(args).unwrap_or_else(|| {
             let method = self

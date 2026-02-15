@@ -123,6 +123,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// # Panics
     /// If `index` is out of bounds.
     #[inline]
+    #[track_caller]
     pub fn at(&self, index: usize) -> T {
         self.get(index)
             .unwrap_or_else(|| self.panic_out_of_bounds(index))
@@ -143,6 +144,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// # Panics
     /// If `index` is out of bounds, or if the value cannot be converted to `U`.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U
     where
         T: ToGodot,
@@ -220,6 +222,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// On large arrays, this method is much slower than [`push()`][Self::push], as it will move all the array's elements after the inserted
     /// element. The larger the array, the slower `insert` will be.
+    #[track_caller]
     pub fn insert(&mut self, index: usize, value: impl AsArg<T>) {
         // Intentional > and not >=.
         if index > self.len() {
@@ -242,6 +245,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     // `Array` and with `Vec::remove`. Compared to shifting all the subsequent array
     // elements to their new position, the overhead of retrieving this element is trivial.
     #[doc(alias = "remove_at")]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
         let element = self.get(index).expect("index out of bounds"); // panics on out-of-bounds
         T::op_remove_at(self.as_inner(), to_i64(index));
@@ -575,6 +579,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
 
     /// # Panics
     /// Always.
+    #[track_caller]
     fn panic_out_of_bounds(&self, index: usize) -> ! {
         panic!(
             "{} index {index} is out of bounds: length is {}",

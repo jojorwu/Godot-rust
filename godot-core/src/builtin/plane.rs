@@ -219,6 +219,7 @@ impl Plane {
 
     /// Assert that each component of this Plane is finite.
     #[inline]
+    #[track_caller]
     pub fn assert_finite(self) {
         assert!(
             self.is_finite(),
@@ -264,6 +265,7 @@ impl Plane {
 
     /// Assert that the normal of the plane is normalized.
     #[inline]
+    #[track_caller]
     pub fn assert_normalized(self) {
         assert!(
             self.normal.is_normalized(),

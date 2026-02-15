@@ -233,6 +233,7 @@ impl Transform2D {
     }
 
     /// Assert that each component of this transform is finite.
+    #[track_caller]
     pub fn assert_finite(&self) {
         assert!(
             self.is_finite(),
@@ -334,6 +335,12 @@ impl Transform2D {
     /// _Godot equivalent: `Transform2D.basis_xform_inv()`_
     pub fn basis_xform_inv(&self, v: Vector2) -> Vector2 {
         self.basis().inverse() * v
+    }
+
+    /// Returns `true` if this transform and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 }
 

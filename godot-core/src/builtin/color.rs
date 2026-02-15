@@ -354,6 +354,7 @@ impl Color {
     }
 
     /// Assert that all components are in the range `[0.0, 1.0]`.
+    #[track_caller]
     pub fn assert_normalized(&self) {
         assert!(
             self.is_normalized(),
@@ -361,6 +362,12 @@ impl Color {
             std::any::type_name::<Self>(),
             self
         );
+    }
+
+    /// Returns `true` if this color and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 
     fn as_inner(&self) -> InnerColor<'_> {

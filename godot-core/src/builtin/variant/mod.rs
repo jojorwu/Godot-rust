@@ -462,6 +462,7 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn get_keyed(&self, key: &Variant) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut ret = Variant::nil();
@@ -485,6 +486,7 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn set_keyed(&mut self, key: &Variant, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         unsafe {
@@ -506,6 +508,7 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn get_named(&self, name: &StringName) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut ret = Variant::nil();
@@ -529,6 +532,7 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn set_named(&mut self, name: &StringName, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         unsafe {
@@ -551,6 +555,7 @@ impl Variant {
     /// # Panics
     /// * If the operation is invalid for this variant type.
     /// * If the index is out of bounds.
+    #[track_caller]
     pub fn get_indexed(&self, index: i64) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut oob = false as sys::GDExtensionBool;
@@ -582,6 +587,7 @@ impl Variant {
     /// # Panics
     /// * If the operation is invalid for this variant type.
     /// * If the index is out of bounds.
+    #[track_caller]
     pub fn set_indexed(&mut self, index: i64, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         let mut oob = false as sys::GDExtensionBool;
@@ -608,6 +614,7 @@ impl Variant {
 
     /// ⚠️ Gets the value at the specified index and converts it to `T`, panicking on failure.
     #[inline]
+    #[track_caller]
     pub fn index_as<T: FromGodot>(&self, index: i64) -> T {
         self.get_indexed(index).to::<T>()
     }
@@ -635,6 +642,7 @@ impl Variant {
     }
 
     /// ⚠️ Gets the value of a key and converts it to `T`, panicking on failure.
+    #[track_caller]
     pub fn at_as<K: ToGodot, T: FromGodot>(&self, key: K) -> T {
         self.get_keyed(&key.to_variant()).to::<T>()
     }

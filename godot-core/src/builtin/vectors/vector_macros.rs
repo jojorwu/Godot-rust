@@ -752,6 +752,7 @@ macro_rules! impl_float_vector_fns {
 
             /// Assert that each component of this vector is finite.
             #[inline]
+            #[track_caller]
             pub fn assert_finite(self) {
                 assert!(self.is_finite(), "{} {:?} is not finite", std::any::type_name::<Self>(), self);
             }
@@ -764,6 +765,7 @@ macro_rules! impl_float_vector_fns {
 
             /// Assert that the vector is normalized.
             #[inline]
+            #[track_caller]
             pub fn assert_normalized(self) {
                 assert!(self.is_normalized(), "{} {:?} is not normalized", std::any::type_name::<Self>(), self);
             }
@@ -849,6 +851,12 @@ macro_rules! impl_float_vector_fns {
                         self.$comp.snapped(step.$comp)
                     ),*
                 )
+            }
+
+            /// Returns `true` if this vector and `other` are approximately equal.
+            #[inline]
+            pub fn is_equal_approx(self, other: Self) -> bool {
+                $crate::builtin::math::ApproxEq::approx_eq(&self, &other)
             }
         }
 
