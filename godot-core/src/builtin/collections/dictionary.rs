@@ -296,6 +296,7 @@ impl VarDictionary {
     /// If you don't need the previous value, use [`set()`][Self::set] instead.
     #[must_use]
     #[inline]
+    #[track_caller]
     pub fn insert<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -311,6 +312,7 @@ impl VarDictionary {
     /// _Godot equivalent: `erase`_
     #[doc(alias = "erase")]
     #[inline]
+    #[track_caller]
     pub fn remove<K: ToGodot>(&mut self, key: K) -> Option<Variant> {
         self.balanced_ensure_mutable();
 

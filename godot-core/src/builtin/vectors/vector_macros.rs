@@ -717,6 +717,7 @@ macro_rules! impl_float_vector_fns {
             /// # Panics
             /// If `self` and `to` are equal.
             #[inline]
+            #[track_caller]
             pub fn direction_to(self, to: Self) -> Self {
                 self.try_direction_to(to).expect("direction_to() called on equal vectors")
             }
@@ -808,6 +809,7 @@ macro_rules! impl_float_vector_fns {
             /// # Panics
             /// If called on a zero vector.
             #[inline]
+            #[track_caller]
             pub fn normalized(self) -> Self {
                 self.try_normalized().expect("normalized() called on zero vector")
             }
@@ -1118,6 +1120,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn bounce(self, n: Self) -> Self {
                 n.assert_normalized();
                 -self.reflect(n)
@@ -1149,6 +1152,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn reflect(self, n: Self) -> Self {
                 n.assert_normalized();
                 2.0 * n * self.dot(n) - self
@@ -1159,6 +1163,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn slide(self, n: Self) -> Self {
                 n.assert_normalized();
                 self - n * self.dot(n)

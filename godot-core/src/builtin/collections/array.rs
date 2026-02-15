@@ -236,6 +236,33 @@ pub type VarArray = Array<Variant>;
 // - Methods with typed closures: `sort_unstable_by()`, `bsearch_by()`
 // - Methods returning `Array<T>`: `duplicate_shallow()`, `duplicate_deep()`, `subarray_shallow()`, `subarray_deep()`
 impl<T: ArrayElement> Array<T> {
+    #[inline]
+    #[track_caller]
+    fn get_and_convert<U: FromGodot>(&self, index: usize) -> U {
+        let ptr = self.ptr(index);
+        let variant = unsafe { Variant::borrow_var_sys(ptr) };
+        U::from_variant(variant)
+    }
+
+    #[inline]
+    #[track_caller]
+    fn pop_and_convert<U: FromGodot>(&mut self, front: bool) -> Option<U> {
+        self.balanced_ensure_mutable();
+
+        if self.is_empty() {
+            return None;
+        }
+
+        // SAFETY: We do not write any values to the array, we just remove one.
+        let variant = if front {
+            unsafe { self.as_inner_mut() }.pop_front()
+        } else {
+            unsafe { self.as_inner_mut() }.pop_back()
+        };
+
+        Some(U::from_variant(&variant))
+    }
+
     pub(super) fn from_opaque(opaque: sys::types::OpaqueArray) -> Self {
         // Note: type is not yet checked at this point, because array has not yet been initialized!
         Self {
@@ -260,12 +287,7 @@ impl<T: ArrayElement> Array<T> {
     #[inline]
     #[track_caller]
     pub fn at(&self, index: usize) -> T {
-        // Panics on out-of-bounds.
-        let ptr = self.ptr(index);
-
-        // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
-        let variant = unsafe { Variant::borrow_var_sys(ptr) };
-        T::from_variant(variant)
+        self.get_and_convert(index)
     }
 
     /// Returns the value at the specified index, or `None` if the index is out-of-bounds.
@@ -287,13 +309,20 @@ impl<T: ArrayElement> Array<T> {
     #[inline]
     #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
-        self.at(index).to_variant().to::<U>()
+        self.get_and_convert(index)
     }
 
     /// Returns the element at the given index, converted to `U`, or `None` if out of bounds or conversion fails.
     #[inline]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
-        self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
+        let ptr = self.ptr_or_null(index);
+        if ptr.is_null() {
+            return None;
+        }
+
+        // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
+        let variant = unsafe { Variant::borrow_var_sys(ptr) };
+        U::try_from_variant(variant).ok()
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
@@ -405,19 +434,13 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "pop_back")]
     #[inline]
     pub fn pop(&mut self) -> Option<T> {
-        self.balanced_ensure_mutable();
-
-        (!self.is_empty()).then(|| {
-            // SAFETY: We do not write any values to the array, we just remove one.
-            let variant = unsafe { self.as_inner_mut() }.pop_back();
-            T::from_variant(&variant)
-        })
+        self.pop_and_convert(false)
     }
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
-        self.pop().and_then(|v| v.to_variant().try_to::<U>().ok())
+        self.pop_and_convert(false)
     }
 
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
@@ -426,20 +449,13 @@ impl<T: ArrayElement> Array<T> {
     /// array's elements. The larger the array, the slower `pop_front()` will be.
     #[inline]
     pub fn pop_front(&mut self) -> Option<T> {
-        self.balanced_ensure_mutable();
-
-        (!self.is_empty()).then(|| {
-            // SAFETY: We do not write any values to the array, we just remove one.
-            let variant = unsafe { self.as_inner_mut() }.pop_front();
-            T::from_variant(&variant)
-        })
+        self.pop_and_convert(true)
     }
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
-        self.pop_front()
-            .and_then(|v| v.to_variant().try_to::<U>().ok())
+        self.pop_and_convert(true)
     }
 
     /// ⚠️ Inserts a new element before the index. The index must be valid or the end of the array (`index == len()`).
@@ -888,6 +904,8 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[inline]
+    #[track_caller]
     fn check_bounds(&self, index: usize) {
         // Safety-relevant; explicitly *don't* use safeguards-dependent validation.
         let len = self.len();
@@ -901,6 +919,8 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[inline]
+    #[track_caller]
     fn ptr(&self, index: usize) -> sys::GDExtensionConstVariantPtr {
         let ptr = self.ptr_or_null(index);
         assert!(
@@ -929,6 +949,8 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     ///
     /// If `index` is out of bounds.
+    #[inline]
+    #[track_caller]
     fn ptr_mut(&mut self, index: usize) -> sys::GDExtensionVariantPtr {
         let ptr = self.ptr_mut_or_null(index);
         assert!(

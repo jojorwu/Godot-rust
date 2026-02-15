@@ -425,6 +425,7 @@ impl Variant {
     /// * If the method does not exist or the signature is not compatible with the passed arguments.
     /// * If the call causes an error.
     #[inline]
+    #[track_caller]
     pub fn call(&self, method: impl AsArg<StringName>, args: &[Variant]) -> Variant {
         arg_into_ref!(method);
         self.call_inner(method, args)
@@ -1143,6 +1144,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self, rhs: Self) -> Self::Output {
                 self.evaluate(&rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1153,6 +1155,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait<&Variant> for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self, rhs: &Variant) -> Self::Output {
                 self.evaluate(rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1164,6 +1167,7 @@ macro_rules! impl_variant_op {
     (assign $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
         impl std::ops::$trait for Variant {
             #[inline]
+            #[track_caller]
             fn $method(&mut self, rhs: Self) {
                 *self = self.evaluate(&rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1173,6 +1177,7 @@ macro_rules! impl_variant_op {
 
         impl std::ops::$trait<&Variant> for Variant {
             #[inline]
+            #[track_caller]
             fn $method(&mut self, rhs: &Variant) {
                 *self = self.evaluate(rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1185,6 +1190,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self) -> Self::Output {
                 let from_type = self.get_type();
                 self.evaluate(&Variant::nil(), $op)
@@ -1211,6 +1217,7 @@ impl_variant_op!(unary Neg, neg, VariantOperator::NEGATE, "-");
 impl std::ops::Not for Variant {
     type Output = Self;
     #[inline]
+    #[track_caller]
     fn not(self) -> Self::Output {
         let from_type = self.get_type();
         let op = if from_type == VariantType::BOOL {

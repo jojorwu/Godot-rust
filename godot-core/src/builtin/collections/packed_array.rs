@@ -131,6 +131,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
 
     /// Returns a copy of the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U>
     where
         T: ToGodot,
@@ -256,6 +257,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// _Godot equivalent: `pop_back`_
     #[doc(alias = "pop_back")]
+    #[track_caller]
     pub fn pop(&mut self) -> Option<T> {
         if self.is_empty() {
             None
@@ -265,6 +267,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[track_caller]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U>
     where
         T: ToGodot,
@@ -273,6 +276,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
+    #[track_caller]
     pub fn pop_front(&mut self) -> Option<T> {
         if self.is_empty() {
             None
@@ -282,6 +286,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[track_caller]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U>
     where
         T: ToGodot,
@@ -291,17 +296,20 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Adds an element at the beginning of the array, in O(n).
+    #[track_caller]
     pub fn push_front(&mut self, value: impl AsArg<T>) {
         self.insert(0, value);
     }
 
     /// Returns the first element in the array, or `None` if the array is empty.
     #[doc(alias = "first")]
+    #[track_caller]
     pub fn front(&self) -> Option<T> {
         self.get(0)
     }
 
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[track_caller]
     pub fn front_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
@@ -311,6 +319,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
 
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
+    #[track_caller]
     pub fn back(&self) -> Option<T> {
         if self.is_empty() {
             None
@@ -320,6 +329,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[track_caller]
     pub fn back_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
@@ -328,6 +338,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns a random element from the array, or `None` if it is empty.
+    #[track_caller]
     pub fn pick_random(&self) -> Option<T> {
         if self.is_empty() {
             return None;
@@ -342,6 +353,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
+    #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
@@ -592,6 +604,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[inline]
+    #[track_caller]
     fn ptr(&self, index: usize) -> *const T {
         self.ptr_or_none(index)
             .unwrap_or_else(|| self.panic_out_of_bounds(index))
@@ -613,6 +627,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[inline]
+    #[track_caller]
     fn ptr_mut(&mut self, index: usize) -> *mut T {
         // SAFETY: The packed array index operators return a null pointer on out-of-bounds.
         let item_ptr: *mut T::Indexed = unsafe { T::ffi_index_mut(self.sys_mut(), to_i64(index)) };
