@@ -17,6 +17,9 @@ pub use gstring::{ExFind as GStringExFind, ExSplit as GStringExSplit, *};
 pub use node_path::NodePath;
 pub use string_name::{ExFind as StringNameExFind, ExSplit as StringNameExSplit, *};
 
+use godot_ffi as sys;
+use sys::interface_fn;
+
 use crate::meta;
 use crate::meta::error::ConvertError;
 use crate::meta::{FromGodot, GodotConvert, ToGodot};
@@ -80,7 +83,44 @@ fn populated_or_none(s: GString) -> Option<GString> {
 // Padding, alignment and precision support
 
 // Used by sub-modules of this module.
-use standard_fmt::pad_if_needed;
+pub(crate) use standard_fmt::pad_if_needed;
+
+pub(crate) fn with_utf8_buffer<R, F>(s: sys::GDExtensionConstStringPtr, f: F) -> R
+where
+    F: FnOnce(&str) -> R,
+{
+    let len = unsafe { interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0) };
+    if len == 0 {
+        return f("");
+    }
+
+    const STACK_BUF_SIZE: usize = 1024;
+    if len as usize <= STACK_BUF_SIZE {
+        let mut buf = [0u8; STACK_BUF_SIZE];
+        unsafe {
+            interface_fn!(string_to_utf8_chars)(
+                s,
+                buf.as_mut_ptr() as *mut std::ffi::c_char,
+                len,
+            );
+            f(std::str::from_utf8_unchecked(&buf[..len as usize]))
+        }
+    } else {
+        let mut buffer = vec![0u8; len as usize];
+        unsafe {
+            interface_fn!(string_to_utf8_chars)(
+                s,
+                buffer.as_mut_ptr() as *mut std::ffi::c_char,
+                len,
+            );
+            f(std::str::from_utf8_unchecked(&buffer))
+        }
+    }
+}
+
+pub(crate) fn compare_gstring_to_str(s: sys::GDExtensionConstStringPtr, other: &str) -> bool {
+    with_utf8_buffer(s, |s_str| s_str == other)
+}
 
 mod standard_fmt {
     use std::fmt;

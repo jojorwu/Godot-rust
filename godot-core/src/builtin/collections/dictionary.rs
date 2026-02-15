@@ -339,7 +339,10 @@ impl VarDictionary {
     /// # Panics
     /// If any key cannot be converted to `K`.
     pub fn typed_keys<K: FromGodot>(&self) -> Vec<K> {
-        self.keys_array().iter_shared().map(|k| k.to::<K>()).collect()
+        self.keys_array()
+            .iter_shared()
+            .map(|k| k.to::<K>())
+            .collect()
     }
 
     /// Creates a new `Array` containing all the values currently in the dictionary.
@@ -362,7 +365,10 @@ impl VarDictionary {
     /// # Panics
     /// If any value cannot be converted to `V`.
     pub fn typed_values<V: FromGodot>(&self) -> Vec<V> {
-        self.values_array().iter_shared().map(|v| v.to::<V>()).collect()
+        self.values_array()
+            .iter_shared()
+            .map(|v| v.to::<V>())
+            .collect()
     }
 
     /// Copies all keys and values from `other` into `self`.
@@ -575,6 +581,18 @@ impl VarDictionary {
         )
     }
 
+    /// Returns `true` if this dictionary is typed.
+    pub fn is_typed(&self) -> bool {
+        #[cfg(since_api = "4.4")]
+        {
+            self.key_element_type().is_typed() || self.value_element_type().is_typed()
+        }
+        #[cfg(before_api = "4.4")]
+        {
+            false
+        }
+    }
+
     /// Reserves capacity for at least `capacity` elements.
     ///
     /// The dictionary may reserve more space to avoid frequent reallocations.
@@ -622,6 +640,16 @@ impl VarDictionary {
         ElementType::transfer_cache(&source.cached_key_type, &self.cached_key_type);
         ElementType::transfer_cache(&source.cached_value_type, &self.cached_value_type);
         self
+    }
+
+    /// # Safety
+    /// - Variant must have type `VariantType::DICTIONARY`.
+    /// - Subsequent operations on this dictionary must not rely on the type of the dictionary.
+    pub(crate) unsafe fn from_variant_unchecked(variant: &Variant) -> Self {
+        Self::new_with_uninit(|self_ptr| {
+            let dict_from_variant = sys::builtin_fn!(dictionary_from_variant);
+            dict_from_variant(self_ptr, sys::SysPtr::force_mut(variant.var_sys()));
+        })
     }
 }
 
@@ -987,7 +1015,9 @@ impl<V: FromGodot> Iterator for TypedValues<'_, V> {
     type Item = V;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter.next_key_value().map(|(_k, v)| V::from_variant(&v))
+        self.iter
+            .next_key_value()
+            .map(|(_k, v)| V::from_variant(&v))
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {

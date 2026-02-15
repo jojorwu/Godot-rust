@@ -11,14 +11,10 @@ use crate::obj::Singleton;
 crate::obj::impl_owned_rid!(
     OwnedObstacle3D,
     NavigationServer3D,
-    "A RAII wrapper for a 3D navigation obstacle RID that is owned by this type.\nThe obstacle is freed when this object is dropped."
+    "A RAII wrapper for a 3D navigation obstacle RID that is owned by this type.
+The obstacle is freed when this object is dropped.",
+    @default
 );
-
-impl Default for OwnedObstacle3D {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl OwnedObstacle3D {
     /// Creates a new navigation obstacle and returns a wrapper that will free it on drop.

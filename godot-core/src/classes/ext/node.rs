@@ -114,7 +114,17 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.get_parent().and_then(|parent| parent.try_cast::<T>().ok())
+        self.get_parent()
+            .and_then(|parent| parent.try_cast::<T>().ok())
+    }
+
+    /// Alias for [`get_parent_as()`][Self::get_parent_as].
+    #[inline]
+    pub fn get_parent_typed<T>(&self) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_parent_as::<T>()
     }
 
     /// ⚠️ Retrieves the owner node, panicking if not found or bad type.
@@ -139,7 +149,17 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.get_owner().and_then(|owner| owner.try_cast::<T>().ok())
+        self.get_owner()
+            .and_then(|owner| owner.try_cast::<T>().ok())
+    }
+
+    /// Alias for [`get_owner_as()`][Self::get_owner_as].
+    #[inline]
+    pub fn get_owner_typed<T>(&self) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_owner_as::<T>()
     }
 
     /// ⚠️ Retrieves the child node at index `index`, panicking if out of bounds or bad type.
@@ -151,8 +171,9 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.try_get_child_as::<T>(index)
-            .unwrap_or_else(|| panic!("Node::get_child_as(): index {index} out of bounds or bad type"))
+        self.try_get_child_as::<T>(index).unwrap_or_else(|| {
+            panic!("Node::get_child_as(): index {index} out of bounds or bad type")
+        })
     }
 
     /// Retrieves the child node at index `index` (fallible).
@@ -188,6 +209,14 @@ impl Node {
             .iter_shared()
             .filter_map(|node| node.try_cast::<T>().ok())
             .collect()
+    }
+
+    /// Alias for [`get_children_as()`][Self::get_children_as].
+    pub fn get_children_typed<T>(&self) -> Vec<Gd<T>>
+    where
+        T: Inherits<Node>,
+    {
+        self.get_children_as::<T>()
     }
 
     /// Finds the first child whose name matches `pattern`, cast to type `T`.
@@ -259,5 +288,14 @@ impl Node {
         T: Inherits<SceneTree>,
     {
         self.get_tree().and_then(|tree| tree.try_cast::<T>().ok())
+    }
+
+    /// Alias for [`get_tree_as()`][Self::get_tree_as].
+    #[inline]
+    pub fn get_tree_typed<T>(&self) -> Gd<T>
+    where
+        T: Inherits<SceneTree>,
+    {
+        self.get_tree_as::<T>()
     }
 }

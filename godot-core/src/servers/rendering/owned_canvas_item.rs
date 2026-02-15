@@ -2,16 +2,7 @@ use crate::builtin::{Color, Rect2, Rid, Transform2D, Vector2};
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-crate::obj::impl_owned_rid!(
-    OwnedCanvasItem,
-    "A RAII wrapper for a canvas item RID that is owned by this type.\nThe canvas item is freed when this object is dropped."
-);
-
-impl Default for OwnedCanvasItem {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+crate::obj::impl_owned_rid!(OwnedCanvasItem, "A RAII wrapper for a canvas item RID that is owned by this type.\nThe canvas item is freed when this object is dropped.", @default);
 
 impl OwnedCanvasItem {
     /// Creates a new canvas item and returns a wrapper that will free it on drop.

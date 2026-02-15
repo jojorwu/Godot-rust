@@ -88,7 +88,7 @@ use crate::obj::Gd;
 /// - [Godot documentation](https://docs.godotengine.org/en/stable/classes/class_fileaccess.html) for `FileAccess`.
 pub struct GFile {
     fa: Gd<FileAccess>,
-    buffer: Vec<u8>,
+    buffer: PackedByteArray,
     last_buffer_size: usize,
     write_buffer: PackedByteArray,
     file_length: Option<u64>,
@@ -739,7 +739,7 @@ impl GFile {
         let file_length = Some(fa.get_length());
         Self {
             fa,
-            buffer: vec![0; Self::BUFFER_SIZE],
+            buffer: PackedByteArray::new(),
             last_buffer_size: 0,
             write_buffer: PackedByteArray::new(),
             file_length,
@@ -791,8 +791,13 @@ impl Read for GFile {
 impl Write for GFile {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
         self.pack_into_write_buffer(buf);
-        self.fa
-            .store_buffer(&self.write_buffer.subarray(0..buf.len()));
+
+        if self.write_buffer.len() == buf.len() {
+            self.fa.store_buffer(&self.write_buffer);
+        } else {
+            self.fa.store_buffer(&self.write_buffer.subarray(0..buf.len()));
+        }
+
         self.clear_file_length();
         self.check_error()?;
 
@@ -851,14 +856,10 @@ impl BufRead for GFile {
         // We need to keep the amount of last read side to be able to adjust cursor position in `consume`.
         self.last_buffer_size = buffer_read_size;
 
-        let gd_buffer = self.fa.get_buffer(buffer_read_size as i64);
+        self.buffer = self.fa.get_buffer(buffer_read_size as i64);
         self.check_error()?;
 
-        let read_buffer = &mut self.buffer[0..gd_buffer.len()];
-
-        read_buffer.copy_from_slice(gd_buffer.as_slice());
-
-        Ok(read_buffer)
+        Ok(self.buffer.as_slice())
     }
 
     fn consume(&mut self, amt: usize) {

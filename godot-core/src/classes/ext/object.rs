@@ -36,6 +36,12 @@ impl Object {
         self.set(property, &value.to_variant());
     }
 
+    /// Returns `true` if the object has a property with the given `name`.
+    #[inline]
+    pub fn has_property(&self, name: impl AsArg<StringName>) -> bool {
+        !self.get(name).is_nil()
+    }
+
     /// ⚠️ Retrieves a metadata value, panicking if not found or cannot be converted to `T`.
     #[inline]
     pub fn get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
@@ -61,13 +67,15 @@ impl Object {
         self.set_meta(name, &value.to_variant());
     }
 
+    /// Returns `true` if the object has a metadata with the given `name`.
+    #[inline]
+    pub fn has_meta_alias(&self, name: impl AsArg<StringName>) -> bool {
+        self.has_meta(name)
+    }
+
     /// ⚠️ Calls a method and converts the return value to `T`, panicking if it fails.
     #[inline]
-    pub fn call_as<T: FromGodot>(
-        &mut self,
-        method: impl AsArg<StringName>,
-        args: &[Variant],
-    ) -> T {
+    pub fn call_as<T: FromGodot>(&mut self, method: impl AsArg<StringName>, args: &[Variant]) -> T {
         arg_into_ref!(method);
         let result = self.call(method, args);
         result.try_to::<T>().unwrap_or_else(|err| {

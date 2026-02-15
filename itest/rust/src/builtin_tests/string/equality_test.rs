@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::builtin::{GString, NodePath, StringName, Variant};
 use crate::framework::itest;
+use godot::builtin::{GString, NodePath, StringName, Variant};
 
 #[itest]
 fn string_equality() {
@@ -18,18 +18,14 @@ fn string_equality() {
     // GString
     assert!(gs == s);
     assert!(s == gs);
-    assert!(gs == String::from(s));
-    assert!(String::from(s) == gs);
 
     // StringName
     assert!(sn == s);
     assert!(s == sn);
-    assert!(sn == String::from(s));
 
     // NodePath
     assert!(np == s);
     assert!(s == np);
-    assert!(np == String::from(s));
 
     // Cross-comparisons
     assert!(gs == sn);
@@ -72,9 +68,4 @@ fn variant_equality_strings() {
 
     assert!(v == s);
     assert!(s == v);
-    assert!(v == String::from(s));
-    assert!(String::from(s) == v);
-    assert!(v == GString::from(s));
-    assert!(v == StringName::from(s));
-    assert!(v == NodePath::from(s));
 }

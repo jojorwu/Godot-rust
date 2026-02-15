@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::prelude::*;
-use godot::builtin::math::assert_eq_approx;
 use crate::framework::itest;
+use godot::builtin::math::assert_eq_approx;
+use godot::prelude::*;
 
 #[itest]
 fn vector_approx_eq() {
@@ -60,6 +60,9 @@ fn transform_approx_eq() {
     assert_eq_approx!(t1, t2);
 
     let t3 = Transform3D::IDENTITY;
-    let t4 = Transform3D::new(Basis::from_scale(Vector3::new(1.0000001, 1.0, 1.0)), Vector3::ZERO);
+    let t4 = Transform3D::new(
+        Basis::from_scale(Vector3::new(1.0000001, 1.0, 1.0)),
+        Vector3::ZERO,
+    );
     assert_eq_approx!(t3, t4);
 }

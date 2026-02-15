@@ -5,14 +5,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-
 use crate::classes::PhysicsServer2D;
 use crate::obj::Singleton;
 
 crate::obj::impl_owned_rid!(
     OwnedJoint2D,
     PhysicsServer2D,
-    "A RAII wrapper for a 2D physics joint RID that is owned by this type.\nThe joint is freed when this object is dropped."
+    "A RAII wrapper for a 2D physics joint RID that is owned by this type.\nThe joint is freed when this object is dropped.",
+    @default
 );
 
 impl OwnedJoint2D {
@@ -24,8 +24,3 @@ impl OwnedJoint2D {
     }
 }
 
-impl Default for OwnedJoint2D {
-    fn default() -> Self {
-        Self::new()
-    }
-}

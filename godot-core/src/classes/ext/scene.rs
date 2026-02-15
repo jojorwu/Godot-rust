@@ -18,8 +18,25 @@ impl PackedScene {
     where
         T: Inherits<Node>,
     {
-        self.try_instantiate_as::<T>()
-            .unwrap_or_else(|| panic!("Failed to instantiate {to}", to = T::class_id()))
+        self.try_instantiate_as::<T>().unwrap_or_else(|| {
+            let actual = self
+                .instantiate()
+                .map(|gd| format!("{:?}", gd.get_class()))
+                .unwrap_or_else(|| "null".to_string());
+
+            panic!(
+                "Failed to instantiate scene as {to}; actual type was {actual}.",
+                to = T::class_id()
+            )
+        })
+    }
+
+    /// Alias for [`instantiate_as()`][Self::instantiate_as].
+    pub fn instantiate_typed<T>(&self) -> Gd<T>
+    where
+        T: Inherits<Node>,
+    {
+        self.instantiate_as::<T>()
     }
 
     /// Instantiates the scene as type `T` (fallible).

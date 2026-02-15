@@ -375,19 +375,8 @@ impl ApproxEq for Color {
     }
 }
 
-impl From<(f32, f32, f32, f32)> for Color {
-    #[inline]
-    fn from(tuple: (f32, f32, f32, f32)) -> Self {
-        Self::from_rgba(tuple.0, tuple.1, tuple.2, tuple.3)
-    }
-}
-
-impl From<[f32; 4]> for Color {
-    #[inline]
-    fn from(array: [f32; 4]) -> Self {
-        Self::from_rgba(array[0], array[1], array[2], array[3])
-    }
-}
+impl_geometric_interop!(Color, (f32, f32, f32, f32),
+    [f32; 4], from_rgba, [r, g, b, a], self => [self.r, self.g, self.b, self.a]);
 
 /// Defines how individual color channels are laid out in memory.
 #[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
@@ -502,6 +491,40 @@ impl ops::DivAssign<Color> for Color {
         self.g /= rhs.g;
         self.b /= rhs.b;
         self.a /= rhs.a;
+    }
+}
+
+impl ops::Rem<Color> for Color {
+    type Output = Color;
+    fn rem(mut self, rhs: Color) -> Self::Output {
+        self %= rhs;
+        self
+    }
+}
+
+impl ops::RemAssign<Color> for Color {
+    fn rem_assign(&mut self, rhs: Color) {
+        self.r %= rhs.r;
+        self.g %= rhs.g;
+        self.b %= rhs.b;
+        self.a %= rhs.a;
+    }
+}
+
+impl ops::Rem<f32> for Color {
+    type Output = Color;
+    fn rem(mut self, rhs: f32) -> Self::Output {
+        self %= rhs;
+        self
+    }
+}
+
+impl ops::RemAssign<f32> for Color {
+    fn rem_assign(&mut self, rhs: f32) {
+        self.r %= rhs;
+        self.g %= rhs;
+        self.b %= rhs;
+        self.a %= rhs;
     }
 }
 
@@ -623,6 +646,8 @@ mod test {
         assert_eq_approx!(c1 * 2.0, Color::from_rgba(0.4, 0.8, 1.2, 1.6));
         assert_eq_approx!(2.0 * c1, Color::from_rgba(0.4, 0.8, 1.2, 1.6));
         assert_eq_approx!(c1 / 2.0, Color::from_rgba(0.1, 0.2, 0.3, 0.4));
+        assert_eq_approx!(c1 % c2, Color::from_rgba(0.0, 0.0, 0.0, 0.0));
+        assert_eq_approx!(c1 % 0.3, Color::from_rgba(0.2, 0.1, 0.0, 0.2));
 
         let mut c = c1;
         c += c2;
@@ -639,6 +664,14 @@ mod test {
         let mut c = c1;
         c /= 2.0;
         assert_eq_approx!(c, c1 / 2.0);
+
+        let mut c = c1;
+        c %= c2;
+        assert_eq_approx!(c, c1 % c2);
+
+        let mut c = c1;
+        c %= 0.3;
+        assert_eq_approx!(c, c1 % 0.3);
 
         assert_eq_approx!(-c1, Color::from_rgba(-0.2, -0.4, -0.6, -0.8));
     }

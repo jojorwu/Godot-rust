@@ -10,3 +10,4 @@ pub mod node;
 pub mod object;
 pub mod resource;
 pub mod scene;
+pub mod scene_tree;

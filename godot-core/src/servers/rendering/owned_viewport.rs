@@ -1,16 +1,7 @@
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-crate::obj::impl_owned_rid!(
-    OwnedViewport,
-    "A RAII wrapper for a viewport RID that is owned by this type.\nThe viewport is freed when this object is dropped."
-);
-
-impl Default for OwnedViewport {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+crate::obj::impl_owned_rid!(OwnedViewport, "A RAII wrapper for a viewport RID that is owned by this type.\nThe viewport is freed when this object is dropped.", @default);
 
 impl OwnedViewport {
     /// Creates a new viewport and returns a wrapper that will free it on drop.

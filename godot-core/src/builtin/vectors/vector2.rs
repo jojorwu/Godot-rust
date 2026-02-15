@@ -204,47 +204,8 @@ impl GlamType for RVec2 {
     }
 }
 
-impl PartialEq<(real, real)> for Vector2 {
-    #[inline]
-    fn eq(&self, other: &(real, real)) -> bool {
-        self.x == other.0 && self.y == other.1
-    }
-}
-
-impl PartialEq<Vector2> for (real, real) {
-    #[inline]
-    fn eq(&self, other: &Vector2) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<[real; 2]> for Vector2 {
-    #[inline]
-    fn eq(&self, other: &[real; 2]) -> bool {
-        self.x == other[0] && self.y == other[1]
-    }
-}
-
-impl PartialEq<Vector2> for [real; 2] {
-    #[inline]
-    fn eq(&self, other: &Vector2) -> bool {
-        other.eq(self)
-    }
-}
-
-impl From<(real, real)> for Vector2 {
-    #[inline]
-    fn from(tuple: (real, real)) -> Self {
-        Self::new(tuple.0, tuple.1)
-    }
-}
-
-impl From<[real; 2]> for Vector2 {
-    #[inline]
-    fn from(array: [real; 2]) -> Self {
-        Self::new(array[0], array[1])
-    }
-}
+impl_geometric_interop!(Vector2, (real, real),
+    [real; 2], new, [x, y], self => [self.x, self.y]);
 
 #[cfg(test)]
 mod test {
@@ -258,6 +219,23 @@ mod test {
 
         assert_eq_approx!(a.coord_min(b), Vector2::new(0.1, 3.4));
         assert_eq_approx!(a.coord_max(b), Vector2::new(1.2, 5.6));
+    }
+
+    #[test]
+    fn arithmetic() {
+        let a = Vector2::new(5.0, 10.0);
+        let b = Vector2::new(3.0, 4.0);
+
+        assert_eq_approx!(a % b, Vector2::new(2.0, 2.0));
+        assert_eq_approx!(a % 3.0, Vector2::new(2.0, 1.0));
+
+        let mut c = a;
+        c %= b;
+        assert_eq_approx!(c, a % b);
+
+        let mut d = a;
+        d %= 3.0;
+        assert_eq_approx!(d, a % 3.0);
     }
 
     #[test]

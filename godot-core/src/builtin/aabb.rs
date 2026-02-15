@@ -41,6 +41,22 @@ pub struct Aabb {
 }
 
 impl Aabb {
+    /// Create a new `Aabb` from six reals representing position `(x,y,z)` and size `(width,height,depth)`.
+    #[inline]
+    pub const fn from_components(
+        x: real,
+        y: real,
+        z: real,
+        width: real,
+        height: real,
+        depth: real,
+    ) -> Self {
+        Self {
+            position: Vector3::new(x, y, z),
+            size: Vector3::new(width, height, depth),
+        }
+    }
+
     /// Create a new `Aabb` from a position and a size.
     ///
     /// _Godot equivalent: `Aabb(Vector3 position, Vector3 size)`_
@@ -146,12 +162,12 @@ impl Aabb {
     pub fn contains_point(self, point: Vector3) -> bool {
         self.assert_nonnegative();
 
-        let point = point - self.position;
-
-        point.abs() == point
-            && point.x < self.size.x
-            && point.y < self.size.y
-            && point.z < self.size.z
+        point.x >= self.position.x
+            && point.y >= self.position.y
+            && point.z >= self.position.z
+            && point.x < self.position.x + self.size.x
+            && point.y < self.position.y + self.size.y
+            && point.z < self.position.z + self.size.z
     }
 
     /// Returns if this bounding box has a surface or a length, i.e. at least one component of [`Self::size`] is greater than 0.
@@ -211,10 +227,13 @@ impl Aabb {
     #[inline]
     #[doc(alias = "get_endpoint")]
     pub fn get_corner(self, idx: usize) -> Vector3 {
-        *self
-            .corners()
-            .get(idx)
-            .expect("Tried to retrieve vertex no. {idx} from Aabb which has only 8 vertices")
+        if idx >= 8 {
+            panic!(
+                "{}::get_corner(): index {idx} out of bounds (len 8)",
+                std::any::type_name::<Self>()
+            );
+        }
+        self.corners()[idx]
     }
 
     /// Set size based on desired end-point.
@@ -487,6 +506,12 @@ impl Aabb {
         Some(from + (to - from) * t_min)
     }
 
+    /// Returns `true` if this AABB and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     /// Assert that the size of the `Aabb` is not negative.
     ///
     /// Most functions will fail to give a correct result if the size is negative.
@@ -494,7 +519,8 @@ impl Aabb {
     fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0 && self.size.z >= 0.0,
-            "size {:?} is negative",
+            "{} size {:?} is negative",
+            std::any::type_name::<Self>(),
             self.size
         );
     }
@@ -533,6 +559,16 @@ impl ApproxEq for Aabb {
             && Vector3::approx_eq(&self.size, &other.size)
     }
 }
+
+impl_geometric_interop!(Aabb, (real, real, real, real, real, real),
+    [real; 6], from_components, [x, y, z, w, h, d], self => [
+        self.position.x,
+        self.position.y,
+        self.position.z,
+        self.size.x,
+        self.size.y,
+        self.size.z
+    ]);
 
 #[cfg(test)]
 mod test {
@@ -972,35 +1008,5 @@ mod test {
             !aabb.intersects_segment(Vector3::new(0.0, 300.0, 0.0), Vector3::new(0.0, 300.0, 0.0)),
             "intersects_segment(), segment of length 0 *outside* the box -> false"
         );
-    }
-}
-
-impl PartialEq<(real, real, real, real, real, real)> for Aabb {
-    #[inline]
-    fn eq(&self, other: &(real, real, real, real, real, real)) -> bool {
-        self.position.x == other.0 && self.position.y == other.1 && self.position.z == other.2 &&
-        self.size.x == other.3 && self.size.y == other.4 && self.size.z == other.5
-    }
-}
-
-impl PartialEq<Aabb> for (real, real, real, real, real, real) {
-    #[inline]
-    fn eq(&self, other: &Aabb) -> bool {
-        other == self
-    }
-}
-
-impl PartialEq<[real; 6]> for Aabb {
-    #[inline]
-    fn eq(&self, other: &[real; 6]) -> bool {
-        self.position.x == other[0] && self.position.y == other[1] && self.position.z == other[2] &&
-        self.size.x == other[3] && self.size.y == other[4] && self.size.z == other[5]
-    }
-}
-
-impl PartialEq<Aabb> for [real; 6] {
-    #[inline]
-    fn eq(&self, other: &Aabb) -> bool {
-        other == self
     }
 }

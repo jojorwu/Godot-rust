@@ -27,7 +27,10 @@ macro_rules! impl_owned_rid {
 
             /// # Safety
             /// The RID must have been created by the server and must not be freed elsewhere.
-            pub unsafe fn from_rid(rid: crate::builtin::Rid, server: crate::obj::Gd<crate::classes::$server>) -> Self {
+            pub unsafe fn from_rid(
+                rid: crate::builtin::Rid,
+                server: crate::obj::Gd<crate::classes::$server>,
+            ) -> Self {
                 Self { rid, server }
             }
         }
@@ -102,6 +105,18 @@ macro_rules! impl_owned_rid {
     };
     ($name:ident, $doc:literal) => {
         crate::obj::impl_owned_rid!($name, RenderingServer, $doc);
+    };
+    ($name:ident, $doc:literal, @default) => {
+        crate::obj::impl_owned_rid!($name, RenderingServer, $doc, @default);
+    };
+    ($name:ident, $server:ident, $doc:literal, @default) => {
+        crate::obj::impl_owned_rid!($name, $server, $doc);
+
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
     };
 }
 

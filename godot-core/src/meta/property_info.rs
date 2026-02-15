@@ -129,9 +129,7 @@ impl PropertyInfo {
             .map(|ty| VariantType::from_sys(ty as sys::GDExtensionVariantType))
             .unwrap_or(VariantType::NIL);
 
-        let property_name = dict
-            .get_as::<&str, StringName>("name")
-            .unwrap_or_default();
+        let property_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();
 
         let class_id = dict
             .get_as::<&str, StringName>("class_name")
@@ -213,6 +211,14 @@ impl PropertyInfo {
         })
     }
 
+    /// Returns a copy of this `PropertyInfo` with the given `property_name`.
+    pub fn with_name(self, property_name: impl Into<StringName>) -> Self {
+        Self {
+            property_name: property_name.into(),
+            ..self
+        }
+    }
+
     /// Returns a copy of this `PropertyInfo` with the given `usage`.
     pub fn with_usage(self, usage: PropertyUsageFlags) -> Self {
         Self { usage, ..self }
@@ -229,6 +235,20 @@ impl PropertyInfo {
             variant_type,
             ..self
         }
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the given `hint`.
+    pub fn with_hint(self, hint: PropertyHint) -> Self {
+        let mut hint_info = self.hint_info;
+        hint_info.hint = hint;
+        Self { hint_info, ..self }
+    }
+
+    /// Returns a copy of this `PropertyInfo` with the given `hint_string`.
+    pub fn with_hint_string(self, hint_string: impl Into<GString>) -> Self {
+        let mut hint_info = self.hint_info;
+        hint_info.hint_string = hint_string.into();
+        Self { hint_info, ..self }
     }
 
     /// Change the `hint` and `hint_string` to be the given `hint_info`.
@@ -287,6 +307,11 @@ impl PropertyInfo {
     /// Sets the property hint to a range.
     pub fn range(self, min: f64, max: f64) -> Self {
         self.with_hint_info(PropertyHintInfo::range(min, max))
+    }
+
+    /// Sets the property hint to an exponential range.
+    pub fn exp_range(self, min: f64, max: f64) -> Self {
+        self.with_hint_info(PropertyHintInfo::exp_range(min, max))
     }
 
     /// Sets the property hint to an enum.
@@ -520,6 +545,14 @@ impl PropertyHintInfo {
         Self {
             hint: PropertyHint::RANGE,
             hint_string: (&format!("{min},{max}")).into(),
+        }
+    }
+
+    /// Create a new `PropertyHintInfo` for an exponential range.
+    pub fn exp_range(min: f64, max: f64) -> Self {
+        Self {
+            hint: PropertyHint::RANGE,
+            hint_string: (&format!("{min},{max},exp")).into(),
         }
     }
 

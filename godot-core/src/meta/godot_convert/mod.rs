@@ -48,7 +48,7 @@ pub trait GodotConvert {
 ///
 /// Please read the [`godot::meta` module docs][crate::meta] for further information about conversions.
 ///
-/// This trait can be derived using the [`#[derive(GodotConvert)]`](../register/derive.GodotConvert.html) macro.
+/// This trait can be derived using the `#[derive(GodotConvert)]` macro.
 #[diagnostic::on_unimplemented(
     message = "passing type `{Self}` to Godot requires `ToGodot` trait, which is usually provided by the library",
     note = "ToGodot is implemented for built-in types (i32, Vector2, GString, …). For objects, use Gd<T> instead of T.",
@@ -111,7 +111,7 @@ pub trait ToGodot: Sized + GodotConvert {
 ///
 /// Please read the [`godot::meta` module docs][crate::meta] for further information about conversions.
 ///
-/// This trait can be derived using the [`#[derive(GodotConvert)]`](../register/derive.GodotConvert.html) macro.
+/// This trait can be derived using the `#[derive(GodotConvert)]` macro.
 #[diagnostic::on_unimplemented(
     message = "receiving type `{Self}` from Godot requires `FromGodot` trait, which is usually provided by the library",
     note = "FromGodot is implemented for built-in types (i32, Vector2, GString, …). For objects, use Gd<T> instead of T.",

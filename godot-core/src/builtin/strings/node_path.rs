@@ -124,6 +124,12 @@ impl NodePath {
         self.get_name_count() + self.get_subname_count()
     }
 
+    /// Returns `true` if the node path is relative.
+    #[inline]
+    pub fn is_relative(&self) -> bool {
+        !self.is_absolute()
+    }
+
     crate::declare_hash_u32_method! {
         /// Returns a 32-bit integer hash value representing the node path.
     }
@@ -249,9 +255,11 @@ impl fmt::Debug for NodePath {
     }
 }
 
+#[allow(clippy::cmp_owned)]
 impl PartialEq<&str> for NodePath {
     fn eq(&self, other: &&str) -> bool {
-        GString::from(self) == *other
+        let gstring = GString::from(self);
+        super::compare_gstring_to_str(gstring.string_sys(), other)
     }
 }
 

@@ -11,14 +11,9 @@ use crate::obj::Singleton;
 crate::obj::impl_owned_rid!(
     OwnedBody2D,
     PhysicsServer2D,
-    "A RAII wrapper for a 2D physics body RID that is owned by this type.\nThe body is freed when this object is dropped."
+    "A RAII wrapper for a 2D physics body RID that is owned by this type.\nThe body is freed when this object is dropped.",
+    @default
 );
-
-impl Default for OwnedBody2D {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl OwnedBody2D {
     /// Creates a new body and returns a wrapper that will free it on drop.

@@ -11,14 +11,10 @@ use crate::obj::Singleton;
 crate::obj::impl_owned_rid!(
     OwnedRegion3D,
     NavigationServer3D,
-    "A RAII wrapper for a 3D navigation region RID that is owned by this type.\nThe region is freed when this object is dropped."
+    "A RAII wrapper for a 3D navigation region RID that is owned by this type.
+The region is freed when this object is dropped.",
+    @default
 );
-
-impl Default for OwnedRegion3D {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl OwnedRegion3D {
     /// Creates a new navigation region and returns a wrapper that will free it on drop.

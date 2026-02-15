@@ -22,7 +22,7 @@ use crate::registry::property::SimpleVar;
 /// Covariant `Array` that can be either typed or untyped.
 ///
 /// Unlike [`Array<T>`], which carries compile-time type information, `AnyArray` is a type-erased version of arrays.
-/// It can point to any `Array<T>`, for both typed and untyped arrays. See [`Array`: Element type](struct.Array.html#element-type) section.
+/// It can point to any `Array<T>`, for both typed and untyped arrays. See [Array: Element type][crate::builtin::Array#element-type] section.
 ///
 /// # Covariance
 /// In GDScript, the subtyping relationship is modeled incorrectly for arrays:
@@ -40,7 +40,7 @@ use crate::registry::property::SimpleVar;
 /// `AnyArray` does not provide any operations where data flows _in_ to the array, such as `push()` or `insert()`.
 ///
 /// ## Conversions
-/// See the [corresponding section in `Array`](struct.Array.html#conversions-between-arrays).
+/// See the [corresponding section in `Array`][crate::builtin::Array#conversions-between-arrays].
 #[derive(PartialEq, PartialOrd)]
 #[repr(transparent)] // Guarantees same layout as VarArray, enabling Deref from Array<T>.
 pub struct AnyArray {
@@ -131,16 +131,11 @@ impl AnyArray {
         self.array.as_inner().is_empty()
     }
 
-    /// Returns a 32-bit integer hash value representing the array and its contents.
-    ///
-    /// Arrays with equal content will always produce identical hash values. However, the reverse is not true:
-    /// Different arrays can have identical hash values due to hash collisions.
-    pub fn hash_u32(&self) -> u32 {
-        self.array
-            .as_inner()
-            .hash()
-            .try_into()
-            .expect("Godot hashes are uint32_t")
+    crate::declare_hash_u32_method! {
+        /// Returns a 32-bit integer hash value representing the array and its contents.
+        ///
+        /// Arrays with equal content will always produce identical hash values. However, the reverse is not true:
+        /// Different arrays can have identical hash values due to hash collisions.
     }
 
     /// Returns the first element in the array, or `None` if the array is empty.
@@ -150,11 +145,23 @@ impl AnyArray {
         self.array.front()
     }
 
+    /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn front_as<U: FromGodot>(&self) -> Option<U> {
+        self.front().and_then(|v| v.try_to::<U>().ok())
+    }
+
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
     pub fn back(&self) -> Option<Variant> {
         self.array.back()
+    }
+
+    /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn back_as<U: FromGodot>(&self) -> Option<U> {
+        self.back().and_then(|v| v.try_to::<U>().ok())
     }
 
     /// Clears the array, removing all elements.
@@ -173,12 +180,24 @@ impl AnyArray {
         self.array.pop()
     }
 
+    /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
+        self.pop().and_then(|v| v.try_to::<U>().ok())
+    }
+
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
     ///
     /// Note: On large arrays, this method is much slower than `pop()` as it will move all the
     /// array's elements. The larger the array, the slower `pop_front()` will be.
     pub fn pop_front(&mut self) -> Option<Variant> {
         self.array.pop_front()
+    }
+
+    /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
+        self.pop_front().and_then(|v| v.try_to::<U>().ok())
     }
 
     /// ⚠️ Removes and returns the element at the specified index. Equivalent of `pop_at` in GDScript.
@@ -324,6 +343,13 @@ impl AnyArray {
         self.array.pick_random()
     }
 
+    /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
+        self.pick_random()
+            .and_then(|v| v.try_to::<U>().ok())
+    }
+
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if
     /// not found. Starts searching at index `from`; pass `None` to search the entire array.
     pub fn find(&self, value: &Variant, from: Option<usize>) -> Option<usize> {
@@ -419,10 +445,19 @@ impl AnyArray {
         )
     }
 
+    /// Returns `true` if this array is typed.
+    pub fn is_typed(&self) -> bool {
+        self.element_type().is_typed()
+    }
+
     /// Returns `true` if the array is read-only. See [`make_read_only`][crate::builtin::Array::make_read_only].
     #[inline]
     pub fn is_read_only(&self) -> bool {
-        self.array.as_inner().is_read_only()
+        self.as_inner().is_read_only()
+    }
+
+    pub(crate) fn as_inner(&self) -> super::array::ImmutableInnerArray<'_> {
+        self.array.as_inner()
     }
 
     /// Best-effort mutability check.

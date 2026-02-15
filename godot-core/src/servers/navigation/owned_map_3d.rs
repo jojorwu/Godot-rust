@@ -11,14 +11,10 @@ use crate::obj::Singleton;
 crate::obj::impl_owned_rid!(
     OwnedMap3D,
     NavigationServer3D,
-    "A RAII wrapper for a 3D navigation map RID that is owned by this type.\nThe map is freed when this object is dropped."
+    "A RAII wrapper for a 3D navigation map RID that is owned by this type.
+The map is freed when this object is dropped.",
+    @default
 );
-
-impl Default for OwnedMap3D {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 impl OwnedMap3D {
     /// Creates a new navigation map and returns a wrapper that will free it on drop.

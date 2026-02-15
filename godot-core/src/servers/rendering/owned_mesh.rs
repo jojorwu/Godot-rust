@@ -5,16 +5,7 @@ use crate::classes::rendering_server::PrimitiveType;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-crate::obj::impl_owned_rid!(
-    OwnedMesh,
-    "A RAII wrapper for a mesh RID that is owned by this type.\nThe mesh is freed when this object is dropped."
-);
-
-impl Default for OwnedMesh {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+crate::obj::impl_owned_rid!(OwnedMesh, "A RAII wrapper for a mesh RID that is owned by this type.\nThe mesh is freed when this object is dropped.", @default);
 
 impl OwnedMesh {
     /// Creates a new mesh and returns a wrapper that will free it on drop.

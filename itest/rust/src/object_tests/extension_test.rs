@@ -5,9 +5,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::prelude::*;
-use godot::classes::{Node, Resource};
 use crate::framework::itest;
+use godot::classes::{Node, Resource};
+use godot::prelude::*;
 
 #[itest]
 fn test_object_property_accessors() {
@@ -31,9 +31,9 @@ fn test_object_property_accessors() {
 
 #[itest]
 fn test_metadata_dictionary_conversions() {
-    use godot::meta::{PropertyInfo, MethodInfo, ClassId};
     use godot::builtin::VariantType;
     use godot::global::PropertyUsageFlags;
+    use godot::meta::{ClassId, MethodInfo, PropertyInfo};
 
     // PropertyInfo round-trip
     let prop = PropertyInfo {
@@ -63,7 +63,10 @@ fn test_metadata_dictionary_conversions() {
     assert_eq!(method_back.method_name, method.method_name);
     assert_eq!(method_back.id, method.id);
     assert_eq!(method_back.arguments.len(), method.arguments.len());
-    assert_eq!(method_back.arguments[0].property_name, method.arguments[0].property_name);
+    assert_eq!(
+        method_back.arguments[0].property_name,
+        method.arguments[0].property_name
+    );
 }
 
 #[itest]

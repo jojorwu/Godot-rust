@@ -5,7 +5,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-
 use crate::builtin::{Array, PackedInt64Array, Rid};
 use crate::classes::RenderingDevice;
 use crate::meta::GodotType;
@@ -39,7 +38,12 @@ impl OwnedRdVertexArray {
         offsets: &PackedInt64Array,
     ) -> Self {
         let mut server = server.clone();
-        let rid = server.vertex_array_create_full(vertex_count, vertex_format, src_buffers.to_ffi(), offsets.to_ffi());
+        let rid = server.vertex_array_create_full(
+            vertex_count,
+            vertex_format,
+            src_buffers.to_ffi(),
+            offsets.to_ffi(),
+        );
         unsafe { Self::from_rid(rid, server) }
     }
 }

@@ -10,6 +10,7 @@ use std::fmt;
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
+use crate::builtin::strings::pad_if_needed;
 use crate::builtin::{inner, Encoding, GString, NodePath, Variant};
 use crate::meta::error::StringError;
 use crate::meta::AsArg;
@@ -262,6 +263,18 @@ impl StringName {
         inner::InnerStringName::from_outer(self)
     }
 
+    /// Converts this `StringName` to a `GString`.
+    #[inline]
+    pub fn to_gstring(&self) -> GString {
+        GString::from(self)
+    }
+
+    /// Converts this `StringName` to a `NodePath`.
+    #[inline]
+    pub fn to_node_path(&self) -> NodePath {
+        NodePath::from(self)
+    }
+
     #[doc(hidden)] // Private for now. Needs API discussion, also regarding overlap with try_from_cstr().
     pub fn __cstr(c_str: &'static std::ffi::CStr) -> Self {
         // This used to be set to true, but `p_is_static` parameter in Godot should only be enabled if the result is indeed stored
@@ -417,42 +430,15 @@ impl ExactSizeIterator for IntoIter {}
 // API design: see PartialEq for GString.
 impl PartialEq<&str> for StringName {
     fn eq(&self, other: &&str) -> bool {
-        let other_bytes = other.as_bytes();
-        let gstring = GString::from(self);
-        let s = gstring.string_sys();
-        unsafe {
-            // Get length in UTF-8 bytes.
-            let len = sys::interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
-            if len as usize != other_bytes.len() {
-                return false;
-            }
-            if len == 0 {
-                return true;
-            }
+        #[cfg(since_api = "4.5")]
+        {
+            self.chars().iter().copied().eq(other.chars())
+        }
 
-            // We need a temporary buffer to hold the GString's UTF-8 representation.
-            // For short strings, we can use the stack.
-            const STACK_BUF_SIZE: usize = 128;
-            if len as usize <= STACK_BUF_SIZE {
-                let mut buf = [0u8; STACK_BUF_SIZE];
-                sys::interface_fn!(string_to_utf8_chars)(
-                    s,
-                    buf.as_mut_ptr() as *mut std::ffi::c_char,
-                    len,
-                );
-                &buf[..len as usize] == other_bytes
-            } else {
-                // For long strings, character-by-character comparison is likely better than heap allocation.
-                #[cfg(since_api = "4.5")]
-                {
-                    self.chars().iter().copied().eq(other.chars())
-                }
-
-                #[cfg(before_api = "4.5")]
-                {
-                    gstring == *other
-                }
-            }
+        #[cfg(before_api = "4.5")]
+        {
+            let gstring = GString::from(self);
+            super::compare_gstring_to_str(gstring.string_sys(), other)
         }
     }
 }
@@ -491,8 +477,9 @@ impl PartialEq<NodePath> for StringName {
 
 impl fmt::Display for StringName {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = GString::from(self);
-        <GString as fmt::Display>::fmt(&s, f)
+        pad_if_needed(f, |f: &mut fmt::Formatter<'_>| {
+            super::with_utf8_buffer(self.to_gstring().string_sys(), |s| f.write_str(s))
+        })
     }
 }
 

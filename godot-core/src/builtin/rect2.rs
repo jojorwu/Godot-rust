@@ -188,9 +188,10 @@ impl Rect2 {
     #[inline]
     #[doc(alias = "has_point")]
     pub fn contains_point(self, point: Vector2) -> bool {
-        let point = point - self.position;
-
-        point.abs() == point && point.x < self.size.x && point.y < self.size.y
+        point.x >= self.position.x
+            && point.y >= self.position.y
+            && point.x < self.position.x + self.size.x
+            && point.y < self.position.y + self.size.y
     }
 
     /// Returns the intersection of this Rect2 and `b`. If the rectangles do not intersect, an empty Rect2 is returned.
@@ -262,6 +263,12 @@ impl Rect2 {
         self.size = end - self.position
     }
 
+    /// Returns `true` if this rectangle and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
+
     /// Assert that the size of the `Rect2` is not negative.
     ///
     /// Certain functions will fail to give a correct result if the size is negative.
@@ -269,7 +276,8 @@ impl Rect2 {
     pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0,
-            "size {:?} is negative",
+            "{} size {:?} is negative",
+            std::any::type_name::<Self>(),
             self.size
         );
     }
@@ -294,20 +302,6 @@ impl ApproxEq for Rect2 {
     }
 }
 
-impl From<(real, real, real, real)> for Rect2 {
-    #[inline]
-    fn from(tuple: (real, real, real, real)) -> Self {
-        Self::from_components(tuple.0, tuple.1, tuple.2, tuple.3)
-    }
-}
-
-impl From<[real; 4]> for Rect2 {
-    #[inline]
-    fn from(array: [real; 4]) -> Self {
-        Self::from_components(array[0], array[1], array[2], array[3])
-    }
-}
-
 impl std::fmt::Display for Rect2 {
     /// Formats `Rect2` to match Godot's string representation.
     ///
@@ -321,18 +315,6 @@ impl std::fmt::Display for Rect2 {
         // godot output be like:
         // [P: (0, 0), S: (0, 0)]
         write!(f, "[P: {}, S: {}]", self.position, self.size)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    #[cfg(feature = "serde")]
-    #[test]
-    fn serde_roundtrip() {
-        let rect = super::Rect2::default();
-        let expected_json = "{\"position\":{\"x\":0.0,\"y\":0.0},\"size\":{\"x\":0.0,\"y\":0.0}}";
-
-        crate::builtin::test_utils::roundtrip(&rect, expected_json);
     }
 }
 
@@ -357,30 +339,17 @@ impl PartialEq<Rect2> for (Vector2, Vector2) {
     }
 }
 
-impl PartialEq<(real, real, real, real)> for Rect2 {
-    #[inline]
-    fn eq(&self, other: &(real, real, real, real)) -> bool {
-        self.position.x == other.0 && self.position.y == other.1 && self.size.x == other.2 && self.size.y == other.3
-    }
-}
+impl_geometric_interop!(Rect2, (real, real, real, real),
+    [real; 4], from_components, [x, y, w, h], self => [self.position.x, self.position.y, self.size.x, self.size.y]);
 
-impl PartialEq<Rect2> for (real, real, real, real) {
-    #[inline]
-    fn eq(&self, other: &Rect2) -> bool {
-        other == self
-    }
-}
+#[cfg(test)]
+mod test {
+    #[cfg(feature = "serde")]
+    #[test]
+    fn serde_roundtrip() {
+        let rect = super::Rect2::default();
+        let expected_json = "{\"position\":{\"x\":0.0,\"y\":0.0},\"size\":{\"x\":0.0,\"y\":0.0}}";
 
-impl PartialEq<[real; 4]> for Rect2 {
-    #[inline]
-    fn eq(&self, other: &[real; 4]) -> bool {
-        self.position.x == other[0] && self.position.y == other[1] && self.size.x == other[2] && self.size.y == other[3]
-    }
-}
-
-impl PartialEq<Rect2> for [real; 4] {
-    #[inline]
-    fn eq(&self, other: &Rect2) -> bool {
-        other == self
+        crate::builtin::test_utils::roundtrip(&rect, expected_json);
     }
 }

@@ -11,7 +11,9 @@ use godot_ffi as sys;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
 use crate::builtin::{
-    GString, NodePath, StringName, VarArray, VariantDispatch, VariantOperator, VariantType,
+    Aabb, Basis, Color, GString, NodePath, Plane, Projection, Quaternion, Rect2, Rect2i, Rid,
+    StringName, Transform2D, Transform3D, VarArray, VarDictionary, VariantDispatch,
+    VariantOperator, VariantType, Vector2, Vector2i, Vector3, Vector3i, Vector4, Vector4i,
 };
 use crate::classes;
 use crate::meta::error::{ConvertError, FromVariantError};
@@ -39,6 +41,43 @@ mod impls;
 #[repr(transparent)]
 pub struct Variant {
     _opaque: sys::types::OpaqueVariant,
+}
+
+macro_rules! impl_variant_is_type {
+    ($($name:ident, $ty:ident, $comment:expr);* $(;)?) => {
+        $(
+            #[doc = $comment]
+            #[inline]
+            pub fn $name(&self) -> bool {
+                self.is_type(VariantType::$ty)
+            }
+        )*
+    };
+}
+
+macro_rules! impl_variant_try_to {
+    ($($name:ident, $ty:ty, $variant_name:expr);* $(;)?) => {
+        $(
+            #[doc = concat!("Returns the variant as a `", stringify!($ty), "`, or `Err` if it is not a ", $variant_name, ".")]
+            #[inline]
+            pub fn $name(&self) -> Result<$ty, ConvertError> {
+                self.try_to()
+            }
+        )*
+    };
+}
+
+macro_rules! impl_variant_to_relaxed {
+    ($($name:ident, $ty:ty);* $(;)?) => {
+        $(
+            #[doc = concat!("⚠️ Returns the variant as a `", stringify!($ty), "`, using relaxed conversion rules, panicking if it fails.")]
+            #[inline]
+            pub fn $name(&self) -> $ty {
+                self.try_to_relaxed::<$ty>()
+                    .unwrap_or_else(|err| panic!("Variant::{}(): {err}", stringify!($name)))
+            }
+        )*
+    };
 }
 
 impl Variant {
@@ -175,106 +214,80 @@ impl Variant {
         self.get_type() == ty
     }
 
-    /// Returns true if the variant holds an object.
-    ///
-    /// Alias for `self.is_type(VariantType::OBJECT)`.
-    #[inline]
-    pub fn is_object(&self) -> bool {
-        self.is_type(VariantType::OBJECT)
+    impl_variant_is_type! {
+        is_object, OBJECT, "Returns true if the variant holds an object.\n\nAlias for `self.is_type(VariantType::OBJECT)`.";
+        is_int, INT, "Returns true if the variant holds an integer.";
+        is_float, FLOAT, "Returns true if the variant holds a float.";
+        is_bool, BOOL, "Returns true if the variant holds a boolean.";
+        is_string, STRING, "Returns true if the variant holds a string.";
+        is_array, ARRAY, "Returns true if the variant holds an array.\n\nAlias for `self.is_type(VariantType::ARRAY)`.";
+        is_dictionary, DICTIONARY, "Returns true if the variant holds a dictionary.\n\nAlias for `self.is_type(VariantType::DICTIONARY)`.";
     }
 
-    /// Returns true if the variant holds an integer.
+    /// Returns true if the variant holds a container type (`ARRAY` or `DICTIONARY`).
     #[inline]
-    pub fn is_int(&self) -> bool {
-        self.is_type(VariantType::INT)
+    pub fn is_container(&self) -> bool {
+        matches!(self.get_type(), VariantType::ARRAY | VariantType::DICTIONARY)
     }
 
-    /// Returns true if the variant holds a float.
-    #[inline]
-    pub fn is_float(&self) -> bool {
-        self.is_type(VariantType::FLOAT)
+    /// Returns true if the variant holds a typed container.
+    pub fn is_typed_container(&self) -> bool {
+        match self.get_type() {
+            VariantType::ARRAY => {
+                // SAFETY: we checked type.
+                let array = unsafe { VarArray::from_variant_unchecked(self) };
+                array.is_typed()
+            }
+            VariantType::DICTIONARY => {
+                // SAFETY: we checked type.
+                let dict = unsafe { VarDictionary::from_variant_unchecked(self) };
+                dict.is_typed()
+            }
+            _ => false,
+        }
     }
 
-    /// Returns true if the variant holds a boolean.
+    /// Returns true if the variant holds a numeric type (`INT` or `FLOAT`).
     #[inline]
-    pub fn is_bool(&self) -> bool {
-        self.is_type(VariantType::BOOL)
+    pub fn is_numeric(&self) -> bool {
+        matches!(self.get_type(), VariantType::INT | VariantType::FLOAT)
     }
 
-    /// Returns true if the variant holds a string.
+    /// Returns true if the variant holds a string-like type (`STRING`, `STRING_NAME`, or `NODE_PATH`).
     #[inline]
-    pub fn is_string(&self) -> bool {
-        self.is_type(VariantType::STRING)
+    pub fn is_string_like(&self) -> bool {
+        matches!(
+            self.get_type(),
+            VariantType::STRING | VariantType::STRING_NAME | VariantType::NODE_PATH
+        )
     }
 
-    /// Returns true if the variant holds an array.
-    ///
-    /// Alias for `self.is_type(VariantType::ARRAY)`.
-    #[inline]
-    pub fn is_array(&self) -> bool {
-        self.is_type(VariantType::ARRAY)
+    /// Returns the Godot type name of the variant as a `GString`.
+    pub fn get_type_name(&self) -> GString {
+        format!("{:?}", self.get_type()).into()
     }
 
-    /// Returns true if the variant holds a dictionary.
-    ///
-    /// Alias for `self.is_type(VariantType::DICTIONARY)`.
-    #[inline]
-    pub fn is_dictionary(&self) -> bool {
-        self.is_type(VariantType::DICTIONARY)
-    }
-
-    /// Returns the variant as an `Array<Variant>`, or `Err` if it is not an array.
-    #[inline]
-    pub fn try_to_array(&self) -> Result<crate::builtin::Array<Variant>, ConvertError> {
-        self.try_to()
-    }
-
-    /// Returns the variant as a `VarDictionary`, or `Err` if it is not a dictionary.
-    #[inline]
-    pub fn try_to_dictionary(&self) -> Result<crate::builtin::VarDictionary, ConvertError> {
-        self.try_to()
+    impl_variant_try_to! {
+        try_to_array, crate::builtin::Array<Variant>, "array";
+        try_to_dictionary, crate::builtin::VarDictionary, "dictionary";
+        try_to_gstring, GString, "string";
     }
 
     /// Returns the variant as a `Gd<T>`, or `Err` if it is not an object of type `T`.
     #[inline]
-    pub fn try_to_object<T: crate::obj::Inherits<crate::classes::Object> + crate::obj::GodotClass>(
+    pub fn try_to_object<
+        T: crate::obj::Inherits<crate::classes::Object> + crate::obj::GodotClass,
+    >(
         &self,
     ) -> Result<crate::obj::Gd<T>, ConvertError> {
         self.try_to()
     }
 
-    /// Returns the variant as a `GString`, or `Err` if it is not a string.
-    #[inline]
-    pub fn try_to_gstring(&self) -> Result<GString, ConvertError> {
-        self.try_to()
-    }
-
-    /// ⚠️ Returns the variant as an integer, using relaxed conversion rules, panicking if it fails.
-    #[inline]
-    pub fn to_int(&self) -> i64 {
-        self.try_to_relaxed::<i64>()
-            .unwrap_or_else(|err| panic!("Variant::to_int(): {err}"))
-    }
-
-    /// ⚠️ Returns the variant as a float, using relaxed conversion rules, panicking if it fails.
-    #[inline]
-    pub fn to_float(&self) -> f64 {
-        self.try_to_relaxed::<f64>()
-            .unwrap_or_else(|err| panic!("Variant::to_float(): {err}"))
-    }
-
-    /// ⚠️ Returns the variant as a boolean, using relaxed conversion rules, panicking if it fails.
-    #[inline]
-    pub fn to_bool(&self) -> bool {
-        self.try_to_relaxed::<bool>()
-            .unwrap_or_else(|err| panic!("Variant::to_bool(): {err}"))
-    }
-
-    /// ⚠️ Returns the variant as a `GString`, using relaxed conversion rules, panicking if it fails.
-    #[inline]
-    pub fn to_gstring(&self) -> GString {
-        self.try_to_relaxed::<GString>()
-            .unwrap_or_else(|err| panic!("Variant::to_gstring(): {err}"))
+    impl_variant_to_relaxed! {
+        to_int, i64;
+        to_float, f64;
+        to_bool, bool;
+        to_gstring, GString;
     }
 
     /// Returns the type that is currently held by this variant.
@@ -585,6 +598,34 @@ impl Variant {
         );
     }
 
+    /// ⚠️ Gets the value at the specified index and converts it to `T`, panicking on failure.
+    #[inline]
+    pub fn index_as<T: FromGodot>(&self, index: i64) -> T {
+        self.get_indexed(index).to::<T>()
+    }
+
+    /// Gets the value at the specified index and converts it to `T` (fallible).
+    #[inline]
+    pub fn get_index_as<T: FromGodot>(&self, index: i64) -> Option<T> {
+        let mut valid = false as sys::GDExtensionBool;
+        let mut oob = false as sys::GDExtensionBool;
+        let mut ret = Variant::nil();
+        unsafe {
+            interface_fn!(variant_get_indexed)(
+                self.var_sys(),
+                index,
+                ret.var_sys_mut().cast(),
+                ptr::addr_of_mut!(valid),
+                ptr::addr_of_mut!(oob),
+            );
+        }
+        if sys::conv::bool_from_sys(valid) && !sys::conv::bool_from_sys(oob) {
+            ret.try_to::<T>().ok()
+        } else {
+            None
+        }
+    }
+
     /// ⚠️ Gets the value of a key and converts it to `T`, panicking on failure.
     pub fn at_as<K: ToGodot, T: FromGodot>(&self, key: K) -> T {
         self.get_keyed(&key.to_variant()).to::<T>()
@@ -886,17 +927,36 @@ impl PartialEq for Variant {
     }
 }
 
-macro_rules! impl_variant_partial_eq_int {
-    ($($ty:ty),*) => {
+macro_rules! impl_variant_partial_eq {
+    ($($ty:ty),* => $lhs:ident, $rhs:ident, $body:expr) => {
         $(
             impl PartialEq<$ty> for Variant {
                 #[inline]
                 fn eq(&self, other: &$ty) -> bool {
-                    match self.get_type() {
-                        VariantType::INT => self.to_int() == *other as i64,
-                        VariantType::FLOAT => self.to_float() == *other as f64,
-                        _ => false,
+                    let $lhs = self;
+                    let $rhs = other;
+                    $body
+                }
+            }
+
+            impl PartialEq<Variant> for $ty {
+                #[inline]
+                fn eq(&self, other: &Variant) -> bool {
+                    other.eq(self)
+                }
+            }
+        )*
+    };
+
+    (ffi $($ty:ty),* => $lhs:ident, $rhs:ident) => {
+        $(
+            impl PartialEq<$ty> for Variant {
+                #[inline]
+                fn eq(&self, other: &$ty) -> bool {
+                    if self.get_type() == <$ty>::VARIANT_TYPE.variant_as_nil() {
+                        return self.try_to::<$ty>().is_ok_and(|v| v == *other);
                     }
+                    false
                 }
             }
 
@@ -910,117 +970,44 @@ macro_rules! impl_variant_partial_eq_int {
     };
 }
 
-impl_variant_partial_eq_int!(i64, i32, i16, i8, u32, u16, u8);
-
-impl PartialEq<f64> for Variant {
-    #[inline]
-    fn eq(&self, other: &f64) -> bool {
-        match self.get_type() {
-            VariantType::INT => self.to_int() as f64 == *other,
-            VariantType::FLOAT => self.to_float() == *other,
-            _ => false,
-        }
+impl_variant_partial_eq!(i64, i32, i16, i8, u32, u16, u8 => variant, other, {
+    match variant.get_type() {
+        VariantType::INT => variant.to_int() == *other as i64,
+        VariantType::FLOAT => variant.to_float() == *other as f64,
+        _ => false,
     }
-}
+});
 
-impl PartialEq<Variant> for f64 {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
+impl_variant_partial_eq!(f64, f32 => variant, other, {
+    match variant.get_type() {
+        VariantType::INT => variant.to_int() as f64 == *other as f64,
+        VariantType::FLOAT => variant.to_float() == *other as f64,
+        _ => false,
     }
-}
+});
 
-impl PartialEq<f32> for Variant {
-    #[inline]
-    fn eq(&self, other: &f32) -> bool {
-        match self.get_type() {
-            VariantType::INT => self.to_int() as f64 == *other as f64,
-            VariantType::FLOAT => self.to_float() == *other as f64,
-            _ => false,
-        }
+impl_variant_partial_eq!(bool => variant, other, {
+    if variant.is_bool() {
+        return variant.to_bool() == *other;
     }
-}
+    false
+});
 
-impl PartialEq<Variant> for f32 {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
-    }
-}
+impl_variant_partial_eq!(
+    ffi
+    Vector2, Vector2i, Rect2, Rect2i, Vector3, Vector3i, Transform2D, Vector4, Vector4i, Plane,
+    Quaternion, Aabb, Basis, Transform3D, Projection, Color, Rid
+    => variant, other
+);
 
-impl PartialEq<bool> for Variant {
-    #[inline]
-    fn eq(&self, other: &bool) -> bool {
-        if self.is_bool() {
-            return self.to_bool() == *other;
-        }
-        false
+impl_variant_partial_eq!(GString, StringName, NodePath, &str, String => variant, other, {
+    match variant.get_type() {
+        VariantType::STRING => variant.to::<GString>() == *other,
+        VariantType::STRING_NAME => variant.to::<StringName>() == *other,
+        VariantType::NODE_PATH => variant.to::<NodePath>() == *other,
+        _ => false,
     }
-}
-
-impl PartialEq<Variant> for bool {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<GString> for Variant {
-    #[inline]
-    fn eq(&self, other: &GString) -> bool {
-        match self.get_type() {
-            VariantType::STRING => self.to::<GString>() == *other,
-            VariantType::STRING_NAME => self.to::<StringName>() == *other,
-            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq<Variant> for GString {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<StringName> for Variant {
-    #[inline]
-    fn eq(&self, other: &StringName) -> bool {
-        match self.get_type() {
-            VariantType::STRING => self.to::<GString>() == *other,
-            VariantType::STRING_NAME => self.to::<StringName>() == *other,
-            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq<Variant> for StringName {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<NodePath> for Variant {
-    #[inline]
-    fn eq(&self, other: &NodePath) -> bool {
-        match self.get_type() {
-            VariantType::STRING => self.to::<GString>() == *other,
-            VariantType::STRING_NAME => self.to::<StringName>() == *other,
-            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq<Variant> for NodePath {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
-    }
-}
+});
 
 impl<T: crate::obj::GodotClass> PartialEq<crate::obj::Gd<T>> for Variant {
     #[inline]
@@ -1058,55 +1045,12 @@ impl<T: crate::obj::GodotClass> PartialEq<Variant> for Option<crate::obj::Gd<T>>
     }
 }
 
-impl PartialEq<crate::builtin::Callable> for Variant {
-    #[inline]
-    fn eq(&self, other: &crate::builtin::Callable) -> bool {
-        if self.is_type(VariantType::CALLABLE) {
-            return self.to::<crate::builtin::Callable>() == *other;
-        }
-        false
+impl_variant_partial_eq!(crate::builtin::Callable => variant, other, {
+    if variant.is_type(VariantType::CALLABLE) {
+        return variant.to::<crate::builtin::Callable>() == *other;
     }
-}
-
-impl PartialEq<Variant> for crate::builtin::Callable {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<&str> for Variant {
-    #[inline]
-    fn eq(&self, other: &&str) -> bool {
-        match self.get_type() {
-            VariantType::STRING => self.to::<GString>() == *other,
-            VariantType::STRING_NAME => self.to::<StringName>() == *other,
-            VariantType::NODE_PATH => self.to::<NodePath>() == *other,
-            _ => false,
-        }
-    }
-}
-
-impl PartialEq<Variant> for &str {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
-    }
-}
-
-impl PartialEq<String> for Variant {
-    #[inline]
-    fn eq(&self, other: &String) -> bool {
-        self.eq(&other.as_str())
-    }
-}
-
-impl PartialEq<Variant> for String {
-    #[inline]
-    fn eq(&self, other: &Variant) -> bool {
-        other.eq(self)
-    }
-}
+    false
+});
 
 impl PartialOrd for Variant {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -1138,8 +1082,9 @@ macro_rules! impl_variant_op {
             type Output = Self;
             #[inline]
             fn $method(self, rhs: Self) -> Self::Output {
-                self.evaluate(&rhs, $op)
-                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())))
+                self.evaluate(&rhs, $op).unwrap_or_else(|| {
+                    Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
+                })
             }
         }
 
@@ -1147,8 +1092,9 @@ macro_rules! impl_variant_op {
             type Output = Self;
             #[inline]
             fn $method(self, rhs: &Variant) -> Self::Output {
-                self.evaluate(rhs, $op)
-                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())))
+                self.evaluate(rhs, $op).unwrap_or_else(|| {
+                    Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
+                })
             }
         }
     };
@@ -1157,16 +1103,18 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             #[inline]
             fn $method(&mut self, rhs: Self) {
-                *self = self.evaluate(&rhs, $op)
-                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())));
+                *self = self.evaluate(&rhs, $op).unwrap_or_else(|| {
+                    Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
+                });
             }
         }
 
         impl std::ops::$trait<&Variant> for Variant {
             #[inline]
             fn $method(&mut self, rhs: &Variant) {
-                *self = self.evaluate(rhs, $op)
-                    .unwrap_or_else(|| Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type())));
+                *self = self.evaluate(rhs, $op).unwrap_or_else(|| {
+                    Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
+                });
             }
         }
     };

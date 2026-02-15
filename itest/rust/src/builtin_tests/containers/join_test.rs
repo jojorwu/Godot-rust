@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use godot::prelude::*;
 use crate::framework::itest;
+use godot::prelude::*;
 
 #[itest]
 fn test_any_array_join() {
@@ -21,7 +21,11 @@ fn test_any_array_join() {
 
 #[itest]
 fn test_packed_string_array_join() {
-    let arr = PackedStringArray::from_iter(vec![GString::from("1"), GString::from("2"), GString::from("3")]);
+    let arr = PackedStringArray::from_iter(vec![
+        GString::from("1"),
+        GString::from("2"),
+        GString::from("3"),
+    ]);
     let joined = arr.join("|");
     assert_eq!(joined, GString::from("1|2|3"));
 }

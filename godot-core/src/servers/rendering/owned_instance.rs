@@ -2,16 +2,7 @@ use crate::builtin::Rid;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
 
-crate::obj::impl_owned_rid!(
-    OwnedInstance,
-    "A RAII wrapper for an instance RID that is owned by this type.\nThe instance is freed when this object is dropped."
-);
-
-impl Default for OwnedInstance {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+crate::obj::impl_owned_rid!(OwnedInstance, "A RAII wrapper for an instance RID that is owned by this type.\nThe instance is freed when this object is dropped.", @default);
 
 impl OwnedInstance {
     /// Creates a new instance and returns a wrapper that will free it on drop.

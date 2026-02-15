@@ -616,7 +616,10 @@ fn owned_rd_vertex_index_array_raii() {
     // But dropping should at least not crash.
 
     let _rid_index = {
-        let buffer = rd.index_buffer_create_owned(1024, godot::classes::rendering_device::IndexBufferFormat::UINT16);
+        let buffer = rd.index_buffer_create_owned(
+            1024,
+            godot::classes::rendering_device::IndexBufferFormat::UINT16,
+        );
         let array = rd.index_array_create_owned(*buffer, 0, 1);
         let rid = *array;
         assert!(rid.is_valid());
