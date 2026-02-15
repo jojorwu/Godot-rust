@@ -492,6 +492,7 @@ macro_rules! impl_vector_fns {
 
             /// Returns a new vector with each component set to 1 if the component is positive, -1 if negative, and 0 if zero.
             #[inline]
+            #[track_caller]
             pub fn sign(self) -> Self {
                 #[inline]
                 fn f(c: $Scalar) -> $Scalar {
@@ -755,7 +756,12 @@ macro_rules! impl_float_vector_fns {
             #[inline]
             #[track_caller]
             pub fn assert_finite(self) {
-                assert!(self.is_finite(), "{} {:?} is not finite", std::any::type_name::<Self>(), self);
+                assert!(
+                    self.is_finite(),
+                    "{} {:?} is not finite",
+                    std::any::type_name::<Self>(),
+                    self
+                );
             }
 
             /// Returns `true` if the vector is normalized, i.e. its length is approximately equal to 1.
@@ -768,7 +774,12 @@ macro_rules! impl_float_vector_fns {
             #[inline]
             #[track_caller]
             pub fn assert_normalized(self) {
-                assert!(self.is_normalized(), "{} {:?} is not normalized", std::any::type_name::<Self>(), self);
+                assert!(
+                    self.is_normalized(),
+                    "{} {:?} is not normalized",
+                    std::any::type_name::<Self>(),
+                    self
+                );
             }
 
             /// Returns `true` if this vector's values are approximately zero.
