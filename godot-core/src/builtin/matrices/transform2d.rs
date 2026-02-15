@@ -232,6 +232,16 @@ impl Transform2D {
         self.a.is_finite() && self.b.is_finite() && self.origin.is_finite()
     }
 
+    /// Assert that each component of this transform is finite.
+    pub fn assert_finite(&self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// Returns the transform with the basis orthogonal (90 degrees), and
     /// normalized axis vectors (scale of 1 or -1).
     ///

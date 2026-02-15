@@ -339,8 +339,10 @@ impl Color {
         }
     }
 
-    // For internal checks before transformations between different color representation.
-    pub(crate) fn is_normalized(&self) -> bool {
+    /// Returns `true` if all components are in the range `[0.0, 1.0]`.
+    ///
+    /// For internal checks before transformations between different color representation.
+    pub fn is_normalized(&self) -> bool {
         self.r >= 0.0
             && self.r <= 1.0
             && self.g >= 0.0
@@ -349,6 +351,16 @@ impl Color {
             && self.b <= 1.0
             && self.a >= 0.0
             && self.a <= 1.0
+    }
+
+    /// Assert that all components are in the range `[0.0, 1.0]`.
+    pub fn assert_normalized(&self) {
+        assert!(
+            self.is_normalized(),
+            "{} {:?} is not normalized (components outside [0, 1])",
+            std::any::type_name::<Self>(),
+            self
+        );
     }
 
     fn as_inner(&self) -> InnerColor<'_> {

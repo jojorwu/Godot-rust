@@ -750,10 +750,22 @@ macro_rules! impl_float_vector_fns {
                 self.to_glam().is_finite()
             }
 
+            /// Assert that each component of this vector is finite.
+            #[inline]
+            pub fn assert_finite(self) {
+                assert!(self.is_finite(), "{} {:?} is not finite", std::any::type_name::<Self>(), self);
+            }
+
             /// Returns `true` if the vector is normalized, i.e. its length is approximately equal to 1.
             #[inline]
             pub fn is_normalized(self) -> bool {
                 self.to_glam().is_normalized()
+            }
+
+            /// Assert that the vector is normalized.
+            #[inline]
+            pub fn assert_normalized(self) {
+                assert!(self.is_normalized(), "{} {:?} is not normalized", std::any::type_name::<Self>(), self);
             }
 
             /// Returns `true` if this vector's values are approximately zero.
@@ -1099,7 +1111,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// If `n` is not normalized.
             #[inline]
             pub fn bounce(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                n.assert_normalized();
                 -self.reflect(n)
             }
 
@@ -1130,7 +1142,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// If `n` is not normalized.
             #[inline]
             pub fn reflect(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                n.assert_normalized();
                 2.0 * n * self.dot(n) - self
             }
 
@@ -1140,7 +1152,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// If `n` is not normalized.
             #[inline]
             pub fn slide(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                n.assert_normalized();
                 self - n * self.dot(n)
             }
         }

@@ -167,8 +167,28 @@ impl Quaternion {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite() && self.w.is_finite()
     }
 
+    /// Assert that each component of this quaternion is finite.
+    pub fn assert_finite(self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     pub fn is_normalized(self) -> bool {
         self.length_squared().approx_eq(&1.0)
+    }
+
+    /// Assert that the quaternion is normalized.
+    pub fn assert_normalized(self) {
+        assert!(
+            self.is_normalized(),
+            "{} {:?} is not normalized",
+            std::any::type_name::<Self>(),
+            self
+        );
     }
 
     pub fn length(self) -> real {

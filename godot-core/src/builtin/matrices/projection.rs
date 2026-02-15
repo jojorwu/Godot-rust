@@ -473,6 +473,24 @@ impl Projection {
     pub(crate) fn as_inner(&self) -> inner::InnerProjection<'_> {
         inner::InnerProjection::from_outer(self)
     }
+
+    /// Returns `true` if this projection is finite, by calling `is_finite` on each component.
+    pub fn is_finite(&self) -> bool {
+        self.cols[0].is_finite()
+            && self.cols[1].is_finite()
+            && self.cols[2].is_finite()
+            && self.cols[3].is_finite()
+    }
+
+    /// Assert that each component of this projection is finite.
+    pub fn assert_finite(&self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
 }
 
 impl From<Transform3D> for Projection {

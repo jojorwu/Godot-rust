@@ -258,6 +258,17 @@ impl Rect2 {
         self.position.is_finite() && self.size.is_finite()
     }
 
+    /// Assert that each component of this Rect2 is finite.
+    #[inline]
+    pub fn assert_finite(self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// The end of the `Rect2` calculated as `position + size`.
     #[inline]
     pub fn end(self) -> Vector2 {

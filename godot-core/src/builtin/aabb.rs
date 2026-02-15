@@ -210,6 +210,17 @@ impl Aabb {
         self.position.is_finite() && self.size.is_finite()
     }
 
+    /// Assert that each component of this AABB is finite.
+    #[inline]
+    pub fn assert_finite(self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// The end of the `Aabb` calculated as `position + size`.
     #[inline]
     pub fn end(self) -> Vector3 {

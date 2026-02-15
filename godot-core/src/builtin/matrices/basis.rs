@@ -481,6 +481,17 @@ impl Basis {
         self.rows[0].is_finite() && self.rows[1].is_finite() && self.rows[2].is_finite()
     }
 
+    /// Assert that each component of this basis is finite.
+    #[inline]
+    pub fn assert_finite(&self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// Returns the first column of the matrix,
     ///
     /// _Godot equivalent: `Basis.x`_, see [`Basis`] for why it's changed

@@ -217,6 +217,17 @@ impl Plane {
         self.normal.is_finite() && self.d.is_finite()
     }
 
+    /// Assert that each component of this Plane is finite.
+    #[inline]
+    pub fn assert_finite(self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// Returns `true` if `point` is located above the plane.
     #[inline]
     pub fn is_point_over(self, point: Vector3) -> bool {
@@ -251,12 +262,14 @@ impl Plane {
         point - self.normal * self.distance_to(point)
     }
 
+    /// Assert that the normal of the plane is normalized.
     #[inline]
-    fn assert_normalized(self) {
+    pub fn assert_normalized(self) {
         assert!(
             self.normal.is_normalized(),
-            "normal {:?} is not normalized",
-            self.normal
+            "{} {:?} is not normalized (normal is not unit length)",
+            std::any::type_name::<Self>(),
+            self
         );
     }
 }
