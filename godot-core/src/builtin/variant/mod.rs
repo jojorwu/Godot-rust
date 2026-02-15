@@ -475,7 +475,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_keyed(): operation invalid"
+            "Variant::get_keyed(): operation invalid for type {:?}",
+            self.get_type()
         );
         ret
     }
@@ -496,7 +497,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_keyed(): operation invalid"
+            "Variant::set_keyed(): operation invalid for type {:?}",
+            self.get_type()
         );
     }
 
@@ -517,7 +519,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_named(): operation invalid"
+            "Variant::get_named(): operation invalid for type {:?}",
+            self.get_type()
         );
         ret
     }
@@ -538,7 +541,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_named(): operation invalid"
+            "Variant::set_named(): operation invalid for type {:?}",
+            self.get_type()
         );
     }
 
@@ -562,11 +566,13 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_indexed(): operation invalid"
+            "Variant::get_indexed(): operation invalid for type {:?}",
+            self.get_type()
         );
         assert!(
             !sys::conv::bool_from_sys(oob),
-            "Variant::get_indexed(): index {index} out of bounds"
+            "Variant::get_indexed(): index {index} out of bounds for type {:?}",
+            self.get_type()
         );
         ret
     }
@@ -590,11 +596,13 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_indexed(): operation invalid"
+            "Variant::set_indexed(): operation invalid for type {:?}",
+            self.get_type()
         );
         assert!(
             !sys::conv::bool_from_sys(oob),
-            "Variant::set_indexed(): index {index} out of bounds"
+            "Variant::set_indexed(): index {index} out of bounds for type {:?}",
+            self.get_type()
         );
     }
 

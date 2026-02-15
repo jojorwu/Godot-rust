@@ -504,7 +504,16 @@ impl Callable {
     /// ⚠️ Calls the method represented by this callable and converts the return value to `T`, panicking if it fails.
     pub fn call_as<T: meta::FromGodot>(&self, args: &[Variant]) -> T {
         self.try_call_as::<T>(args).unwrap_or_else(|| {
-            panic!("Callable::call_as(): method call failed or wrong return type")
+            let method = self
+                .method_name()
+                .map(|n| n.to_string())
+                .unwrap_or_else(|| "<unknown>".to_string());
+            let id = self
+                .object_id()
+                .map(|id| id.to_string())
+                .unwrap_or_else(|| "<none>".to_string());
+            let target_type = std::any::type_name::<T>();
+            panic!("Callable::call_as(): method '{method}' on object {id} failed or could not be converted to {target_type}")
         })
     }
 

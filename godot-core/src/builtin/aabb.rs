@@ -516,7 +516,7 @@ impl Aabb {
     ///
     /// Most functions will fail to give a correct result if the size is negative.
     #[inline]
-    fn assert_nonnegative(self) {
+    pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0 && self.size.z >= 0.0,
             "{} size {:?} is negative",
