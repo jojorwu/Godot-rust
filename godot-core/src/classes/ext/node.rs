@@ -42,6 +42,7 @@ impl Node {
     /// # Panics
     /// If the node is not found, or if it does not have type `T` or inherited.
     #[inline]
+    #[track_caller]
     pub fn get_node_as<T>(&self, path: impl AsArg<NodePath>) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -50,7 +51,11 @@ impl Node {
 
         match self.try_get_node_as::<T>(path) {
             Ok(node) => node,
-            Err(err) => panic!("Node::get_node_as(): {err} at path `{path}`"),
+            Err(err) => panic!(
+                "{}::get_node_as(): {err} at path `{path}` (target type {to})",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>(),
+            ),
         }
     }
 
@@ -97,12 +102,18 @@ impl Node {
     /// # Panics
     /// If the parent is not found, or if it does not have type `T` or inherited.
     #[inline]
+    #[track_caller]
     pub fn get_parent_as<T>(&self) -> Gd<T>
     where
         T: Inherits<Node>,
     {
-        self.try_get_parent_as::<T>()
-            .unwrap_or_else(|| panic!("Node::get_parent_as(): parent not found or bad type"))
+        self.try_get_parent_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_parent_as(): parent not found or bad type (target type {to})",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            )
+        })
     }
 
     /// Retrieves the parent node (fallible).
@@ -132,12 +143,18 @@ impl Node {
     /// # Panics
     /// If the owner is not found, or if it does not have type `T` or inherited.
     #[inline]
+    #[track_caller]
     pub fn get_owner_as<T>(&self) -> Gd<T>
     where
         T: Inherits<Node>,
     {
-        self.try_get_owner_as::<T>()
-            .unwrap_or_else(|| panic!("Node::get_owner_as(): owner not found or bad type"))
+        self.try_get_owner_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_owner_as(): owner not found or bad type (target type {to})",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            )
+        })
     }
 
     /// Retrieves the owner node (fallible).
@@ -167,12 +184,17 @@ impl Node {
     /// # Panics
     /// If `index` is out of bounds, or if the node does not have type `T` or inherited.
     #[inline]
+    #[track_caller]
     pub fn get_child_as<T>(&self, index: usize) -> Gd<T>
     where
         T: Inherits<Node>,
     {
         self.try_get_child_as::<T>(index).unwrap_or_else(|| {
-            panic!("Node::get_child_as(): index {index} out of bounds or bad type")
+            panic!(
+                "{}::get_child_as(): index {index} out of bounds or bad type (target type {to})",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            )
         })
     }
 
@@ -273,12 +295,18 @@ impl Node {
 
     /// ⚠️ Retrieves the scene tree, cast to type `T`, panicking if not found or bad type.
     #[inline]
+    #[track_caller]
     pub fn get_tree_as<T>(&self) -> Gd<T>
     where
         T: Inherits<SceneTree>,
     {
-        self.try_get_tree_as::<T>()
-            .expect("Node::get_tree_as(): scene tree not found or bad type")
+        self.try_get_tree_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_tree_as(): scene tree not found or bad type (target type {to})",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            )
+        })
     }
 
     /// Retrieves the scene tree, cast to type `T` (fallible).

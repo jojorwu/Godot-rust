@@ -557,6 +557,7 @@ impl<T: GodotClass> Gd<T> {
     /// # Panics
     /// If the class' dynamic type is not `Derived` or one of its subclasses. Use [`Self::try_cast()`] if you want to check the result.
     #[inline]
+    #[track_caller]
     pub fn cast<Derived>(self) -> Gd<Derived>
     where
         Derived: Inherits<T>,

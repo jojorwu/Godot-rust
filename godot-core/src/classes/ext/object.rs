@@ -13,14 +13,22 @@ use crate::meta::{arg_into_ref, AsArg, FromGodot, PropertyInfo, ToGodot};
 impl Object {
     /// ⚠️ Retrieves a property value, panicking if not found or cannot be converted to `T`.
     #[inline]
+    #[track_caller]
     pub fn get_as<T: FromGodot>(&self, property: impl AsArg<StringName>) -> T {
         arg_into_ref!(property);
         let variant = self.get(property);
         if variant.is_nil() {
-            panic!("Object::get_as(): property '{property}' not found (returned Nil)");
+            panic!(
+                "{}::get_as(): property '{property}' not found (returned Nil)",
+                std::any::type_name::<Self>()
+            );
         }
         variant.try_to::<T>().unwrap_or_else(|err| {
-            panic!("Object::get_as(): property '{property}' conversion failed: {err}");
+            panic!(
+                "{}::get_as(): property '{property}' conversion failed to {to}: {err}",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            );
         })
     }
 
@@ -44,14 +52,22 @@ impl Object {
 
     /// ⚠️ Retrieves a metadata value, panicking if not found or cannot be converted to `T`.
     #[inline]
+    #[track_caller]
     pub fn get_meta_as<T: FromGodot>(&self, name: impl AsArg<StringName>) -> T {
         arg_into_ref!(name);
         let variant = self.get_meta(name);
         if variant.is_nil() {
-            panic!("Object::get_meta_as(): meta '{name}' not found (returned Nil)");
+            panic!(
+                "{}::get_meta_as(): meta '{name}' not found (returned Nil)",
+                std::any::type_name::<Self>()
+            );
         }
         variant.try_to::<T>().unwrap_or_else(|err| {
-            panic!("Object::get_meta_as(): meta '{name}' conversion failed: {err}");
+            panic!(
+                "{}::get_meta_as(): meta '{name}' conversion failed to {to}: {err}",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            );
         })
     }
 
@@ -75,11 +91,16 @@ impl Object {
 
     /// ⚠️ Calls a method and converts the return value to `T`, panicking if it fails.
     #[inline]
+    #[track_caller]
     pub fn call_as<T: FromGodot>(&mut self, method: impl AsArg<StringName>, args: &[Variant]) -> T {
         arg_into_ref!(method);
         let result = self.call(method, args);
         result.try_to::<T>().unwrap_or_else(|err| {
-            panic!("Object::call_as(): method '{method}' conversion failed: {err}")
+            panic!(
+                "{}::call_as(): method '{method}' conversion failed to {to}: {err}",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            )
         })
     }
 

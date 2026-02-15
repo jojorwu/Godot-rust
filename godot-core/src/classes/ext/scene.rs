@@ -14,6 +14,7 @@ impl PackedScene {
     ///
     /// # Panics
     /// If the scene is not type `T` or inherited.
+    #[track_caller]
     pub fn instantiate_as<T>(&self) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -25,8 +26,10 @@ impl PackedScene {
                 .unwrap_or_else(|| "null".to_string());
 
             panic!(
-                "Failed to instantiate scene as {to}; actual type was {actual}.",
-                to = T::class_id()
+                "{}::instantiate_as(): failed to instantiate scene as {to} ({rust_to}); actual type was {actual}.",
+                std::any::type_name::<Self>(),
+                to = T::class_id(),
+                rust_to = std::any::type_name::<T>(),
             )
         })
     }

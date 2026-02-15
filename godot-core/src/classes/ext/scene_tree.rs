@@ -13,6 +13,7 @@ use crate::obj::{Gd, Inherits};
 /// Manual extensions for the `SceneTree` class.
 impl SceneTree {
     /// ⚠️ Retrieves the first node in a group, cast to type `T`, panicking if not found or bad type.
+    #[track_caller]
     pub fn get_first_node_in_group_as<T>(&mut self, group: impl AsArg<StringName>) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -20,7 +21,9 @@ impl SceneTree {
         arg_into_ref!(group);
         self.try_get_first_node_in_group_as::<T>(group).unwrap_or_else(|| {
             panic!(
-                "SceneTree::get_first_node_in_group_as(): node in group '{group}' not found or bad type"
+                "{}::get_first_node_in_group_as(): node in group '{group}' not found or bad type (target type {to})",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
             )
         })
     }
@@ -58,12 +61,18 @@ impl SceneTree {
     }
 
     /// ⚠️ Retrieves the current scene, cast to type `T`, panicking if not found or bad type.
+    #[track_caller]
     pub fn get_current_scene_as<T>(&self) -> Gd<T>
     where
         T: Inherits<Node>,
     {
-        self.try_get_current_scene_as::<T>()
-            .expect("SceneTree::get_current_scene_as(): current scene not found or bad type")
+        self.try_get_current_scene_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_current_scene_as(): current scene not found or bad type (target type {to})",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            )
+        })
     }
 
     /// Retrieves the current scene, cast to type `T` (fallible).

@@ -27,12 +27,18 @@ use crate::obj::{Gd, Inherits, Singleton};
 /// # Panics
 /// If the resource cannot be loaded, or is not of type `T` or inherited.
 #[inline]
+#[track_caller]
 pub fn load<T>(path: impl AsArg<GString>) -> Gd<T>
 where
     T: Inherits<Resource>,
 {
     arg_into_ref!(path);
-    load_impl(path).unwrap_or_else(|err| panic!("failed to load resource at '{path}': {err}"))
+    load_impl(path).unwrap_or_else(|err| {
+        panic!(
+            "failed to load resource at '{path}' as type {to}: {err}",
+            to = std::any::type_name::<T>()
+        )
+    })
 }
 
 /// Loads a resource from the filesystem located at `path`.
@@ -89,14 +95,19 @@ where
 /// ```
 /// use godot::
 #[inline]
+#[track_caller]
 pub fn save<T>(obj: &Gd<T>, path: impl AsArg<GString>)
 where
     T: Inherits<Resource>,
 {
     arg_into_ref!(path);
 
-    save_impl(obj, path)
-        .unwrap_or_else(|err| panic!("failed to save resource at path '{}': {}", &path, err));
+    save_impl(obj, path).unwrap_or_else(|err| {
+        panic!(
+            "failed to save resource (type {ty}) at path '{path}': {err}",
+            ty = std::any::type_name::<T>()
+        )
+    });
 }
 
 /// Saves a [`Resource`]-inheriting object into the file located at `path`.
