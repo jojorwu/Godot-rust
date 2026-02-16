@@ -242,10 +242,25 @@ impl<T: PackedArrayElement> PackedArray<T> {
     // `Array` and with `Vec::remove`. Compared to shifting all the subsequent array
     // elements to their new position, the overhead of retrieving this element is trivial.
     #[doc(alias = "remove_at")]
+    #[inline]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
         let element = self.get(index).expect("index out of bounds"); // panics on out-of-bounds
         T::op_remove_at(self.as_inner(), to_i64(index));
         element
+    }
+
+    /// ⚠️ Removes and returns the element at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if conversion to `U` fails.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U
+    where
+        T: ToGodot,
+    {
+        self.remove(index).to_variant().to::<U>()
     }
 
     /// Removes and returns the last element of the array. Returns `None` if the array is empty.
@@ -977,6 +992,7 @@ impl<T: PackedArrayElement> fmt::Debug for PackedArray<T> {
         write!(f, "{:?}", self.to_variant().stringify())
     }
 }
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Iterators
 
@@ -1222,12 +1238,12 @@ impl PackedByteArray {
 
         let bytes_written: i64 =
             self.as_inner()
-                .encode_var(byte_offset as i64, value, allow_objects);
+                .encode_var(to_i64(byte_offset), value, allow_objects);
 
         if bytes_written == -1 {
             Err(CollectionError::Encoding)
         } else {
-            Ok(bytes_written as usize)
+            Ok(to_usize(bytes_written))
         }
     }
 
@@ -1263,9 +1279,8 @@ impl PackedByteArray {
         byte_offset: usize,
         allow_objects: bool,
     ) -> Result<(Variant, usize), CollectionError> {
-        let variant = self
-            .as_inner()
-            .decode_var(byte_offset as i64, allow_objects);
+        let byte_offset = to_i64(byte_offset);
+        let variant = self.as_inner().decode_var(byte_offset, allow_objects);
 
         if variant.is_nil() {
             return Err(CollectionError::Encoding);
@@ -1276,12 +1291,10 @@ impl PackedByteArray {
         // no variant written at that place, it just interprets "nil", treats it as valid, and happily returns 4 bytes.
         //
         // So we combine the two calls for the sake of convenience and to avoid accidental usage.
-        let size: i64 = self
-            .as_inner()
-            .decode_var_size(byte_offset as i64, allow_objects);
+        let size: i64 = self.as_inner().decode_var_size(byte_offset, allow_objects);
         sys::strict_assert_ne!(size, -1); // must not happen if we just decoded variant.
 
-        Ok((variant, size as usize))
+        Ok((variant, to_usize(size)))
     }
 
     /// Unreliable `Variant` decoding, allowing `NIL`.
@@ -1309,15 +1322,12 @@ impl PackedByteArray {
         byte_offset: usize,
         allow_objects: bool,
     ) -> (Variant, usize) {
-        let byte_offset = byte_offset as i64;
+        let byte_offset = to_i64(byte_offset);
 
         let variant = self.as_inner().decode_var(byte_offset, allow_objects);
         let decoded_size = self.as_inner().decode_var_size(byte_offset, allow_objects);
-        let decoded_size = decoded_size.try_into().unwrap_or_else(|_| {
-            panic!("unexpected value {decoded_size} returned from decode_var_size()")
-        });
 
-        (variant, decoded_size)
+        (variant, to_usize(decoded_size))
     }
 
     /// Returns a new `PackedByteArray`, with the data of this array compressed.
@@ -1325,7 +1335,7 @@ impl PackedByteArray {
     /// On failure, Godot prints an error and this method returns `Err`. (Note that any empty results coming from Godot are mapped to `Err`
     /// in Rust.)
     pub fn compress(&self, compression_mode: CompressionMode) -> Result<PackedByteArray, CollectionError> {
-        let compressed: PackedByteArray = self.as_inner().compress(compression_mode.ord() as i64);
+        let compressed: PackedByteArray = self.as_inner().compress(i64::from(compression_mode.ord()));
         populated_or_err(compressed)
     }
 
@@ -1345,7 +1355,7 @@ impl PackedByteArray {
     ) -> Result<PackedByteArray, CollectionError> {
         let decompressed: PackedByteArray = self
             .as_inner()
-            .decompress(buffer_size as i64, compression_mode.ord() as i64);
+            .decompress(to_i64(buffer_size), i64::from(compression_mode.ord()));
 
         populated_or_err(decompressed)
     }
@@ -1372,10 +1382,10 @@ impl PackedByteArray {
         max_output_size: Option<usize>,
         compression_mode: CompressionMode,
     ) -> Result<PackedByteArray, CollectionError> {
-        let max_output_size = max_output_size.map(|i| i as i64).unwrap_or(-1);
+        let max_output_size = max_output_size.map(to_i64).unwrap_or(-1);
         let decompressed: PackedByteArray = self
             .as_inner()
-            .decompress_dynamic(max_output_size, compression_mode.ord() as i64);
+            .decompress_dynamic(max_output_size, i64::from(compression_mode.ord()));
 
         populated_or_err(decompressed)
     }

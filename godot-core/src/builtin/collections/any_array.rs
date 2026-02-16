@@ -92,14 +92,15 @@ impl AnyArray {
     /// # Panics
     /// If `index` is out of bounds, or if the value cannot be converted to `U`.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
-        self.at(index).to::<U>()
+        self.array.at_as::<U>(index)
     }
 
     /// Returns the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
     #[inline]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
-        self.get(index).and_then(|v| v.try_to::<U>().ok())
+        self.array.get_as::<U>(index)
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
@@ -148,7 +149,7 @@ impl AnyArray {
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
     pub fn front_as<U: FromGodot>(&self) -> Option<U> {
-        self.front().and_then(|v| v.try_to::<U>().ok())
+        self.array.front_as::<U>()
     }
 
     /// Returns the last element in the array, or `None` if the array is empty.
@@ -161,7 +162,7 @@ impl AnyArray {
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
     pub fn back_as<U: FromGodot>(&self) -> Option<U> {
-        self.back().and_then(|v| v.try_to::<U>().ok())
+        self.array.back_as::<U>()
     }
 
     /// Clears the array, removing all elements.
@@ -183,7 +184,7 @@ impl AnyArray {
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
-        self.pop().and_then(|v| v.try_to::<U>().ok())
+        self.array.pop_as::<U>()
     }
 
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
@@ -197,7 +198,7 @@ impl AnyArray {
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
-        self.pop_front().and_then(|v| v.try_to::<U>().ok())
+        self.array.pop_front_as::<U>()
     }
 
     /// ⚠️ Removes and returns the element at the specified index. Equivalent of `pop_at` in GDScript.
@@ -209,8 +210,20 @@ impl AnyArray {
     ///
     /// If `index` is out of bounds.
     #[doc(alias = "pop_at")]
+    #[inline]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> Variant {
         self.array.remove(index)
+    }
+
+    /// ⚠️ Removes and returns the element at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if conversion to `U` fails.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U {
+        self.array.remove_as::<U>(index)
     }
 
     /// Reserves capacity for at least `capacity` elements.
@@ -346,8 +359,7 @@ impl AnyArray {
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
-        self.pick_random()
-            .and_then(|v| v.try_to::<U>().ok())
+        self.array.pick_random_as::<U>()
     }
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if

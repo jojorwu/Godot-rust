@@ -72,6 +72,7 @@ macro_rules! impl_variant_to_relaxed {
         $(
             #[doc = concat!("⚠️ Returns the variant as a `", stringify!($ty), "`, using relaxed conversion rules, panicking if it fails.")]
             #[inline]
+            #[track_caller]
             pub fn $name(&self) -> $ty {
                 self.try_to_relaxed::<$ty>()
                     .unwrap_or_else(|err| panic!("Variant::{}(): {err}", stringify!($name)))
@@ -113,6 +114,8 @@ impl Variant {
     ///
     /// # Panics
     /// When this variant holds a different type.
+    #[inline]
+    #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
         T::from_variant(self)
     }
@@ -231,6 +234,7 @@ impl Variant {
     }
 
     /// Returns true if the variant holds a typed container.
+    #[inline]
     pub fn is_typed_container(&self) -> bool {
         match self.get_type() {
             VariantType::ARRAY => {
@@ -263,6 +267,7 @@ impl Variant {
     }
 
     /// Returns the Godot type name of the variant as a `GString`.
+    #[inline]
     pub fn get_type_name(&self) -> GString {
         format!("{:?}", self.get_type()).into()
     }
@@ -379,6 +384,7 @@ impl Variant {
     /// * If the method does not exist or the signature is not compatible with the passed arguments.
     /// * If the call causes an error.
     #[inline]
+    #[track_caller]
     pub fn call(&self, method: impl AsArg<StringName>, args: &[Variant]) -> Variant {
         arg_into_ref!(method);
         self.call_inner(method, args)
@@ -425,6 +431,7 @@ impl Variant {
     ///
     /// Recommended to be used with fully-qualified call syntax.
     /// For example, `Variant::evaluate(&a, &b, VariantOperator::Add)` is equivalent to `a + b` in GDScript.
+    #[inline]
     pub fn evaluate(&self, rhs: &Variant, op: VariantOperator) -> Option<Variant> {
         use crate::obj::EngineEnum;
 
@@ -462,6 +469,7 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn get_keyed(&self, key: &Variant) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut ret = Variant::nil();
@@ -484,6 +492,7 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn set_keyed(&mut self, key: &Variant, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         unsafe {
@@ -504,6 +513,7 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn get_named(&self, name: &StringName) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut ret = Variant::nil();
@@ -526,6 +536,7 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn set_named(&mut self, name: &StringName, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         unsafe {
@@ -547,6 +558,7 @@ impl Variant {
     /// # Panics
     /// * If the operation is invalid for this variant type.
     /// * If the index is out of bounds.
+    #[track_caller]
     pub fn get_indexed(&self, index: i64) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut oob = false as sys::GDExtensionBool;
@@ -576,6 +588,7 @@ impl Variant {
     /// # Panics
     /// * If the operation is invalid for this variant type.
     /// * If the index is out of bounds.
+    #[track_caller]
     pub fn set_indexed(&mut self, index: i64, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         let mut oob = false as sys::GDExtensionBool;
@@ -600,6 +613,7 @@ impl Variant {
 
     /// ⚠️ Gets the value at the specified index and converts it to `T`, panicking on failure.
     #[inline]
+    #[track_caller]
     pub fn index_as<T: FromGodot>(&self, index: i64) -> T {
         self.get_indexed(index).to::<T>()
     }
@@ -627,11 +641,14 @@ impl Variant {
     }
 
     /// ⚠️ Gets the value of a key and converts it to `T`, panicking on failure.
+    #[inline]
+    #[track_caller]
     pub fn at_as<K: ToGodot, T: FromGodot>(&self, key: K) -> T {
         self.get_keyed(&key.to_variant()).to::<T>()
     }
 
     /// Gets the value of a key and converts it to `T` (fallible).
+    #[inline]
     pub fn get_as<K: ToGodot, T: FromGodot>(&self, key: K) -> Option<T> {
         let key = key.to_variant();
         let mut valid = false as sys::GDExtensionBool;
@@ -654,6 +671,7 @@ impl Variant {
     /// Return Godot's string representation of the variant.
     ///
     /// See also `Display` impl.
+    #[inline]
     #[allow(unused_mut)] // result
     pub fn stringify(&self) -> GString {
         let mut result = GString::new();
@@ -666,6 +684,7 @@ impl Variant {
     /// Return Godot's hash value for the variant.
     ///
     /// _Godot equivalent : `@GlobalScope.hash()`_
+    #[inline]
     pub fn hash_u32(&self) -> u32 {
         // @GlobalScope.hash() actually calls the VariantUtilityFunctions::hash(&Variant) function (C++).
         // This function calls the passed reference's `hash` method, which returns a uint32_t.
