@@ -116,6 +116,7 @@ impl VarDictionary {
     ///
     /// If there is no value for the given key. Note that this is distinct from a `NIL` value, which is returned as `Variant::nil()`.
     #[inline]
+    #[track_caller]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
         // Code duplication with get(), to avoid third clone (since K: ToGodot takes ownership).
 
@@ -152,6 +153,7 @@ impl VarDictionary {
     /// # Panics
     /// If there is no value for the given key, or if the value cannot be converted to `V`.
     #[inline]
+    #[track_caller]
     pub fn at_as<K: ToGodot, V: FromGodot>(&self, key: K) -> V {
         self.at(key).to::<V>()
     }
@@ -231,7 +233,7 @@ impl VarDictionary {
     #[doc(alias = "size")]
     #[inline]
     pub fn len(&self) -> usize {
-        self.as_inner().size().try_into().unwrap()
+        crate::builtin::to_usize(self.as_inner().size())
     }
 
     /// Returns true if the dictionary is empty.
@@ -272,6 +274,7 @@ impl VarDictionary {
     ///
     /// _Godot equivalent: `dict[key] = value`_
     #[inline]
+    #[track_caller]
     pub fn set<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) {
         self.balanced_ensure_mutable();
         self.set_inner(key.to_variant(), value.to_variant());
@@ -291,6 +294,7 @@ impl VarDictionary {
     /// If you don't need the previous value, use [`set()`][Self::set] instead.
     #[must_use]
     #[inline]
+    #[track_caller]
     pub fn insert<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -306,6 +310,7 @@ impl VarDictionary {
     /// _Godot equivalent: `erase`_
     #[doc(alias = "erase")]
     #[inline]
+    #[track_caller]
     pub fn remove<K: ToGodot>(&mut self, key: K) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -534,6 +539,7 @@ impl VarDictionary {
     ///
     /// # Panics (safeguards-balanced)
     /// If the dictionary is marked as read-only.
+    #[track_caller]
     fn balanced_ensure_mutable(&self) {
         sys::balanced_assert!(
             !self.is_read_only(),

@@ -258,6 +258,7 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     /// If `index` is out of bounds. To handle out-of-bounds access fallibly, use [`get()`](Self::get) instead.
     #[inline]
+    #[track_caller]
     pub fn at(&self, index: usize) -> T {
         // Panics on out-of-bounds.
         let ptr = self.ptr(index);
@@ -284,6 +285,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// ⚠️ Returns the element at the given index, converted to `U`, panicking if out of bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
         self.at(index).to_variant().to::<U>()
     }
@@ -353,6 +355,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If `index` is out of bounds.
     #[inline]
+    #[track_caller]
     pub fn set(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
         self.check_bounds(index); // Explicitly check bounds for safety.
@@ -447,6 +450,7 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     /// If `index > len()`.
     #[inline]
+    #[track_caller]
     pub fn insert(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -472,6 +476,7 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     #[doc(alias = "pop_at")]
     #[inline]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
         self.balanced_ensure_mutable();
         self.check_bounds(index);
@@ -872,6 +877,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics (safeguards-balanced)
     /// If the array is marked as read-only.
+    #[track_caller]
     fn balanced_ensure_mutable(&self) {
         sys::balanced_assert!(
             !self.is_read_only(),
@@ -883,6 +889,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[track_caller]
     fn check_bounds(&self, index: usize) {
         // Safety-relevant; explicitly *don't* use safeguards-dependent validation.
         let len = self.len();
@@ -896,6 +903,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[track_caller]
     fn ptr(&self, index: usize) -> sys::GDExtensionConstVariantPtr {
         let ptr = self.ptr_or_null(index);
         assert!(
@@ -907,11 +915,12 @@ impl<T: ArrayElement> Array<T> {
     }
 
     /// Returns a pointer to the element at the given index, or null if out of bounds.
+    #[track_caller]
     fn ptr_or_null(&self, index: usize) -> sys::GDExtensionConstVariantPtr {
         // SAFETY: array_operator_index_const returns null for invalid indexes.
         let variant_ptr = unsafe {
-            let index = to_i64(index);
-            interface_fn!(array_operator_index_const)(self.sys(), index)
+            let index_i64 = to_i64(index);
+            interface_fn!(array_operator_index_const)(self.sys(), index_i64)
         };
 
         // Signature is wrong in GDExtension, semantically this is a const ptr
@@ -923,6 +932,7 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     ///
     /// If `index` is out of bounds.
+    #[track_caller]
     fn ptr_mut(&mut self, index: usize) -> sys::GDExtensionVariantPtr {
         let ptr = self.ptr_mut_or_null(index);
         assert!(
@@ -934,11 +944,12 @@ impl<T: ArrayElement> Array<T> {
     }
 
     /// Returns a pointer to the element at the given index, or null if out of bounds.
+    #[track_caller]
     fn ptr_mut_or_null(&mut self, index: usize) -> sys::GDExtensionVariantPtr {
         // SAFETY: array_operator_index returns null for invalid indexes.
         unsafe {
-            let index = to_i64(index);
-            interface_fn!(array_operator_index)(self.sys_mut(), index)
+            let index_i64 = to_i64(index);
+            interface_fn!(array_operator_index)(self.sys_mut(), index_i64)
         }
     }
 

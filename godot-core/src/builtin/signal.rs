@@ -101,6 +101,7 @@ impl Signal {
     /// Emits this signal.
     ///
     /// All Callables connected to this signal will be triggered.
+    #[track_caller]
     pub fn emit(&self, varargs: &[Variant]) {
         let Some(mut object) = self.object() else {
             return;

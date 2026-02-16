@@ -56,6 +56,12 @@ static_assert_eq_size_align!(Rid, u64);
 // Ensure that `Rid::Invalid` actually is represented by 0, as it should be.
 static_assert!(unsafe { std::mem::transmute::<Rid, u64>(Rid::Invalid) } == 0u64);
 
+impl Default for Rid {
+    fn default() -> Self {
+        Self::Invalid
+    }
+}
+
 impl Rid {
     /// Create a new RID.
     #[inline]

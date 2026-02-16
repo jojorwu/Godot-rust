@@ -75,6 +75,7 @@ impl AnyArray {
     /// # Panics
     /// If `index` is out of bounds. To handle out-of-bounds access fallibly, use [`get()`](Self::get) instead.
     #[inline]
+    #[track_caller]
     pub fn at(&self, index: usize) -> Variant {
         self.array.at(index)
     }
@@ -92,6 +93,7 @@ impl AnyArray {
     /// # Panics
     /// If `index` is out of bounds, or if the value cannot be converted to `U`.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
         self.at(index).to::<U>()
     }
@@ -209,6 +211,7 @@ impl AnyArray {
     ///
     /// If `index` is out of bounds.
     #[doc(alias = "pop_at")]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> Variant {
         self.array.remove(index)
     }
@@ -464,6 +467,7 @@ impl AnyArray {
     ///
     /// # Panics
     /// In debug builds, panics if the array is read-only.
+    #[track_caller]
     fn balanced_ensure_mutable(&self) {
         sys::balanced_assert!(
             !self.is_read_only(),

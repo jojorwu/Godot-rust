@@ -72,6 +72,7 @@ macro_rules! impl_variant_to_relaxed {
         $(
             #[doc = concat!("⚠️ Returns the variant as a `", stringify!($ty), "`, using relaxed conversion rules, panicking if it fails.")]
             #[inline]
+            #[track_caller]
             pub fn $name(&self) -> $ty {
                 self.try_to_relaxed::<$ty>()
                     .unwrap_or_else(|err| panic!("Variant::{}(): {err}", stringify!($name)))
@@ -114,6 +115,7 @@ impl Variant {
     ///
     /// # Panics
     /// When this variant holds a different type.
+    #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
         T::from_variant(self)
     }
