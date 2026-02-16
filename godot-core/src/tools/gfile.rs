@@ -765,7 +765,6 @@ impl GFile {
 // Trait implementations.
 
 impl Read for GFile {
-    #[track_caller]
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
         let length = self.check_file_length();
         let position = self.fa.get_position();
@@ -773,13 +772,13 @@ impl Read for GFile {
             return Ok(0);
         }
 
-        let remaining_bytes = crate::builtin::to_usize((length - position) as i64);
+        let remaining_bytes = (length - position) as usize;
         let bytes_to_read = cmp::min(buf.len(), remaining_bytes);
         if bytes_to_read == 0 {
             return Ok(0);
         }
 
-        let gd_buffer = self.fa.get_buffer(crate::builtin::to_i64(bytes_to_read));
+        let gd_buffer = self.fa.get_buffer(bytes_to_read as i64);
         let bytes_read = gd_buffer.len();
         buf[0..bytes_read].copy_from_slice(gd_buffer.as_slice());
 
@@ -849,25 +848,20 @@ impl Seek for GFile {
 }
 
 impl BufRead for GFile {
-    #[track_caller]
     fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
         // We need to determine number of remaining bytes - otherwise the `FileAccess::get_buffer return in an error`.
         let remaining_bytes = self.check_file_length() - self.fa.get_position();
-        let buffer_read_size = cmp::min(
-            crate::builtin::to_usize(remaining_bytes as i64),
-            Self::BUFFER_SIZE,
-        );
+        let buffer_read_size = cmp::min(remaining_bytes as usize, Self::BUFFER_SIZE);
 
         // We need to keep the amount of last read side to be able to adjust cursor position in `consume`.
         self.last_buffer_size = buffer_read_size;
 
-        self.buffer = self.fa.get_buffer(crate::builtin::to_i64(buffer_read_size));
+        self.buffer = self.fa.get_buffer(buffer_read_size as i64);
         self.check_error()?;
 
         Ok(self.buffer.as_slice())
     }
 
-    #[track_caller]
     fn consume(&mut self, amt: usize) {
         // Cursor is being moved by `FileAccess::get_buffer()` call, so we need to adjust it.
         let offset = (self.last_buffer_size - amt) as i64;

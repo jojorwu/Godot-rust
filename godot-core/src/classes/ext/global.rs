@@ -27,12 +27,14 @@ impl crate::classes::ClassDb {
         let variant = self.instantiate(class);
         if variant.is_nil() {
             panic!(
-                "ClassDB::instantiate_as(): failed to instantiate class '{class}' (returned Nil)"
+                "{}::instantiate_as(): failed to instantiate class '{class}' (returned Nil)",
+                std::any::type_name::<Self>()
             );
         }
         let obj = variant.try_to::<Gd<Object>>().unwrap_or_else(|err| {
             panic!(
-                "ClassDB::instantiate_as(): failed to convert instance of '{class}' to Gd<Object>: {err}"
+                "{}::instantiate_as(): failed to convert instance of '{class}' to Gd<Object>: {err}",
+                std::any::type_name::<Self>()
             );
         });
 
@@ -41,7 +43,7 @@ impl crate::classes::ClassDb {
                 "{}::instantiate_as(): class '{class}' (instance {obj:?}) is not of type {to} ({rust_to})",
                 std::any::type_name::<Self>(),
                 to = T::class_id(),
-                rust_to = std::any::type_name::<T>(),
+                rust_to = std::any::type_name::<T>()
             );
         })
     }
@@ -74,7 +76,6 @@ impl crate::classes::ClassDb {
 #[cfg(feature = "codegen-full")]
 impl crate::classes::EditorInterface {
     /// Retrieves the editor main screen control, cast to type `T`.
-    #[track_caller]
     pub fn get_editor_main_screen_as<T>(&self) -> Gd<T>
     where
         T: Inherits<crate::classes::Control>,
@@ -94,7 +95,6 @@ impl crate::classes::EditorInterface {
     }
 
     /// Retrieves the editor base control, cast to type `T`.
-    #[track_caller]
     pub fn get_base_control_as<T>(&self) -> Gd<T>
     where
         T: Inherits<crate::classes::Control>,
@@ -133,7 +133,7 @@ impl crate::classes::ProjectSettings {
         }
         variant.try_to::<T>().unwrap_or_else(|err| {
             panic!(
-                "{}::get_setting_as(): setting '{name}' conversion failed to {to}: {err}",
+                "{}::get_setting_as(): setting '{name}' conversion to {to} failed: {err}",
                 std::any::type_name::<Self>(),
                 to = std::any::type_name::<T>()
             );
@@ -181,7 +181,7 @@ impl crate::classes::Engine {
                 "{}::get_singleton_as(): singleton '{name}' (instance {obj:?}) is not of type {to} ({rust_to})",
                 std::any::type_name::<Self>(),
                 to = T::class_id(),
-                rust_to = std::any::type_name::<T>(),
+                rust_to = std::any::type_name::<T>()
             );
         })
     }

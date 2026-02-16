@@ -300,13 +300,17 @@ impl Basis {
     /// Check if the element at `basis_{i,i}` is 1, and all the other values in
     /// that row and column are 0.
     fn is_identity_index(&self, index: usize) -> bool {
-        let (row, col, expected) = match index {
-            0 => (self.rows[0], self.col_a(), Vector3::RIGHT),
-            1 => (self.rows[1], self.col_b(), Vector3::UP),
-            2 => (self.rows[2], self.col_c(), Vector3::BACK),
-            _ => unreachable!("basis index out of bounds: {index}"),
-        };
-        row == col && row == expected
+        let row = self.rows[index];
+        let col = self.transposed().rows[index];
+        if row != col {
+            return false;
+        }
+        match index {
+            0 => row == Vector3::RIGHT,
+            1 => row == Vector3::UP,
+            2 => row == Vector3::BACK,
+            _ => panic!("Unknown Index {index}"),
+        }
     }
 
     #[allow(clippy::wrong_self_convention)]
@@ -477,18 +481,6 @@ impl Basis {
         self.rows[0].is_finite() && self.rows[1].is_finite() && self.rows[2].is_finite()
     }
 
-    /// Assert that each component of this basis is finite.
-    #[inline]
-    #[track_caller]
-    pub fn assert_finite(&self) {
-        assert!(
-            self.is_finite(),
-            "{} {:?} is not finite",
-            std::any::type_name::<Self>(),
-            self
-        );
-    }
-
     /// Returns the first column of the matrix,
     ///
     /// _Godot equivalent: `Basis.x`_, see [`Basis`] for why it's changed
@@ -541,12 +533,6 @@ impl Basis {
         self.rows[0].z = col.x;
         self.rows[1].z = col.y;
         self.rows[2].z = col.z;
-    }
-
-    /// Returns `true` if this basis and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
     }
 }
 

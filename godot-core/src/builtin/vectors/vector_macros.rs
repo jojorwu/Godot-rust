@@ -492,7 +492,6 @@ macro_rules! impl_vector_fns {
 
             /// Returns a new vector with each component set to 1 if the component is positive, -1 if negative, and 0 if zero.
             #[inline]
-            #[track_caller]
             pub fn sign(self) -> Self {
                 #[inline]
                 fn f(c: $Scalar) -> $Scalar {
@@ -500,7 +499,7 @@ macro_rules! impl_vector_fns {
                         Some(Ordering::Equal) => 0 as $Scalar,
                         Some(Ordering::Greater) => 1 as $Scalar,
                         Some(Ordering::Less) => -1 as $Scalar,
-                        None => c, // Return c (likely NaN)
+                        None => c, // NaN cases: return the component itself.
                     }
                 }
 
@@ -607,7 +606,6 @@ macro_rules! inline_impl_integer_vector_fns {
         /// - If any component of `self` is [`i32::MIN`] while the same component on `step` is `-1`.
         /// - If any component of `self` plus half of the same component of `step` is not in range on [`i32`].
         #[inline]
-        #[track_caller]
         pub fn snapped(self, step: Self) -> Self {
             use crate::builtin::vectors::vector_macros::snap_one;
 
@@ -623,7 +621,6 @@ macro_rules! inline_impl_integer_vector_fns {
         /// # Panics
         /// On under- or overflow (see [`snapped()`][Self::snapped] for details).
         #[inline]
-        #[track_caller]
         pub fn snappedi(self, step: i32) -> Self {
             self.snapped(Self::splat(step))
         }
@@ -720,7 +717,6 @@ macro_rules! impl_float_vector_fns {
             /// # Panics
             /// If `self` and `to` are equal.
             #[inline]
-            #[track_caller]
             pub fn direction_to(self, to: Self) -> Self {
                 self.try_direction_to(to).expect("direction_to() called on equal vectors")
             }
@@ -754,34 +750,10 @@ macro_rules! impl_float_vector_fns {
                 self.to_glam().is_finite()
             }
 
-            /// Assert that each component of this vector is finite.
-            #[inline]
-            #[track_caller]
-            pub fn assert_finite(self) {
-                assert!(
-                    self.is_finite(),
-                    "{} {:?} is not finite",
-                    std::any::type_name::<Self>(),
-                    self
-                );
-            }
-
             /// Returns `true` if the vector is normalized, i.e. its length is approximately equal to 1.
             #[inline]
             pub fn is_normalized(self) -> bool {
                 self.to_glam().is_normalized()
-            }
-
-            /// Assert that the vector is normalized.
-            #[inline]
-            #[track_caller]
-            pub fn assert_normalized(self) {
-                assert!(
-                    self.is_normalized(),
-                    "{} {:?} is not normalized",
-                    std::any::type_name::<Self>(),
-                    self
-                );
             }
 
             /// Returns `true` if this vector's values are approximately zero.
@@ -822,7 +794,6 @@ macro_rules! impl_float_vector_fns {
             /// # Panics
             /// If called on a zero vector.
             #[inline]
-            #[track_caller]
             pub fn normalized(self) -> Self {
                 self.try_normalized().expect("normalized() called on zero vector")
             }
@@ -860,19 +831,12 @@ macro_rules! impl_float_vector_fns {
             /// A new vector with each component snapped to the closest multiple of the corresponding
             /// component in `step`.
             #[inline]
-            #[track_caller]
             pub fn snapped(self, step: Self) -> Self {
                 Self::new(
                     $(
                         self.$comp.snapped(step.$comp)
                     ),*
                 )
-            }
-
-            /// Returns `true` if this vector and `other` are approximately equal.
-            #[inline]
-            pub fn is_equal_approx(self, other: Self) -> bool {
-                $crate::builtin::math::ApproxEq::approx_eq(&self, &other)
             }
         }
 
@@ -1134,9 +1098,8 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
-            #[track_caller]
             pub fn bounce(self, n: Self) -> Self {
-                n.assert_normalized();
+                assert!(n.is_normalized(), "n is not normalized!");
                 -self.reflect(n)
             }
 
@@ -1166,9 +1129,8 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
-            #[track_caller]
             pub fn reflect(self, n: Self) -> Self {
-                n.assert_normalized();
+                assert!(n.is_normalized(), "n is not normalized!");
                 2.0 * n * self.dot(n) - self
             }
 
@@ -1177,9 +1139,8 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
-            #[track_caller]
             pub fn slide(self, n: Self) -> Self {
-                n.assert_normalized();
+                assert!(n.is_normalized(), "n is not normalized!");
                 self - n * self.dot(n)
             }
         }

@@ -62,6 +62,7 @@ impl NodePath {
     ///
     /// # Panics (safeguards-balanced)
     /// If `index` is out of bounds. In safeguards-disengaged level, a Godot error is generated and the result is unspecified (but safe).
+    #[track_caller]
     pub fn get_name(&self, index: usize) -> StringName {
         let inner = self.as_inner();
         let index = index as i64;
@@ -69,7 +70,8 @@ impl NodePath {
         // Not safety-critical, Godot will do another check. But better error message.
         sys::balanced_assert!(
             index < inner.get_name_count(),
-            "NodePath '{self}': name at index {index} is out of bounds"
+            "{} '{self}': name at index {index} is out of bounds",
+            std::any::type_name::<Self>()
         );
 
         inner.get_name(index)
@@ -89,13 +91,15 @@ impl NodePath {
     ///
     /// # Panics (safeguards-balanced)
     /// If `index` is out of bounds. In safeguards-disengaged level, a Godot error is generated and the result is unspecified (but safe).
+    #[track_caller]
     pub fn get_subname(&self, index: usize) -> StringName {
         let inner = self.as_inner();
         let index = index as i64;
 
         sys::balanced_assert!(
             index < inner.get_subname_count(),
-            "NodePath '{self}': subname at index {index} is out of bounds"
+            "{} '{self}': subname at index {index} is out of bounds",
+            std::any::type_name::<Self>()
         );
 
         inner.get_subname(index)
@@ -209,16 +213,6 @@ impl NodePath {
     #[doc(hidden)]
     pub fn as_inner(&self) -> inner::InnerNodePath<'_> {
         inner::InnerNodePath::from_outer(self)
-    }
-
-    /// Converts this `NodePath` to a [`GString`].
-    pub fn to_gstring(&self) -> GString {
-        GString::from(self)
-    }
-
-    /// Converts this `NodePath` to a [`StringName`].
-    pub fn to_string_name(&self) -> StringName {
-        StringName::from(self)
     }
 }
 

@@ -172,18 +172,6 @@ impl Transform3D {
         self.basis.is_finite() && self.origin.is_finite()
     }
 
-    /// Assert that each component of this transform is finite.
-    #[inline]
-    #[track_caller]
-    pub fn assert_finite(&self) {
-        assert!(
-            self.is_finite(),
-            "{} {:?} is not finite",
-            std::any::type_name::<Self>(),
-            self
-        );
-    }
-
     /// Returns the transform with the basis orthogonal (90 degrees), and
     /// normalized axis vectors (scale of 1 or -1).
     ///
@@ -285,12 +273,6 @@ impl Transform3D {
             basis: self.basis,
             origin: self.origin + (self.basis * offset),
         }
-    }
-
-    /// Returns `true` if this transform and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
     }
 }
 

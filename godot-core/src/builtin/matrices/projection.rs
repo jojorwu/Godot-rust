@@ -469,34 +469,9 @@ impl Projection {
             .perspective_znear_adjusted(new_znear.as_f64())
     }
 
-    /// Returns `true` if this projection and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
-    }
-
     #[doc(hidden)]
     pub(crate) fn as_inner(&self) -> inner::InnerProjection<'_> {
         inner::InnerProjection::from_outer(self)
-    }
-
-    /// Returns `true` if this projection is finite, by calling `is_finite` on each component.
-    pub fn is_finite(&self) -> bool {
-        self.cols[0].is_finite()
-            && self.cols[1].is_finite()
-            && self.cols[2].is_finite()
-            && self.cols[3].is_finite()
-    }
-
-    /// Assert that each component of this projection is finite.
-    #[track_caller]
-    pub fn assert_finite(&self) {
-        assert!(
-            self.is_finite(),
-            "{} {:?} is not finite",
-            std::any::type_name::<Self>(),
-            self
-        );
     }
 }
 

@@ -116,15 +116,15 @@ impl VarDictionary {
     ///
     /// If there is no value for the given key. Note that this is distinct from a `NIL` value, which is returned as `Variant::nil()`.
     #[inline]
-    #[track_caller]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
+        // Code duplication with get(), to avoid third clone (since K: ToGodot takes ownership).
+
         let key = key.to_variant();
-        self.get_variant(&key).unwrap_or_else(|| {
-            panic!(
-                "{} key {key:?} missing in dictionary: {self:?}",
-                std::any::type_name::<Self>()
-            )
-        })
+        if self.contains_key(key.clone()) {
+            self.get_or_nil(key)
+        } else {
+            panic!("key {key:?} missing in dictionary: {self:?}")
+        }
     }
 
     /// Returns the value for the given key, or `None`.
@@ -137,7 +137,14 @@ impl VarDictionary {
     /// This can be combined with Rust's `Option` methods, e.g. `dict.get(key).unwrap_or(default)`.
     #[inline]
     pub fn get<K: ToGodot>(&self, key: K) -> Option<Variant> {
-        self.get_variant(&key.to_variant())
+        // If implementation is changed, make sure to update at().
+
+        let key = key.to_variant();
+        if self.contains_key(key.clone()) {
+            Some(self.get_or_nil(key))
+        } else {
+            None
+        }
     }
 
     /// Returns the value for the given key, converted to `V`.
@@ -145,22 +152,14 @@ impl VarDictionary {
     /// # Panics
     /// If there is no value for the given key, or if the value cannot be converted to `V`.
     #[inline]
-    #[track_caller]
     pub fn at_as<K: ToGodot, V: FromGodot>(&self, key: K) -> V {
-        let key = key.to_variant();
-        let val = self.get_variant(&key).unwrap_or_else(|| {
-            panic!(
-                "{} key {key:?} missing in dictionary: {self:?}",
-                std::any::type_name::<Self>()
-            )
-        });
-        val.to::<V>()
+        self.at(key).to::<V>()
     }
 
     /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
     #[inline]
     pub fn get_as<K: ToGodot, V: FromGodot>(&self, key: K) -> Option<V> {
-        self.get_and_convert(&key.to_variant())
+        self.get(key).and_then(|v| v.try_to::<V>().ok())
     }
 
     /// Returns the value at the key in the dictionary, or `NIL` otherwise.
@@ -214,7 +213,8 @@ impl VarDictionary {
     /// _Godot equivalent: `has`_
     #[doc(alias = "has")]
     pub fn contains_key<K: ToGodot>(&self, key: K) -> bool {
-        self.as_inner().has(&key.to_variant())
+        let key = key.to_variant();
+        self.as_inner().has(&key)
     }
 
     /// Returns `true` if the dictionary contains all the given keys.
@@ -291,7 +291,6 @@ impl VarDictionary {
     /// If you don't need the previous value, use [`set()`][Self::set] instead.
     #[must_use]
     #[inline]
-    #[track_caller]
     pub fn insert<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -311,18 +310,9 @@ impl VarDictionary {
         self.balanced_ensure_mutable();
 
         let key = key.to_variant();
-        let old_value = self.get_variant(&key);
-        if old_value.is_some() {
-            self.as_inner().erase(&key);
-        }
+        let old_value = self.get(key.clone());
+        self.as_inner().erase(&key);
         old_value
-    }
-
-    /// Removes a key from the map, and returns the value associated with
-    /// the key, converted to `V`, if the key was in the dictionary and conversion succeeds.
-    #[inline]
-    pub fn remove_as<K: ToGodot, V: FromGodot>(&mut self, key: K) -> Option<V> {
-        self.remove(key).and_then(|v| v.try_to::<V>().ok())
     }
 
     crate::declare_hash_u32_method! {
@@ -630,18 +620,6 @@ impl VarDictionary {
         inner::InnerDictionary::from_outer(self)
     }
 
-    fn get_variant(&self, key: &Variant) -> Option<Variant> {
-        if self.as_inner().has(key) {
-            Some(self.as_inner().get(key, &Variant::nil()))
-        } else {
-            None
-        }
-    }
-
-    fn get_and_convert<V: FromGodot>(&self, key: &Variant) -> Option<V> {
-        self.get_variant(key).and_then(|v| v.try_to::<V>().ok())
-    }
-
     /// Get the pointer corresponding to the given key in the dictionary.
     ///
     /// If there exists no value at the given key, a `NIL` variant will be inserted for that key.
@@ -771,17 +749,7 @@ where
 impl<K: ToGodot, V: ToGodot> Extend<(K, V)> for VarDictionary {
     fn extend<I: IntoIterator<Item = (K, V)>>(&mut self, iter: I) {
         self.balanced_ensure_mutable();
-        let iter = iter.into_iter();
-
-        #[cfg(since_api = "4.3")]
-        {
-            let (lower, _) = iter.size_hint();
-            if lower > 0 {
-                self.reserve(self.len() + lower);
-            }
-        }
-
-        for (k, v) in iter {
+        for (k, v) in iter.into_iter() {
             self.set_inner(k.to_variant(), v.to_variant())
         }
     }

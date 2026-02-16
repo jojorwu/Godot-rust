@@ -112,7 +112,6 @@ impl Rect2 {
     /// to get a positive sized equivalent rectangle for expanding.
     #[inline]
     pub fn expand(self, to: Vector2) -> Self {
-        self.assert_nonnegative();
         self.merge(Rect2::new(to, Vector2::ZERO))
     }
 
@@ -122,9 +121,6 @@ impl Rect2 {
     /// to get a positive sized equivalent rectangle for merging.
     #[inline]
     pub fn merge(self, b: Self) -> Self {
-        self.assert_nonnegative();
-        b.assert_nonnegative();
-
         let position = self.position.coord_min(b.position);
         let end = self.end().coord_max(b.end());
 
@@ -134,7 +130,6 @@ impl Rect2 {
     /// Returns the area of the rectangle.
     #[inline]
     pub fn area(self) -> real {
-        self.assert_nonnegative();
         self.size.x * self.size.y
     }
 
@@ -193,8 +188,6 @@ impl Rect2 {
     #[inline]
     #[doc(alias = "has_point")]
     pub fn contains_point(self, point: Vector2) -> bool {
-        self.assert_nonnegative();
-
         point.x >= self.position.x
             && point.y >= self.position.y
             && point.x < self.position.x + self.size.x
@@ -258,18 +251,6 @@ impl Rect2 {
         self.position.is_finite() && self.size.is_finite()
     }
 
-    /// Assert that each component of this Rect2 is finite.
-    #[inline]
-    #[track_caller]
-    pub fn assert_finite(self) {
-        assert!(
-            self.is_finite(),
-            "{} {:?} is not finite",
-            std::any::type_name::<Self>(),
-            self
-        );
-    }
-
     /// The end of the `Rect2` calculated as `position + size`.
     #[inline]
     pub fn end(self) -> Vector2 {
@@ -292,7 +273,6 @@ impl Rect2 {
     ///
     /// Certain functions will fail to give a correct result if the size is negative.
     #[inline]
-    #[track_caller]
     pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0,

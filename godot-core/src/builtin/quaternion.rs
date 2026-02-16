@@ -167,30 +167,8 @@ impl Quaternion {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite() && self.w.is_finite()
     }
 
-    /// Assert that each component of this quaternion is finite.
-    #[track_caller]
-    pub fn assert_finite(self) {
-        assert!(
-            self.is_finite(),
-            "{} {:?} is not finite",
-            std::any::type_name::<Self>(),
-            self
-        );
-    }
-
     pub fn is_normalized(self) -> bool {
         self.length_squared().approx_eq(&1.0)
-    }
-
-    /// Assert that the quaternion is normalized.
-    #[track_caller]
-    pub fn assert_normalized(self) {
-        assert!(
-            self.is_normalized(),
-            "{} {:?} is not normalized",
-            std::any::type_name::<Self>(),
-            self
-        );
     }
 
     pub fn length(self) -> real {
@@ -289,12 +267,6 @@ impl Quaternion {
     #[doc(hidden)]
     fn ensure_normalized(&self, quats: &[&Quaternion]) -> bool {
         quats.iter().all(|v| v.is_normalized()) && self.is_normalized()
-    }
-
-    /// Returns `true` if this quaternion and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
     }
 }
 

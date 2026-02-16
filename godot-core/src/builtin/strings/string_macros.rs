@@ -21,7 +21,6 @@ macro_rules! impl_shared_string_api {
             /// # Panics (safeguards-balanced)
             /// If `index` is out of bounds. In disengaged level, `0` is returned instead.
             // Unicode conversion panic is not documented because we rely on Godot strings having valid Unicode.
-            #[track_caller]
             pub fn unicode_at(&self, index: usize) -> char {
                 sys::balanced_assert!(index < self.len(), "unicode_at: index {} out of bounds (len {})", index, self.len());
 
@@ -330,6 +329,7 @@ macro_rules! impl_shared_string_api {
             pub fn starts_with(&self, text: impl AsArg<GString>) -> bool {
                 self.find(text) == Some(0)
             }
+
 
         }
 

@@ -75,7 +75,6 @@ impl AnyArray {
     /// # Panics
     /// If `index` is out of bounds. To handle out-of-bounds access fallibly, use [`get()`](Self::get) instead.
     #[inline]
-    #[track_caller]
     pub fn at(&self, index: usize) -> Variant {
         self.array.at(index)
     }
@@ -93,9 +92,8 @@ impl AnyArray {
     /// # Panics
     /// If `index` is out of bounds, or if the value cannot be converted to `U`.
     #[inline]
-    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
-        self.array.at_as::<U>(index)
+        self.at(index).to::<U>()
     }
 
     /// Returns the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
@@ -149,7 +147,6 @@ impl AnyArray {
 
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
-    #[track_caller]
     pub fn front_as<U: FromGodot>(&self) -> Option<U> {
         self.front().and_then(|v| v.try_to::<U>().ok())
     }
@@ -163,7 +160,6 @@ impl AnyArray {
 
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
-    #[track_caller]
     pub fn back_as<U: FromGodot>(&self) -> Option<U> {
         self.back().and_then(|v| v.try_to::<U>().ok())
     }
@@ -186,7 +182,6 @@ impl AnyArray {
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
-    #[track_caller]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
         self.pop().and_then(|v| v.try_to::<U>().ok())
     }
@@ -201,7 +196,6 @@ impl AnyArray {
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
-    #[track_caller]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
         self.pop_front().and_then(|v| v.try_to::<U>().ok())
     }
@@ -215,7 +209,6 @@ impl AnyArray {
     ///
     /// If `index` is out of bounds.
     #[doc(alias = "pop_at")]
-    #[track_caller]
     pub fn remove(&mut self, index: usize) -> Variant {
         self.array.remove(index)
     }
@@ -352,7 +345,6 @@ impl AnyArray {
 
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
-    #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
         self.pick_random()
             .and_then(|v| v.try_to::<U>().ok())

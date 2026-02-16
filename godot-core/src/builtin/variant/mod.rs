@@ -72,7 +72,6 @@ macro_rules! impl_variant_to_relaxed {
         $(
             #[doc = concat!("⚠️ Returns the variant as a `", stringify!($ty), "`, using relaxed conversion rules, panicking if it fails.")]
             #[inline]
-            #[track_caller]
             pub fn $name(&self) -> $ty {
                 self.try_to_relaxed::<$ty>()
                     .unwrap_or_else(|err| panic!("Variant::{}(): {err}", stringify!($name)))
@@ -114,7 +113,6 @@ impl Variant {
     ///
     /// # Panics
     /// When this variant holds a different type.
-    #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
         T::from_variant(self)
     }
@@ -222,54 +220,8 @@ impl Variant {
         is_float, FLOAT, "Returns true if the variant holds a float.";
         is_bool, BOOL, "Returns true if the variant holds a boolean.";
         is_string, STRING, "Returns true if the variant holds a string.";
-        is_string_name, STRING_NAME, "Returns true if the variant holds a string name.";
-        is_node_path, NODE_PATH, "Returns true if the variant holds a node path.";
-        is_vector2, VECTOR2, "Returns true if the variant holds a Vector2.";
-        is_vector2i, VECTOR2I, "Returns true if the variant holds a Vector2i.";
-        is_rect2, RECT2, "Returns true if the variant holds a Rect2.";
-        is_rect2i, RECT2I, "Returns true if the variant holds a Rect2i.";
-        is_vector3, VECTOR3, "Returns true if the variant holds a Vector3.";
-        is_vector3i, VECTOR3I, "Returns true if the variant holds a Vector3i.";
-        is_transform2d, TRANSFORM2D, "Returns true if the variant holds a Transform2D.";
-        is_vector4, VECTOR4, "Returns true if the variant holds a Vector4.";
-        is_vector4i, VECTOR4I, "Returns true if the variant holds a Vector4i.";
-        is_plane, PLANE, "Returns true if the variant holds a Plane.";
-        is_quaternion, QUATERNION, "Returns true if the variant holds a Quaternion.";
-        is_aabb, AABB, "Returns true if the variant holds an AABB.";
-        is_basis, BASIS, "Returns true if the variant holds a Basis.";
-        is_transform3d, TRANSFORM3D, "Returns true if the variant holds a Transform3D.";
-        is_projection, PROJECTION, "Returns true if the variant holds a Projection.";
-        is_color, COLOR, "Returns true if the variant holds a Color.";
-        is_rid, RID, "Returns true if the variant holds an RID.";
-        is_callable, CALLABLE, "Returns true if the variant holds a Callable.";
-        is_signal, SIGNAL, "Returns true if the variant holds a Signal.";
         is_array, ARRAY, "Returns true if the variant holds an array.\n\nAlias for `self.is_type(VariantType::ARRAY)`.";
         is_dictionary, DICTIONARY, "Returns true if the variant holds a dictionary.\n\nAlias for `self.is_type(VariantType::DICTIONARY)`.";
-        is_packed_byte_array, PACKED_BYTE_ARRAY, "Returns true if the variant holds a packed byte array.";
-        is_packed_int32_array, PACKED_INT32_ARRAY, "Returns true if the variant holds a packed int32 array.";
-        is_packed_int64_array, PACKED_INT64_ARRAY, "Returns true if the variant holds a packed int64 array.";
-        is_packed_float32_array, PACKED_FLOAT32_ARRAY, "Returns true if the variant holds a packed float32 array.";
-        is_packed_float64_array, PACKED_FLOAT64_ARRAY, "Returns true if the variant holds a packed float64 array.";
-        is_packed_string_array, PACKED_STRING_ARRAY, "Returns true if the variant holds a packed string array.";
-        is_packed_vector2_array, PACKED_VECTOR2_ARRAY, "Returns true if the variant holds a packed vector2 array.";
-        is_packed_vector3_array, PACKED_VECTOR3_ARRAY, "Returns true if the variant holds a packed vector3 array.";
-        is_packed_color_array, PACKED_COLOR_ARRAY, "Returns true if the variant holds a packed color array.";
-    }
-
-    /// Returns true if the variant holds a packed array type.
-    pub fn is_packed_array(&self) -> bool {
-        matches!(
-            self.get_type(),
-            VariantType::PACKED_BYTE_ARRAY
-                | VariantType::PACKED_INT32_ARRAY
-                | VariantType::PACKED_INT64_ARRAY
-                | VariantType::PACKED_FLOAT32_ARRAY
-                | VariantType::PACKED_FLOAT64_ARRAY
-                | VariantType::PACKED_STRING_ARRAY
-                | VariantType::PACKED_VECTOR2_ARRAY
-                | VariantType::PACKED_VECTOR3_ARRAY
-                | VariantType::PACKED_COLOR_ARRAY
-        )
     }
 
     /// Returns true if the variant holds a container type (`ARRAY` or `DICTIONARY`).
@@ -427,7 +379,6 @@ impl Variant {
     /// * If the method does not exist or the signature is not compatible with the passed arguments.
     /// * If the call causes an error.
     #[inline]
-    #[track_caller]
     pub fn call(&self, method: impl AsArg<StringName>, args: &[Variant]) -> Variant {
         arg_into_ref!(method);
         self.call_inner(method, args)
@@ -511,7 +462,6 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
-    #[track_caller]
     pub fn get_keyed(&self, key: &Variant) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut ret = Variant::nil();
@@ -525,8 +475,7 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_keyed(): operation invalid for type {:?}",
-            self.get_type()
+            "Variant::get_keyed(): operation invalid"
         );
         ret
     }
@@ -535,7 +484,6 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
-    #[track_caller]
     pub fn set_keyed(&mut self, key: &Variant, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         unsafe {
@@ -548,8 +496,7 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_keyed(): operation invalid for type {:?}",
-            self.get_type()
+            "Variant::set_keyed(): operation invalid"
         );
     }
 
@@ -557,7 +504,6 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
-    #[track_caller]
     pub fn get_named(&self, name: &StringName) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut ret = Variant::nil();
@@ -571,8 +517,7 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_named(): operation invalid for type {:?}",
-            self.get_type()
+            "Variant::get_named(): operation invalid"
         );
         ret
     }
@@ -581,7 +526,6 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
-    #[track_caller]
     pub fn set_named(&mut self, name: &StringName, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         unsafe {
@@ -594,8 +538,7 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_named(): operation invalid for type {:?}",
-            self.get_type()
+            "Variant::set_named(): operation invalid"
         );
     }
 
@@ -604,7 +547,6 @@ impl Variant {
     /// # Panics
     /// * If the operation is invalid for this variant type.
     /// * If the index is out of bounds.
-    #[track_caller]
     pub fn get_indexed(&self, index: i64) -> Variant {
         let mut valid = false as sys::GDExtensionBool;
         let mut oob = false as sys::GDExtensionBool;
@@ -620,13 +562,11 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_indexed(): operation invalid for type {:?}",
-            self.get_type()
+            "Variant::get_indexed(): operation invalid"
         );
         assert!(
             !sys::conv::bool_from_sys(oob),
-            "Variant::get_indexed(): index {index} out of bounds for type {:?}",
-            self.get_type()
+            "Variant::get_indexed(): index {index} out of bounds"
         );
         ret
     }
@@ -636,7 +576,6 @@ impl Variant {
     /// # Panics
     /// * If the operation is invalid for this variant type.
     /// * If the index is out of bounds.
-    #[track_caller]
     pub fn set_indexed(&mut self, index: i64, value: &Variant) {
         let mut valid = false as sys::GDExtensionBool;
         let mut oob = false as sys::GDExtensionBool;
@@ -651,19 +590,16 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_indexed(): operation invalid for type {:?}",
-            self.get_type()
+            "Variant::set_indexed(): operation invalid"
         );
         assert!(
             !sys::conv::bool_from_sys(oob),
-            "Variant::set_indexed(): index {index} out of bounds for type {:?}",
-            self.get_type()
+            "Variant::set_indexed(): index {index} out of bounds"
         );
     }
 
     /// ⚠️ Gets the value at the specified index and converts it to `T`, panicking on failure.
     #[inline]
-    #[track_caller]
     pub fn index_as<T: FromGodot>(&self, index: i64) -> T {
         self.get_indexed(index).to::<T>()
     }
@@ -691,7 +627,6 @@ impl Variant {
     }
 
     /// ⚠️ Gets the value of a key and converts it to `T`, panicking on failure.
-    #[track_caller]
     pub fn at_as<K: ToGodot, T: FromGodot>(&self, key: K) -> T {
         self.get_keyed(&key.to_variant()).to::<T>()
     }
@@ -1146,7 +1081,6 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             #[inline]
-            #[track_caller]
             fn $method(self, rhs: Self) -> Self::Output {
                 self.evaluate(&rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1157,7 +1091,6 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait<&Variant> for Variant {
             type Output = Self;
             #[inline]
-            #[track_caller]
             fn $method(self, rhs: &Variant) -> Self::Output {
                 self.evaluate(rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1169,7 +1102,6 @@ macro_rules! impl_variant_op {
     (assign $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
         impl std::ops::$trait for Variant {
             #[inline]
-            #[track_caller]
             fn $method(&mut self, rhs: Self) {
                 *self = self.evaluate(&rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1179,7 +1111,6 @@ macro_rules! impl_variant_op {
 
         impl std::ops::$trait<&Variant> for Variant {
             #[inline]
-            #[track_caller]
             fn $method(&mut self, rhs: &Variant) {
                 *self = self.evaluate(rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1192,7 +1123,6 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             #[inline]
-            #[track_caller]
             fn $method(self) -> Self::Output {
                 let from_type = self.get_type();
                 self.evaluate(&Variant::nil(), $op)
@@ -1219,7 +1149,6 @@ impl_variant_op!(unary Neg, neg, VariantOperator::NEGATE, "-");
 impl std::ops::Not for Variant {
     type Output = Self;
     #[inline]
-    #[track_caller]
     fn not(self) -> Self::Output {
         let from_type = self.get_type();
         let op = if from_type == VariantType::BOOL {

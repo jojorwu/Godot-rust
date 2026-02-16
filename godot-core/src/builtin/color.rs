@@ -312,7 +312,6 @@ impl Color {
     ///
     /// Method will panic if the RGBA values are outside the valid range `0.0..=1.0`. You can use [`Color::normalized`] to ensure that
     /// they are in range, or use [`Color::try_to_hsv`].
-    #[track_caller]
     pub fn to_hsv(self) -> ColorHsv {
         self.try_to_hsv().unwrap_or_else(|e| panic!("{e}"))
     }
@@ -340,10 +339,8 @@ impl Color {
         }
     }
 
-    /// Returns `true` if all components are in the range `[0.0, 1.0]`.
-    ///
-    /// For internal checks before transformations between different color representation.
-    pub fn is_normalized(&self) -> bool {
+    // For internal checks before transformations between different color representation.
+    pub(crate) fn is_normalized(&self) -> bool {
         self.r >= 0.0
             && self.r <= 1.0
             && self.g >= 0.0
@@ -352,39 +349,6 @@ impl Color {
             && self.b <= 1.0
             && self.a >= 0.0
             && self.a <= 1.0
-    }
-
-    /// Assert that all components are in the range `[0.0, 1.0]`.
-    #[track_caller]
-    pub fn assert_normalized(&self) {
-        assert!(
-            self.is_normalized(),
-            "{} {:?} is not normalized (components outside [0, 1])",
-            std::any::type_name::<Self>(),
-            self
-        );
-    }
-
-    /// Returns `true` if this color is finite, by calling `is_finite` on each component.
-    pub fn is_finite(self) -> bool {
-        self.r.is_finite() && self.g.is_finite() && self.b.is_finite() && self.a.is_finite()
-    }
-
-    /// Assert that each component of this color is finite.
-    #[track_caller]
-    pub fn assert_finite(self) {
-        assert!(
-            self.is_finite(),
-            "{} {:?} is not finite",
-            std::any::type_name::<Self>(),
-            self
-        );
-    }
-
-    /// Returns `true` if this color and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
     }
 
     fn as_inner(&self) -> InnerColor<'_> {

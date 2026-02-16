@@ -232,17 +232,6 @@ impl Transform2D {
         self.a.is_finite() && self.b.is_finite() && self.origin.is_finite()
     }
 
-    /// Assert that each component of this transform is finite.
-    #[track_caller]
-    pub fn assert_finite(&self) {
-        assert!(
-            self.is_finite(),
-            "{} {:?} is not finite",
-            std::any::type_name::<Self>(),
-            self
-        );
-    }
-
     /// Returns the transform with the basis orthogonal (90 degrees), and
     /// normalized axis vectors (scale of 1 or -1).
     ///
@@ -335,12 +324,6 @@ impl Transform2D {
     /// _Godot equivalent: `Transform2D.basis_xform_inv()`_
     pub fn basis_xform_inv(&self, v: Vector2) -> Vector2 {
         self.basis().inverse() * v
-    }
-
-    /// Returns `true` if this transform and `other` are approximately equal.
-    #[inline]
-    pub fn is_equal_approx(self, other: Self) -> bool {
-        self.approx_eq(&other)
     }
 }
 
