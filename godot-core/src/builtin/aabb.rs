@@ -221,6 +221,17 @@ impl Aabb {
         self.position.is_finite() && self.size.is_finite()
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// The end of the `Aabb` calculated as `position + size`.
     #[inline]
     pub fn end(self) -> Vector3 {
@@ -538,7 +549,7 @@ impl Aabb {
     pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0 && self.size.z >= 0.0,
-            "{} size {:?} is negative",
+            "{} size {:?} is negative (must be non-negative)",
             std::any::type_name::<Self>(),
             self.size
         );
@@ -588,6 +599,9 @@ impl_geometric_interop!(Aabb, (real, real, real, real, real, real),
         self.size.y,
         self.size.z
     ]);
+
+impl_geometric_interop!(Aabb, (Vector3, Vector3),
+    [Vector3; 2], new, [position, size], self => [self.position, self.size]);
 
 #[cfg(test)]
 mod test {

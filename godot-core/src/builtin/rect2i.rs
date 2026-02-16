@@ -118,7 +118,7 @@ impl Rect2i {
     /// Any `Rect2i` encloses itself, i.e. an enclosed `Rect2i` does is not required to be a proper sub-rect.
     #[inline]
     #[track_caller]
-    pub const fn encloses(self, other: Self) -> bool {
+    pub fn encloses(self, other: Self) -> bool {
         self.assert_nonnegative();
         other.assert_nonnegative();
 
@@ -211,7 +211,7 @@ impl Rect2i {
     #[doc(alias = "has_point")]
     #[inline]
     #[track_caller]
-    pub const fn contains_point(self, point: Vector2i) -> bool {
+    pub fn contains_point(self, point: Vector2i) -> bool {
         self.assert_nonnegative();
 
         let end = self.end();
@@ -280,9 +280,13 @@ impl Rect2i {
     /// Certain functions will fail to give a correct result if the size is negative.
     #[inline]
     #[track_caller]
-    pub const fn assert_nonnegative(self) {
-        // We can't use type_name or formatting in const assert yet.
-        assert!(!self.is_negative(), "Rect2i size is negative");
+    pub fn assert_nonnegative(self) {
+        assert!(
+            !self.is_negative(),
+            "{} size {:?} is negative (must be non-negative)",
+            std::any::type_name::<Self>(),
+            self.size
+        );
     }
 }
 
@@ -310,29 +314,11 @@ impl std::fmt::Display for Rect2i {
     }
 }
 
-impl From<(Vector2i, Vector2i)> for Rect2i {
-    #[inline]
-    fn from((position, size): (Vector2i, Vector2i)) -> Self {
-        Self { position, size }
-    }
-}
-
-impl PartialEq<(Vector2i, Vector2i)> for Rect2i {
-    #[inline]
-    fn eq(&self, other: &(Vector2i, Vector2i)) -> bool {
-        self.position == other.0 && self.size == other.1
-    }
-}
-
-impl PartialEq<Rect2i> for (Vector2i, Vector2i) {
-    #[inline]
-    fn eq(&self, other: &Rect2i) -> bool {
-        other == self
-    }
-}
-
 impl_geometric_interop!(Rect2i, (i32, i32, i32, i32),
     [i32; 4], from_components, [x, y, w, h], self => [self.position.x, self.position.y, self.size.x, self.size.y]);
+
+impl_geometric_interop!(Rect2i, (Vector2i, Vector2i),
+    [Vector2i; 2], new, [position, size], self => [self.position, self.size]);
 
 #[cfg(test)]
 mod test {

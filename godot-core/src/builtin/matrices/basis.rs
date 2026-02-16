@@ -301,7 +301,15 @@ impl Basis {
     /// that row and column are 0.
     fn is_identity_index(&self, index: usize) -> bool {
         let row = self.rows[index];
-        let col = self.transposed().rows[index];
+        let col = match index {
+            0 => self.col_a(),
+            1 => self.col_b(),
+            2 => self.col_c(),
+            _ => panic!(
+                "{}::is_identity_index(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            ),
+        };
         if row != col {
             return false;
         }
@@ -309,7 +317,7 @@ impl Basis {
             0 => row == Vector3::RIGHT,
             1 => row == Vector3::UP,
             2 => row == Vector3::BACK,
-            _ => panic!("Unknown Index {index}"),
+            _ => unreachable!(),
         }
     }
 

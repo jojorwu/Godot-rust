@@ -222,6 +222,17 @@ impl Plane {
         self.normal.is_finite() && self.d.is_finite()
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// Returns `true` if `point` is located above the plane.
     #[inline]
     pub fn is_point_over(self, point: Vector3) -> bool {

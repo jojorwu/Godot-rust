@@ -284,10 +284,11 @@ impl Quaternion {
 
     #[inline]
     #[track_caller]
-    pub fn assert_finite(&self) {
+    pub fn assert_finite(self) {
         assert!(
             self.is_finite(),
-            "quaternion {:?} is not finite",
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
             self
         );
     }

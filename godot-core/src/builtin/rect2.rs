@@ -275,6 +275,17 @@ impl Rect2 {
         self.position.is_finite() && self.size.is_finite()
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// The end of the `Rect2` calculated as `position + size`.
     #[inline]
     pub fn end(self) -> Vector2 {
@@ -301,7 +312,7 @@ impl Rect2 {
     pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0,
-            "{} size {:?} is negative",
+            "{} size {:?} is negative (must be non-negative)",
             std::any::type_name::<Self>(),
             self.size
         );
@@ -343,29 +354,11 @@ impl std::fmt::Display for Rect2 {
     }
 }
 
-impl From<(Vector2, Vector2)> for Rect2 {
-    #[inline]
-    fn from((position, size): (Vector2, Vector2)) -> Self {
-        Self { position, size }
-    }
-}
-
-impl PartialEq<(Vector2, Vector2)> for Rect2 {
-    #[inline]
-    fn eq(&self, other: &(Vector2, Vector2)) -> bool {
-        self.position == other.0 && self.size == other.1
-    }
-}
-
-impl PartialEq<Rect2> for (Vector2, Vector2) {
-    #[inline]
-    fn eq(&self, other: &Rect2) -> bool {
-        other == self
-    }
-}
-
 impl_geometric_interop!(Rect2, (real, real, real, real),
     [real; 4], from_components, [x, y, w, h], self => [self.position.x, self.position.y, self.size.x, self.size.y]);
+
+impl_geometric_interop!(Rect2, (Vector2, Vector2),
+    [Vector2; 2], new, [position, size], self => [self.position, self.size]);
 
 #[cfg(test)]
 mod test {
