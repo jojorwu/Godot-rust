@@ -18,7 +18,7 @@ use crate::builtin::{real, EulerOrder, Quaternion, RMat3, RQuat, RVec2, RVec3, V
 
 /// A 3x3 matrix, typically used as an orthogonal basis for [`Transform3D`](crate::builtin::Transform3D).
 ///
-/// Indexing into a `Basis` is done in row-major order. So `mat[1]` would return the first *row* and not
+/// Indexing into a `Basis` is done in row-major order. So `mat[0]` would return the first *row* and not
 /// the first *column*/basis vector. This means that indexing into the matrix happens in the same order
 /// it usually does in math, except that we index starting at 0.
 ///
@@ -645,6 +645,24 @@ impl XformInv<Vector3> for Basis {
             self.col_b().dot(rhs),
             self.col_c().dot(rhs),
         )
+    }
+}
+
+impl std::ops::Index<usize> for Basis {
+    type Output = Vector3;
+
+    #[inline]
+    #[track_caller]
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.rows[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for Basis {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.rows[index]
     }
 }
 

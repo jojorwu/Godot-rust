@@ -433,6 +433,7 @@ impl<T: GodotClass> RawGd<T> {
     /// If validation fails.
     #[cfg(safeguards_balanced)]
     #[inline]
+    #[track_caller]
     pub(crate) fn check_rtti(&self, method_name: &'static str) {
         // SAFETY: check_rtti() is only called for non-null pointers.
         let instance_id = unsafe { self.instance_id_unchecked().unwrap_unchecked() };
@@ -451,6 +452,8 @@ impl<T: GodotClass> RawGd<T> {
 
     #[cfg(safeguards_balanced)]
     #[cold]
+    #[inline(never)]
+    #[track_caller]
     fn check_rtti_slow(&self, method_name: &'static str) {
         let call_ctx = CallContext::gd::<T>(method_name);
 
@@ -521,6 +524,7 @@ where
     /// See [`Gd::bind()`] for a more in depth explanation.
     // Note: possible names: write/read, hold/hold_mut, r/w, r/rw, ...
     #[inline]
+    #[track_caller]
     pub(crate) fn bind(&self) -> GdRef<'_, T> {
         self.check_rtti("bind");
         GdRef::from_guard(self.storage().unwrap().get())
@@ -530,12 +534,14 @@ where
     ///
     /// See [`Gd::bind_mut()`] for a more in depth explanation.
     #[inline]
+    #[track_caller]
     pub(crate) fn bind_mut(&mut self) -> GdMut<'_, T> {
         self.check_rtti("bind_mut");
         GdMut::from_guard(self.storage().unwrap().get_mut())
     }
 
     #[inline]
+    #[track_caller]
     pub(crate) fn try_bind(&self) -> Result<GdRef<'_, T>, Box<dyn std::error::Error>> {
         self.check_rtti("try_bind");
         let storage = self.storage().ok_or("storage not found")?;
@@ -543,6 +549,7 @@ where
     }
 
     #[inline]
+    #[track_caller]
     pub(crate) fn try_bind_mut(&mut self) -> Result<GdMut<'_, T>, Box<dyn std::error::Error>> {
         self.check_rtti("try_bind_mut");
         let storage = self.storage().ok_or("storage not found")?;

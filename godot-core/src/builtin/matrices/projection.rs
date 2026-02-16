@@ -506,12 +506,27 @@ impl Mul<Vector4> for Projection {
 impl std::ops::Index<Vector4Axis> for Projection {
     type Output = Vector4;
 
+    #[inline]
+    #[track_caller]
     fn index(&self, index: Vector4Axis) -> &Self::Output {
         match index {
             Vector4Axis::X => &self.cols[0],
             Vector4Axis::Y => &self.cols[1],
             Vector4Axis::Z => &self.cols[2],
             Vector4Axis::W => &self.cols[3],
+        }
+    }
+}
+
+impl std::ops::IndexMut<Vector4Axis> for Projection {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: Vector4Axis) -> &mut Self::Output {
+        match index {
+            Vector4Axis::X => &mut self.cols[0],
+            Vector4Axis::Y => &mut self.cols[1],
+            Vector4Axis::Z => &mut self.cols[2],
+            Vector4Axis::W => &mut self.cols[3],
         }
     }
 }

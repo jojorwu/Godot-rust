@@ -24,7 +24,7 @@ macro_rules! impl_shared_string_api {
             pub fn unicode_at(&self, index: usize) -> char {
                 sys::balanced_assert!(index < self.len(), "unicode_at: index {} out of bounds (len {})", index, self.len());
 
-                let char_i64 = self.as_inner().unicode_at($crate::builtin::to_i64(index));
+                let char_i64 = self.as_inner().unicode_at(index as i64);
 
                 u32::try_from(char_i64).ok()
                     .and_then(|char_u32| char::from_u32(char_u32))
@@ -80,13 +80,13 @@ macro_rules! impl_shared_string_api {
             /// Count how many times `what` appears within `range`. Use `..` for full string search.
             pub fn count(&self, what: impl AsArg<GString>, range: impl std::ops::RangeBounds<usize>) -> usize {
                 let (from, to) = $crate::meta::signed_range::to_godot_range_fromto(range);
-                $crate::builtin::to_usize(self.as_inner().count(what.into_arg(), from, to))
+                self.as_inner().count(what.into_arg(), from, to) as usize
             }
 
             /// Count how many times `what` appears within `range`, case-insensitively. Use `..` for full string search.
             pub fn countn(&self, what: impl AsArg<GString>, range: impl std::ops::RangeBounds<usize>) -> usize {
                 let (from, to) = $crate::meta::signed_range::to_godot_range_fromto(range);
-                $crate::builtin::to_usize(self.as_inner().countn(what.into_arg(), from, to))
+                self.as_inner().countn(what.into_arg(), from, to) as usize
             }
 
             /// Splits the string according to `delimiter`.
@@ -134,7 +134,7 @@ macro_rules! impl_shared_string_api {
                 delimiter: impl AsArg<GString>,
                 slice: usize,
             ) -> Option<GString> {
-                let sliced = self.as_inner().get_slice(delimiter, $crate::builtin::to_i64(slice));
+                let sliced = self.as_inner().get_slice(delimiter, slice as i64);
 
                 // Note: self="" always returns None.
                 super::populated_or_none(sliced)
@@ -146,7 +146,7 @@ macro_rules! impl_shared_string_api {
             ///
             /// This is faster than [`split()`][Self::split], if you only need one substring.
             pub fn get_slicec(&self, delimiter: char, slice: usize) -> Option<GString> {
-                let sliced = self.as_inner().get_slicec(delimiter as i64, $crate::builtin::to_i64(slice));
+                let sliced = self.as_inner().get_slicec(delimiter as i64, slice as i64);
 
                 // Note: self="" always returns None.
                 super::populated_or_none(sliced)
@@ -156,7 +156,7 @@ macro_rules! impl_shared_string_api {
             ///
             /// See also [`split()`][Self::split] and [`get_slice()`][Self::get_slice].
             pub fn get_slice_count(&self, delimiter: impl AsArg<GString>) -> usize {
-                $crate::builtin::to_usize(self.as_inner().get_slice_count(delimiter))
+                self.as_inner().get_slice_count(delimiter) as usize
             }
 
             /// Returns a copy of the string without the specified index range.
@@ -171,7 +171,7 @@ macro_rules! impl_shared_string_api {
             ///
             /// Consider using [`format()`](Self::format) for more flexibility.
             pub fn insert(&self, position: usize, what: impl AsArg<GString>) -> GString {
-                self.as_inner().insert($crate::builtin::to_i64(position), what)
+                self.as_inner().insert(position as i64, what)
             }
 
             /// Format a string using substitutions from an array or dictionary.
@@ -202,7 +202,7 @@ macro_rules! impl_shared_string_api {
             /// See also [`rpad()`](Self::rpad).
             pub fn lpad(&self, min_length: usize, character: char) -> GString {
                 let one_char_string = GString::from([character].as_slice());
-                self.as_inner().lpad($crate::builtin::to_i64(min_length), &one_char_string)
+                self.as_inner().lpad(min_length as i64, &one_char_string)
             }
 
             /// Formats the string to be at least `min_length` long, by adding characters to the right of the string, if necessary.
@@ -213,17 +213,17 @@ macro_rules! impl_shared_string_api {
             /// See also [`lpad()`](Self::lpad).
             pub fn rpad(&self, min_length: usize, character: char) -> GString {
                 let one_char_string = GString::from([character].as_slice());
-                self.as_inner().rpad($crate::builtin::to_i64(min_length), &one_char_string)
+                self.as_inner().rpad(min_length as i64, &one_char_string)
             }
 
             /// Formats the string representing a number to have an exact number of `digits` _after_ the decimal point.
             pub fn pad_decimals(&self, digits: usize) -> GString {
-                self.as_inner().pad_decimals($crate::builtin::to_i64(digits))
+                self.as_inner().pad_decimals(digits as i64)
             }
 
             /// Formats the string representing a number to have an exact number of `digits` _before_ the decimal point.
             pub fn pad_zeros(&self, digits: usize) -> GString {
-                self.as_inner().pad_zeros($crate::builtin::to_i64(digits))
+                self.as_inner().pad_zeros(digits as i64)
             }
 
             /// Case-sensitive, lexicographic comparison to another string.
@@ -383,7 +383,7 @@ macro_rules! impl_shared_string_api {
 
             /// Does the actual work. Must be called to finalize find operation.
             pub fn done(self) -> Option<usize> {
-                let from_index = self.from_index.map($crate::builtin::to_i64);
+                let from_index = self.from_index.map(|i| i as i64);
                 let inner = self.owner.as_inner();
                 let what = self.what;
 
@@ -472,9 +472,9 @@ macro_rules! impl_shared_string_api {
                 let delimiter = self.delimiter;
 
                 if self.reverse {
-                    inner.rsplit(delimiter, self.allow_empty, $crate::builtin::to_i64(self.maxsplit))
+                    inner.rsplit(delimiter, self.allow_empty, self.maxsplit as i64)
                 } else {
-                    inner.split(delimiter, self.allow_empty, $crate::builtin::to_i64(self.maxsplit))
+                    inner.split(delimiter, self.allow_empty, self.maxsplit as i64)
                 }
             }
         }

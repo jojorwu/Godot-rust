@@ -459,6 +459,34 @@ impl GlamConv for Transform2D {
     type Glam = RAffine2;
 }
 
+impl std::ops::Index<usize> for Transform2D {
+    type Output = Vector2;
+
+    #[inline]
+    #[track_caller]
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.a,
+            1 => &self.b,
+            2 => &self.origin,
+            _ => panic!("index {index} out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Transform2D {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.a,
+            1 => &mut self.b,
+            2 => &mut self.origin,
+            _ => panic!("index {index} out of bounds"),
+        }
+    }
+}
+
 // SAFETY:
 // This type is represented as `Self` in Godot, so `*mut Self` is sound.
 unsafe impl GodotFfi for Transform2D {

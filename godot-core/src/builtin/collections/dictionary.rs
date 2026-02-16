@@ -231,7 +231,7 @@ impl VarDictionary {
     #[doc(alias = "size")]
     #[inline]
     pub fn len(&self) -> usize {
-        crate::builtin::to_usize(self.as_inner().size())
+        self.as_inner().size().try_into().unwrap()
     }
 
     /// Returns true if the dictionary is empty.
@@ -313,19 +313,6 @@ impl VarDictionary {
         let old_value = self.get(key.clone());
         self.as_inner().erase(&key);
         old_value
-    }
-
-    /// ⚠️ Removes a key from the map and returns the value associated with the key, converted to `V`.
-    ///
-    /// # Panics
-    /// If the key is not present, or if the value cannot be converted to `V`.
-    #[inline]
-    #[track_caller]
-    pub fn remove_as<K: ToGodot, V: FromGodot>(&mut self, key: K) -> V {
-        let key = key.to_variant();
-        self.remove(key.clone())
-            .unwrap_or_else(|| panic!("key {key:?} missing in dictionary"))
-            .to::<V>()
     }
 
     crate::declare_hash_u32_method! {

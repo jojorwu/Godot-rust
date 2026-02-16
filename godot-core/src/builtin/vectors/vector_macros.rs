@@ -244,6 +244,8 @@ macro_rules! impl_vector_index {
     ) => {
         impl std::ops::Index<$AxisEnum> for $Vector {
             type Output = $Scalar;
+            #[inline]
+            #[track_caller]
             fn index(&self, axis: $AxisEnum) -> &$Scalar {
                 match axis {
                     $(<$AxisEnum>::$axis_variants => &self.$components),*
@@ -252,6 +254,8 @@ macro_rules! impl_vector_index {
         }
 
         impl std::ops::IndexMut<$AxisEnum> for $Vector {
+            #[inline]
+            #[track_caller]
             fn index_mut(&mut self, axis: $AxisEnum) -> &mut $Scalar {
                 match axis {
                     $(<$AxisEnum>::$axis_variants => &mut self.$components),*
@@ -454,6 +458,7 @@ macro_rules! impl_vector_fns {
             /// # Panics
             /// If `min` > `max`, `min` is NaN, or `max` is NaN.
             #[inline]
+            #[track_caller]
             pub fn clamp(self, min: Self, max: Self) -> Self {
                 Self::from_glam(self.to_glam().clamp(min.to_glam(), max.to_glam()))
             }
@@ -717,6 +722,7 @@ macro_rules! impl_float_vector_fns {
             /// # Panics
             /// If `self` and `to` are equal.
             #[inline]
+            #[track_caller]
             pub fn direction_to(self, to: Self) -> Self {
                 self.try_direction_to(to).expect("direction_to() called on equal vectors")
             }
@@ -794,6 +800,7 @@ macro_rules! impl_float_vector_fns {
             /// # Panics
             /// If called on a zero vector.
             #[inline]
+            #[track_caller]
             pub fn normalized(self) -> Self {
                 self.try_normalized().expect("normalized() called on zero vector")
             }
@@ -1098,6 +1105,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn bounce(self, n: Self) -> Self {
                 assert!(n.is_normalized(), "n is not normalized!");
                 -self.reflect(n)
@@ -1129,6 +1137,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn reflect(self, n: Self) -> Self {
                 assert!(n.is_normalized(), "n is not normalized!");
                 2.0 * n * self.dot(n) - self
@@ -1139,6 +1148,7 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn slide(self, n: Self) -> Self {
                 assert!(n.is_normalized(), "n is not normalized!");
                 self - n * self.dot(n)
