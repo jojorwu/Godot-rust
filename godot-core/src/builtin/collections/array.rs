@@ -272,6 +272,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If you know the index is correct, use [`at()`](Self::at) instead.
     #[inline]
+    #[track_caller]
     pub fn get(&self, index: usize) -> Option<T> {
         let ptr = self.ptr_or_null(index);
         if ptr.is_null() {
@@ -292,12 +293,14 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the element at the given index, converted to `U`, or `None` if out of bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
         self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
     #[inline]
+    #[track_caller]
     pub fn contains(&self, value: impl AsArg<T>) -> bool {
         meta::arg_into_ref!(value: T);
         self.as_inner().has(&value.to_variant())
@@ -305,6 +308,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the number of times a value is in the array.
     #[inline]
+    #[track_caller]
     pub fn count(&self, value: impl AsArg<T>) -> usize {
         meta::arg_into_ref!(value: T);
         to_usize(self.as_inner().count(&value.to_variant()))
@@ -313,6 +317,7 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the first element in the array, or `None` if the array is empty.
     #[doc(alias = "first")]
     #[inline]
+    #[track_caller]
     pub fn front(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().front();
@@ -322,6 +327,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
         self.pick_random()
             .and_then(|v| v.to_variant().try_to::<U>().ok())
@@ -329,6 +335,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn front_as<U: FromGodot>(&self) -> Option<U> {
         self.front().and_then(|v| v.to_variant().try_to::<U>().ok())
     }
@@ -336,6 +343,7 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
+    #[track_caller]
     pub fn back(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().back();
@@ -345,6 +353,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn back_as<U: FromGodot>(&self) -> Option<U> {
         self.back().and_then(|v| v.to_variant().try_to::<U>().ok())
     }
@@ -375,6 +384,7 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "append")]
     #[doc(alias = "push_back")]
     #[inline]
+    #[track_caller]
     pub fn push(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -389,6 +399,8 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// On large arrays, this method is much slower than [`push()`][Self::push], as it will move all the array's elements.
     /// The larger the array, the slower `push_front()` will be.
+    #[inline]
+    #[track_caller]
     pub fn push_front(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -404,6 +416,7 @@ impl<T: ArrayElement> Array<T> {
     /// _Godot equivalent: `pop_back`_
     #[doc(alias = "pop_back")]
     #[inline]
+    #[track_caller]
     pub fn pop(&mut self) -> Option<T> {
         self.balanced_ensure_mutable();
 
@@ -416,6 +429,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
         self.pop().and_then(|v| v.to_variant().try_to::<U>().ok())
     }
@@ -425,6 +439,7 @@ impl<T: ArrayElement> Array<T> {
     /// Note: On large arrays, this method is much slower than `pop()` as it will move all the
     /// array's elements. The larger the array, the slower `pop_front()` will be.
     #[inline]
+    #[track_caller]
     pub fn pop_front(&mut self) -> Option<T> {
         self.balanced_ensure_mutable();
 
@@ -437,6 +452,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
         self.pop_front()
             .and_then(|v| v.to_variant().try_to::<U>().ok())
@@ -493,6 +509,7 @@ impl<T: ArrayElement> Array<T> {
     /// On large arrays, this method is much slower than [`pop()`][Self::pop], as it will move all the array's
     /// elements after the removed element.
     #[inline]
+    #[track_caller]
     pub fn erase(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -505,6 +522,7 @@ impl<T: ArrayElement> Array<T> {
     /// Assigns the given value to all elements in the array. This can be used together with
     /// `resize` to create an array with a given size and initialized elements.
     #[inline]
+    #[track_caller]
     pub fn fill(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -521,6 +539,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If you know that the new size is smaller, then consider using [`shrink`][AnyArray::shrink] instead.
     #[inline]
+    #[track_caller]
     pub fn resize(&mut self, new_size: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -559,6 +578,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Appends another array at the end of this array. Equivalent of `append_array` in GDScript.
     #[inline]
+    #[track_caller]
     pub fn extend_array(&mut self, other: &Array<T>) {
         self.balanced_ensure_mutable();
 
@@ -660,6 +680,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
     #[inline]
+    #[track_caller]
     pub fn min(&self) -> Option<T> {
         let min = self.as_inner().min();
         (!min.is_nil()).then(|| T::from_variant(&min))
@@ -669,6 +690,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
     #[inline]
+    #[track_caller]
     pub fn max(&self) -> Option<T> {
         let max = self.as_inner().max();
         (!max.is_nil()).then(|| T::from_variant(&max))
@@ -676,6 +698,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns a random element from the array, or `None` if it is empty.
     #[inline]
+    #[track_caller]
     pub fn pick_random(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().pick_random();
@@ -688,6 +711,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
     #[inline]
+    #[track_caller]
     pub fn find(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
         meta::arg_into_ref!(value: T);
 
@@ -705,6 +729,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
     #[inline]
+    #[track_caller]
     pub fn rfind(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
         meta::arg_into_ref!(value: T);
 
@@ -728,6 +753,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// See also: [`bsearch_by()`][Self::bsearch_by], [`functional_ops().bsearch_custom()`][ArrayFunctionalOps::bsearch_custom].
     #[inline]
+    #[track_caller]
     pub fn bsearch(&self, value: impl AsArg<T>) -> usize {
         meta::arg_into_ref!(value: T);
 

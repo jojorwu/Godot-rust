@@ -75,7 +75,13 @@ macro_rules! impl_variant_to_relaxed {
             #[track_caller]
             pub fn $name(&self) -> $ty {
                 self.try_to_relaxed::<$ty>()
-                    .unwrap_or_else(|err| panic!("Variant::{}(): {err}", stringify!($name)))
+                    .unwrap_or_else(|err| {
+                        panic!(
+                            "Variant::{}(): failed to convert to {}: {err}",
+                            stringify!($name),
+                            std::any::type_name::<$ty>()
+                        )
+                    })
             }
         )*
     };
@@ -419,6 +425,7 @@ impl Variant {
     /// freed object for whatever reason, use [`object_id_unchecked()`][Self::object_id_unchecked]. This method is only available from
     /// Godot 4.4 onwards.
     #[inline]
+    #[track_caller]
     pub fn object_id(&self) -> Option<crate::obj::InstanceId> {
         #[cfg(since_api = "4.4")]
         {
@@ -570,7 +577,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_keyed(): operation invalid"
+            "Variant::get_keyed(): operation invalid for type {:?}",
+            self.get_type()
         );
         ret
     }
@@ -592,7 +600,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_keyed(): operation invalid"
+            "Variant::set_keyed(): operation invalid for type {:?}",
+            self.get_type()
         );
     }
 
@@ -614,7 +623,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_named(): operation invalid"
+            "Variant::get_named(): operation invalid for type {:?}",
+            self.get_type()
         );
         ret
     }
@@ -636,7 +646,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_named(): operation invalid"
+            "Variant::set_named(): operation invalid for type {:?}",
+            self.get_type()
         );
     }
 
@@ -661,7 +672,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_indexed(): operation invalid"
+            "Variant::get_indexed(): operation invalid for type {:?}",
+            self.get_type()
         );
         assert!(
             !sys::conv::bool_from_sys(oob),
@@ -690,7 +702,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_indexed(): operation invalid"
+            "Variant::set_indexed(): operation invalid for type {:?}",
+            self.get_type()
         );
         assert!(
             !sys::conv::bool_from_sys(oob),

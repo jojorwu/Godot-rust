@@ -160,6 +160,7 @@ impl VarDictionary {
 
     /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn get_as<K: ToGodot, V: FromGodot>(&self, key: K) -> Option<V> {
         self.get(key).and_then(|v| v.try_to::<V>().ok())
     }
@@ -240,6 +241,13 @@ impl VarDictionary {
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.as_inner().is_empty()
+    }
+
+    /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<K: ToGodot, V: FromGodot>(&mut self, key: K) -> Option<V> {
+        self.remove(key).and_then(|v| v.try_to::<V>().ok())
     }
 
     /// Reverse-search a key by its value.
@@ -343,6 +351,7 @@ impl VarDictionary {
     ///
     /// # Panics
     /// If any key cannot be converted to `K`.
+    #[track_caller]
     pub fn typed_keys<K: FromGodot>(&self) -> Vec<K> {
         self.keys_array()
             .iter_shared()
@@ -369,6 +378,7 @@ impl VarDictionary {
     ///
     /// # Panics
     /// If any value cannot be converted to `V`.
+    #[track_caller]
     pub fn typed_values<V: FromGodot>(&self) -> Vec<V> {
         self.values_array()
             .iter_shared()

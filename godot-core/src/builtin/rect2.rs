@@ -33,7 +33,7 @@ use crate::builtin::{real, Rect2i, Side, Vector2};
 ///
 /// # Godot docs
 /// [`Rect2` (stable)](https://docs.godotengine.org/en/stable/classes/class_rect2.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Rect2 {

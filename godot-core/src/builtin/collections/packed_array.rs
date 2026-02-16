@@ -130,6 +130,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
 
     /// Returns a copy of the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U>
     where
         T: ToGodot,
@@ -143,6 +144,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// # Panics
     /// If `index` is out of bounds, or if the value cannot be converted to `U`.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U
     where
         T: ToGodot,
@@ -242,10 +244,24 @@ impl<T: PackedArrayElement> PackedArray<T> {
     // `Array` and with `Vec::remove`. Compared to shifting all the subsequent array
     // elements to their new position, the overhead of retrieving this element is trivial.
     #[doc(alias = "remove_at")]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
         let element = self.get(index).expect("index out of bounds"); // panics on out-of-bounds
         T::op_remove_at(self.as_inner(), to_i64(index));
         element
+    }
+
+    /// ⚠️ Removes and returns the element at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U
+    where
+        T: ToGodot,
+    {
+        self.remove(index).to_variant().to::<U>()
     }
 
     /// Removes and returns the last element of the array. Returns `None` if the array is empty.
@@ -261,6 +277,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U>
     where
         T: ToGodot,
@@ -278,6 +296,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U>
     where
         T: ToGodot,
@@ -298,6 +318,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn front_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
@@ -316,6 +338,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn back_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
@@ -338,6 +362,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
