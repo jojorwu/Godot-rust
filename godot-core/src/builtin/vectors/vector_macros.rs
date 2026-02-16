@@ -496,11 +496,11 @@ macro_rules! impl_vector_fns {
             pub fn sign(self) -> Self {
                 #[inline]
                 fn f(c: $Scalar) -> $Scalar {
-                    let r = c.partial_cmp(&(0 as $Scalar)).unwrap_or_else(|| panic!("Vector component {c} isn't signed!"));
-                    match r {
-                        Ordering::Equal => 0 as $Scalar,
-                        Ordering::Greater => 1 as $Scalar,
-                        Ordering::Less => -1 as $Scalar,
+                    match c.partial_cmp(&(0 as $Scalar)) {
+                        Some(Ordering::Equal) => 0 as $Scalar,
+                        Some(Ordering::Greater) => 1 as $Scalar,
+                        Some(Ordering::Less) => -1 as $Scalar,
+                        None => c, // Return c (likely NaN)
                     }
                 }
 
@@ -607,6 +607,7 @@ macro_rules! inline_impl_integer_vector_fns {
         /// - If any component of `self` is [`i32::MIN`] while the same component on `step` is `-1`.
         /// - If any component of `self` plus half of the same component of `step` is not in range on [`i32`].
         #[inline]
+        #[track_caller]
         pub fn snapped(self, step: Self) -> Self {
             use crate::builtin::vectors::vector_macros::snap_one;
 
@@ -622,6 +623,7 @@ macro_rules! inline_impl_integer_vector_fns {
         /// # Panics
         /// On under- or overflow (see [`snapped()`][Self::snapped] for details).
         #[inline]
+        #[track_caller]
         pub fn snappedi(self, step: i32) -> Self {
             self.snapped(Self::splat(step))
         }
@@ -858,6 +860,7 @@ macro_rules! impl_float_vector_fns {
             /// A new vector with each component snapped to the closest multiple of the corresponding
             /// component in `step`.
             #[inline]
+            #[track_caller]
             pub fn snapped(self, step: Self) -> Self {
                 Self::new(
                     $(

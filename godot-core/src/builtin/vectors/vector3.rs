@@ -50,7 +50,7 @@ use crate::builtin::{inner, real, Basis, RVec3, Vector2, Vector3i};
 /// # Godot docs
 ///
 /// [`Vector3` (stable)](https://docs.godotengine.org/en/stable/classes/class_vector3.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Vector3 {

@@ -45,7 +45,7 @@ use crate::builtin::{inner, real, RVec4, Vector4Axis, Vector4i};
 /// # Godot docs
 ///
 /// [`Vector4` (stable)](https://docs.godotengine.org/en/stable/classes/class_vector4.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Vector4 {
