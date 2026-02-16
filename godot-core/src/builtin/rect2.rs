@@ -96,7 +96,11 @@ impl Rect2 {
 
     /// Whether `self` covers at least the entire area of `b` (and possibly more).
     #[inline]
+    #[track_caller]
     pub fn encloses(self, b: Rect2) -> bool {
+        self.assert_nonnegative();
+        b.assert_nonnegative();
+
         let end = self.end();
         let b_end = b.end();
 
@@ -111,7 +115,9 @@ impl Rect2 {
     /// Note: This method is not reliable for `Rect2` with a negative size. Use [`abs`][Self::abs]
     /// to get a positive sized equivalent rectangle for expanding.
     #[inline]
+    #[track_caller]
     pub fn expand(self, to: Vector2) -> Self {
+        self.assert_nonnegative();
         self.merge(Rect2::new(to, Vector2::ZERO))
     }
 
@@ -120,7 +126,11 @@ impl Rect2 {
     /// Note: This method is not reliable for `Rect2` with a negative size. Use [`abs`][Self::abs]
     /// to get a positive sized equivalent rectangle for merging.
     #[inline]
+    #[track_caller]
     pub fn merge(self, b: Self) -> Self {
+        self.assert_nonnegative();
+        b.assert_nonnegative();
+
         let position = self.position.coord_min(b.position);
         let end = self.end().coord_max(b.end());
 
@@ -129,7 +139,9 @@ impl Rect2 {
 
     /// Returns the area of the rectangle.
     #[inline]
+    #[track_caller]
     pub fn area(self) -> real {
+        self.assert_nonnegative();
         self.size.x * self.size.y
     }
 
@@ -142,6 +154,7 @@ impl Rect2 {
     /// Returns a copy of the Rect2 grown by the specified `amount` on all sides.
     #[inline]
     #[must_use]
+    #[track_caller]
     pub fn grow(self, amount: real) -> Self {
         let position = self.position - Vector2::new(amount, amount);
         let size = self.size + Vector2::new(amount, amount) * 2.0;
@@ -151,6 +164,7 @@ impl Rect2 {
 
     /// Returns a copy of the Rect2 grown by the specified amount on each side individually.
     #[inline]
+    #[track_caller]
     pub fn grow_individual(self, left: real, top: real, right: real, bottom: real) -> Self {
         Self::from_components(
             self.position.x - left,
@@ -165,6 +179,7 @@ impl Rect2 {
     /// `amount` may be negative, but care must be taken: If the resulting `size` has
     /// negative components the computation may be incorrect.
     #[inline]
+    #[track_caller]
     pub fn grow_side(self, side: Side, amount: real) -> Self {
         match side {
             Side::LEFT => self.grow_individual(amount, 0.0, 0.0, 0.0),
@@ -187,7 +202,10 @@ impl Rect2 {
     /// Note: This method is not reliable for Rect2 with a negative size. Use `abs` to get a positive sized equivalent rectangle to check for contained points.
     #[inline]
     #[doc(alias = "has_point")]
+    #[track_caller]
     pub fn contains_point(self, point: Vector2) -> bool {
+        self.assert_nonnegative();
+
         point.x >= self.position.x
             && point.y >= self.position.y
             && point.x < self.position.x + self.size.x
@@ -196,7 +214,11 @@ impl Rect2 {
 
     /// Returns the intersection of this Rect2 and `b`. If the rectangles do not intersect, an empty Rect2 is returned.
     #[inline]
+    #[track_caller]
     pub fn intersect(self, b: Self) -> Option<Self> {
+        self.assert_nonnegative();
+        b.assert_nonnegative();
+
         if !self.intersects(b) {
             return None;
         }
@@ -218,6 +240,7 @@ impl Rect2 {
     ///
     /// _Godot equivalent: `Rect2.intersects(Rect2 b, bool include_borders = true)`_
     #[inline]
+    #[track_caller]
     pub fn intersects(self, b: Self) -> bool {
         let end = self.end();
         let end_b = b.end();
@@ -235,6 +258,7 @@ impl Rect2 {
     ///
     /// _Godot equivalent: `Rect2.intersects(AABB b, bool include_borders = false)`_
     #[inline]
+    #[track_caller]
     pub fn intersects_exclude_borders(self, b: Self) -> bool {
         let end = self.end();
         let end_b = b.end();
@@ -273,6 +297,7 @@ impl Rect2 {
     ///
     /// Certain functions will fail to give a correct result if the size is negative.
     #[inline]
+    #[track_caller]
     pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0,

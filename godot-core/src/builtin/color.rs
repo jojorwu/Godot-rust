@@ -312,8 +312,12 @@ impl Color {
     ///
     /// Method will panic if the RGBA values are outside the valid range `0.0..=1.0`. You can use [`Color::normalized`] to ensure that
     /// they are in range, or use [`Color::try_to_hsv`].
+    #[inline]
+    #[track_caller]
     pub fn to_hsv(self) -> ColorHsv {
-        self.try_to_hsv().unwrap_or_else(|e| panic!("{e}"))
+        self.assert_normalized();
+        let (h, s, v, a) = rgba_to_hsva(self.r, self.g, self.b, self.a);
+        ColorHsv { h, s, v, a }
     }
 
     /// Fallible `Color` conversion into [`ColorHsv`]. See also [`Color::to_hsv`].
@@ -349,6 +353,16 @@ impl Color {
             && self.b <= 1.0
             && self.a >= 0.0
             && self.a <= 1.0
+    }
+
+    #[inline]
+    #[track_caller]
+    pub fn assert_normalized(&self) {
+        assert!(
+            self.is_normalized(),
+            "RGBA values need to be in range `0.0..=1.0` before conversion, but were {:?}. See: `Color::normalized()` method.",
+            self
+        );
     }
 
     fn as_inner(&self) -> InnerColor<'_> {

@@ -49,6 +49,7 @@ impl Plane {
     ///
     /// _Godot equivalent: `Plane(Vector3 normal, float d)`_
     #[inline]
+    #[track_caller]
     pub fn new(unit_normal: Vector3, d: real) -> Self {
         let plane = Self {
             normal: unit_normal,
@@ -65,6 +66,7 @@ impl Plane {
     ///
     /// _Godot equivalent: `Plane(Vector3 normal)`_
     #[inline]
+    #[track_caller]
     pub fn from_normal_at_origin(normal: Vector3) -> Self {
         Self::new(normal, 0.0)
     }
@@ -76,6 +78,7 @@ impl Plane {
     ///
     /// _Godot equivalent: `Plane(Vector3 normal, Vector3 point)`_
     #[inline]
+    #[track_caller]
     pub fn from_point_normal(point: Vector3, normal: Vector3) -> Self {
         Self::new(normal, normal.dot(point))
     }
@@ -90,6 +93,7 @@ impl Plane {
     ///
     /// _Godot equivalent: `Plane(float a, float b, float c, float d)`_
     #[inline]
+    #[track_caller]
     pub fn from_components(nx: real, ny: real, nz: real, d: real) -> Self {
         Self::new(Vector3::new(nx, ny, nz), d)
     }
@@ -101,6 +105,7 @@ impl Plane {
     ///
     /// _Godot equivalent: `Plane(Vector3 point1, Vector3 point2, Vector3 point3)`_
     #[inline]
+    #[track_caller]
     pub fn from_points(a: Vector3, b: Vector3, c: Vector3) -> Self {
         let normal = (a - c).cross(a - b);
         assert_ne!(
@@ -111,7 +116,7 @@ impl Plane {
         let normal = normal.normalized();
         Self {
             normal,
-            d: normal.dot(a),
+            d: normal.dot(a)
         }
     }
 
@@ -252,7 +257,8 @@ impl Plane {
     }
 
     #[inline]
-    fn assert_normalized(self) {
+    #[track_caller]
+    pub fn assert_normalized(&self) {
         assert!(
             self.normal.is_normalized(),
             "normal {:?} is not normalized",
@@ -266,6 +272,8 @@ impl Neg for Plane {
 
     /// Returns the negative value of the plane by flipping both the normal and the distance value. Meaning
     /// it creates a plane that is in the same place, but facing the opposite direction.
+    #[inline]
+    #[track_caller]
     fn neg(self) -> Self::Output {
         Self::new(-self.normal, -self.d)
     }

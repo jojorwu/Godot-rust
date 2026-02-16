@@ -89,7 +89,11 @@ impl Aabb {
 
     /// Whether `self` covers at least the entire area of `b` (and possibly more).
     #[inline]
+    #[track_caller]
     pub fn encloses(self, b: Aabb) -> bool {
+        self.assert_nonnegative();
+        b.assert_nonnegative();
+
         let end = self.end();
         let b_end = b.end();
 
@@ -106,6 +110,7 @@ impl Aabb {
     /// # Panics
     /// If `self.size` is negative.
     #[inline]
+    #[track_caller]
     pub fn expand(self, to: Vector3) -> Self {
         self.merge(Aabb::new(to, Vector3::ZERO))
     }
@@ -115,6 +120,7 @@ impl Aabb {
     /// # Panics
     /// If either `self.size` or `b.size` is negative.
     #[inline]
+    #[track_caller]
     pub fn merge(self, b: Aabb) -> Self {
         self.assert_nonnegative();
         b.assert_nonnegative();
@@ -130,6 +136,7 @@ impl Aabb {
     /// # Panics
     /// If `self.size` is negative.
     #[inline]
+    #[track_caller]
     pub fn volume(self) -> real {
         self.assert_nonnegative();
         self.size.x * self.size.y * self.size.z
@@ -144,6 +151,7 @@ impl Aabb {
     /// Returns a copy of the AABB grown by the specified `amount` on all sides.
     #[inline]
     #[must_use]
+    #[track_caller]
     pub fn grow(self, amount: real) -> Self {
         let position = self.position - Vector3::new(amount, amount, amount);
         let size = self.size + Vector3::new(amount, amount, amount) * 2.0;
@@ -159,6 +167,7 @@ impl Aabb {
     /// If `self.size` is negative.
     #[inline]
     #[doc(alias = "has_point")]
+    #[track_caller]
     pub fn contains_point(self, point: Vector3) -> bool {
         self.assert_nonnegative();
 
@@ -187,8 +196,10 @@ impl Aabb {
     /// # Panics (Debug)
     /// If `self.size` is negative.
     #[inline]
+    #[track_caller]
     pub fn intersect(self, b: Aabb) -> Option<Self> {
         self.assert_nonnegative();
+        b.assert_nonnegative();
 
         if !self.intersects(b) {
             return None;
@@ -226,6 +237,7 @@ impl Aabb {
     /// _Godot equivalent: `get_endpoint`_
     #[inline]
     #[doc(alias = "get_endpoint")]
+    #[track_caller]
     pub fn get_corner(self, idx: usize) -> Vector3 {
         if idx >= 8 {
             panic!(
@@ -394,6 +406,7 @@ impl Aabb {
     /// # Panics (Debug)
     /// If `self.size` is negative.
     #[inline]
+    #[track_caller]
     pub fn intersects_ray(self, ray_from: Vector3, ray_dir: Vector3) -> bool {
         let (tnear, tfar) = self.compute_ray_tnear_tfar(ray_from, ray_dir);
 
@@ -406,6 +419,7 @@ impl Aabb {
     /// If `self.size` is negative, or if `ray_dir` is zero. Note that this differs from Godot, which treats rays that degenerate to points as
     /// intersecting if inside, and not if outside the AABB.
     #[inline]
+    #[track_caller]
     pub fn intersect_ray(self, ray_from: Vector3, ray_dir: Vector3) -> Option<Vector3> {
         let (tnear, tfar) = self.compute_ray_tnear_tfar(ray_from, ray_dir);
 
@@ -419,6 +433,7 @@ impl Aabb {
     }
 
     // Credits: https://tavianator.com/2011/ray_box.html
+    #[track_caller]
     fn compute_ray_tnear_tfar(self, ray_from: Vector3, ray_dir: Vector3) -> (real, real) {
         self.assert_nonnegative();
         sys::balanced_assert!(
@@ -445,6 +460,7 @@ impl Aabb {
     ///
     /// # Panics
     /// If `self.size` is negative.
+    #[track_caller]
     fn intersect_segment_inner(self, from: Vector3, to: Vector3) -> Option<real> {
         self.assert_nonnegative();
 
@@ -490,6 +506,7 @@ impl Aabb {
     ///
     /// _Godot equivalent: `bool(intersects_segment(from, to))`_
     #[inline]
+    #[track_caller]
     pub fn intersects_segment(self, from: Vector3, to: Vector3) -> bool {
         self.intersect_segment_inner(from, to).is_some()
     }
@@ -501,6 +518,7 @@ impl Aabb {
     ///
     /// _Godot equivalent: `intersects_segment`_
     #[inline]
+    #[track_caller]
     pub fn intersect_segment(self, from: Vector3, to: Vector3) -> Option<Vector3> {
         let t_min = self.intersect_segment_inner(from, to)?;
         Some(from + (to - from) * t_min)
@@ -516,7 +534,8 @@ impl Aabb {
     ///
     /// Most functions will fail to give a correct result if the size is negative.
     #[inline]
-    fn assert_nonnegative(self) {
+    #[track_caller]
+    pub fn assert_nonnegative(self) {
         assert!(
             self.size.x >= 0.0 && self.size.y >= 0.0 && self.size.z >= 0.0,
             "{} size {:?} is negative",

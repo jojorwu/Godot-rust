@@ -106,6 +106,7 @@ impl Rect2i {
     /// Returns a `Rect2i` with equivalent position and area, modified so that the top-left corner
     /// is the origin and `width` and `height` are positive.
     #[inline]
+    #[track_caller]
     pub fn abs(self) -> Self {
         let abs_size = self.size.abs();
         let offset = Vector2i::new(cmp::min(self.size.x, 0), cmp::min(self.size.y, 0));
@@ -116,6 +117,7 @@ impl Rect2i {
     ///
     /// Any `Rect2i` encloses itself, i.e. an enclosed `Rect2i` does is not required to be a proper sub-rect.
     #[inline]
+    #[track_caller]
     pub const fn encloses(self, other: Self) -> bool {
         self.assert_nonnegative();
         other.assert_nonnegative();
@@ -130,6 +132,7 @@ impl Rect2i {
 
     /// Returns a copy of this `Rect2i` expanded so that the borders align with the given point.
     #[inline]
+    #[track_caller]
     pub fn expand(self, to: Vector2i) -> Self {
         self.assert_nonnegative();
 
@@ -161,6 +164,7 @@ impl Rect2i {
     /// `amount` may be negative, but care must be taken: If the resulting `size` has
     /// negative components the computation may be incorrect.
     #[inline]
+    #[track_caller]
     pub fn grow(self, amount: i32) -> Self {
         let amount_2d = Vector2i::new(amount, amount);
         Self::from_position_end(self.position - amount_2d, self.end() + amount_2d)
@@ -171,6 +175,7 @@ impl Rect2i {
     /// The individual amounts may be negative, but care must be taken: If the resulting `size` has
     /// negative components the computation may be incorrect.
     #[inline]
+    #[track_caller]
     pub fn grow_individual(self, left: i32, top: i32, right: i32, bottom: i32) -> Self {
         let top_left = Vector2i::new(left, top);
         let bottom_right = Vector2i::new(right, bottom);
@@ -182,6 +187,7 @@ impl Rect2i {
     /// `amount` may be negative, but care must be taken: If the resulting `size` has
     /// negative components the computation may be incorrect.
     #[inline]
+    #[track_caller]
     pub fn grow_side(self, side: Side, amount: i32) -> Self {
         match side {
             Side::LEFT => self.grow_individual(amount, 0, 0, 0),
@@ -204,6 +210,7 @@ impl Rect2i {
     /// _Godot equivalent: `Rect2i.has_point` function_
     #[doc(alias = "has_point")]
     #[inline]
+    #[track_caller]
     pub const fn contains_point(self, point: Vector2i) -> bool {
         self.assert_nonnegative();
 
@@ -220,6 +227,7 @@ impl Rect2i {
     ///
     /// Note that rectangles that only share a border do not intersect.
     #[inline]
+    #[track_caller]
     pub fn intersect(self, b: Self) -> Option<Self> {
         self.assert_nonnegative();
         b.assert_nonnegative();
@@ -243,12 +251,14 @@ impl Rect2i {
     /// Returns `true` if the `Rect2i` overlaps with `b` (i.e. they have at least one
     /// point in common)
     #[inline]
+    #[track_caller]
     pub fn intersects(self, b: Self) -> bool {
         self.intersect(b).is_some()
     }
 
     /// Returns a larger `Rect2i` that contains this `Rect2i` and `b`.
     #[inline]
+    #[track_caller]
     pub fn merge(self, b: Self) -> Self {
         self.assert_nonnegative();
         b.assert_nonnegative();
@@ -269,6 +279,7 @@ impl Rect2i {
     ///
     /// Certain functions will fail to give a correct result if the size is negative.
     #[inline]
+    #[track_caller]
     pub const fn assert_nonnegative(self) {
         // We can't use type_name or formatting in const assert yet.
         assert!(!self.is_negative(), "Rect2i size is negative");

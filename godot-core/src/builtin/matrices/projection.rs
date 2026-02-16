@@ -429,6 +429,21 @@ impl Projection {
         self.glam(|mat| mat.inverse())
     }
 
+    /// Returns `true` if each component of this projection is finite.
+    #[inline]
+    pub fn is_finite(&self) -> bool {
+        self.cols[0].is_finite()
+            && self.cols[1].is_finite()
+            && self.cols[2].is_finite()
+            && self.cols[3].is_finite()
+    }
+
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(&self) {
+        assert!(self.is_finite(), "projection {:?} is not finite", self);
+    }
+
     /// Returns `true` if this Projection performs an orthogonal projection.
     ///
     /// _Godot equivalent: `Projection.is_orthogonal()`_
