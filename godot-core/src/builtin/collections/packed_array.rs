@@ -257,7 +257,6 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// _Godot equivalent: `pop_back`_
     #[doc(alias = "pop_back")]
-    #[track_caller]
     pub fn pop(&mut self) -> Option<T> {
         if self.is_empty() {
             None
@@ -267,7 +266,6 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
-    #[track_caller]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U>
     where
         T: ToGodot,
@@ -276,7 +274,6 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the first element of the array, in O(n). Returns `None` if the array is empty.
-    #[track_caller]
     pub fn pop_front(&mut self) -> Option<T> {
         if self.is_empty() {
             None
@@ -286,13 +283,23 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
-    #[track_caller]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U>
     where
         T: ToGodot,
     {
         self.pop_front()
             .and_then(|v| v.to_variant().try_to::<U>().ok())
+    }
+
+    /// Removes and returns the element at the specified index, converted to `U`.
+    pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> Option<U>
+    where
+        T: ToGodot,
+    {
+        if index >= self.len() {
+            return None;
+        }
+        Some(self.remove(index).to_variant().to::<U>())
     }
 
     /// Adds an element at the beginning of the array, in O(n).
@@ -303,23 +310,20 @@ impl<T: PackedArrayElement> PackedArray<T> {
 
     /// Returns the first element in the array, or `None` if the array is empty.
     #[doc(alias = "first")]
-    #[track_caller]
     pub fn front(&self) -> Option<T> {
         self.get(0)
     }
 
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
-    #[track_caller]
     pub fn front_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
     {
-        self.front().and_then(|v| v.to_variant().try_to::<U>().ok())
+        self.get_as::<U>(0)
     }
 
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
-    #[track_caller]
     pub fn back(&self) -> Option<T> {
         if self.is_empty() {
             None
@@ -329,16 +333,18 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
-    #[track_caller]
     pub fn back_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
     {
-        self.back().and_then(|v| v.to_variant().try_to::<U>().ok())
+        if self.is_empty() {
+            None
+        } else {
+            self.get_as::<U>(self.len() - 1)
+        }
     }
 
     /// Returns a random element from the array, or `None` if it is empty.
-    #[track_caller]
     pub fn pick_random(&self) -> Option<T> {
         if self.is_empty() {
             return None;
@@ -353,13 +359,19 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
-    #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
     {
-        self.pick_random()
-            .and_then(|v| v.to_variant().try_to::<U>().ok())
+        if self.is_empty() {
+            return None;
+        }
+
+        let variant = self.to_variant();
+        let method = crate::static_sname!(c"pick_random");
+        let result = variant.call(method, &[]);
+
+        result.try_to::<U>().ok()
     }
 
     /// Assigns the given value to all elements in the array.

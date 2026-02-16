@@ -118,17 +118,13 @@ impl VarDictionary {
     #[inline]
     #[track_caller]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
-        // Code duplication with get(), to avoid third clone (since K: ToGodot takes ownership).
-
         let key = key.to_variant();
-        if self.contains_key(key.clone()) {
-            self.get_or_nil(key)
-        } else {
+        self.get_variant(&key).unwrap_or_else(|| {
             panic!(
                 "{} key {key:?} missing in dictionary: {self:?}",
                 std::any::type_name::<Self>()
             )
-        }
+        })
     }
 
     /// Returns the value for the given key, or `None`.
@@ -141,14 +137,7 @@ impl VarDictionary {
     /// This can be combined with Rust's `Option` methods, e.g. `dict.get(key).unwrap_or(default)`.
     #[inline]
     pub fn get<K: ToGodot>(&self, key: K) -> Option<Variant> {
-        // If implementation is changed, make sure to update at().
-
-        let key = key.to_variant();
-        if self.contains_key(key.clone()) {
-            Some(self.get_or_nil(key))
-        } else {
-            None
-        }
+        self.get_variant(&key.to_variant())
     }
 
     /// Returns the value for the given key, converted to `V`.
@@ -158,13 +147,20 @@ impl VarDictionary {
     #[inline]
     #[track_caller]
     pub fn at_as<K: ToGodot, V: FromGodot>(&self, key: K) -> V {
-        self.at(key).to::<V>()
+        let key = key.to_variant();
+        let val = self.get_variant(&key).unwrap_or_else(|| {
+            panic!(
+                "{} key {key:?} missing in dictionary: {self:?}",
+                std::any::type_name::<Self>()
+            )
+        });
+        val.to::<V>()
     }
 
     /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
     #[inline]
     pub fn get_as<K: ToGodot, V: FromGodot>(&self, key: K) -> Option<V> {
-        self.get(key).and_then(|v| v.try_to::<V>().ok())
+        self.get_and_convert(&key.to_variant())
     }
 
     /// Returns the value at the key in the dictionary, or `NIL` otherwise.
@@ -218,8 +214,7 @@ impl VarDictionary {
     /// _Godot equivalent: `has`_
     #[doc(alias = "has")]
     pub fn contains_key<K: ToGodot>(&self, key: K) -> bool {
-        let key = key.to_variant();
-        self.as_inner().has(&key)
+        self.as_inner().has(&key.to_variant())
     }
 
     /// Returns `true` if the dictionary contains all the given keys.
@@ -312,14 +307,22 @@ impl VarDictionary {
     /// _Godot equivalent: `erase`_
     #[doc(alias = "erase")]
     #[inline]
-    #[track_caller]
     pub fn remove<K: ToGodot>(&mut self, key: K) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
         let key = key.to_variant();
-        let old_value = self.get(key.clone());
-        self.as_inner().erase(&key);
+        let old_value = self.get_variant(&key);
+        if old_value.is_some() {
+            self.as_inner().erase(&key);
+        }
         old_value
+    }
+
+    /// Removes a key from the map, and returns the value associated with
+    /// the key, converted to `V`, if the key was in the dictionary and conversion succeeds.
+    #[inline]
+    pub fn remove_as<K: ToGodot, V: FromGodot>(&mut self, key: K) -> Option<V> {
+        self.remove(key).and_then(|v| v.try_to::<V>().ok())
     }
 
     crate::declare_hash_u32_method! {
@@ -625,6 +628,18 @@ impl VarDictionary {
     #[doc(hidden)]
     pub fn as_inner(&self) -> inner::InnerDictionary<'_> {
         inner::InnerDictionary::from_outer(self)
+    }
+
+    fn get_variant(&self, key: &Variant) -> Option<Variant> {
+        if self.as_inner().has(key) {
+            Some(self.as_inner().get(key, &Variant::nil()))
+        } else {
+            None
+        }
+    }
+
+    fn get_and_convert<V: FromGodot>(&self, key: &Variant) -> Option<V> {
+        self.get_variant(key).and_then(|v| v.try_to::<V>().ok())
     }
 
     /// Get the pointer corresponding to the given key in the dictionary.
