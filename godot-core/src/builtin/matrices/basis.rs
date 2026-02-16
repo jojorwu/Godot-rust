@@ -396,6 +396,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.orthonormalized()`_
     #[must_use]
+    #[track_caller]
     pub fn orthonormalized(&self) -> Self {
         assert!(
             !self.determinant().is_zero_approx(),
@@ -479,6 +480,12 @@ impl Basis {
     #[inline]
     pub fn is_finite(&self) -> bool {
         self.rows[0].is_finite() && self.rows[1].is_finite() && self.rows[2].is_finite()
+    }
+
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(&self) {
+        assert!(self.is_finite(), "basis {:?} is not finite", self);
     }
 
     /// Returns the first column of the matrix,

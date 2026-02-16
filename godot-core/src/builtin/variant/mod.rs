@@ -83,6 +83,7 @@ macro_rules! impl_variant_to_relaxed {
 impl Variant {
     #[cold]
     #[inline(never)]
+    #[track_caller]
     fn panic_op(op: &str, lhs: VariantType, rhs: Option<VariantType>) -> ! {
         match rhs {
             Some(rhs) => panic!("Variant operator {op} failed between {lhs:?} and {rhs:?}"),
@@ -220,6 +221,27 @@ impl Variant {
         is_float, FLOAT, "Returns true if the variant holds a float.";
         is_bool, BOOL, "Returns true if the variant holds a boolean.";
         is_string, STRING, "Returns true if the variant holds a string.";
+        is_vector2, VECTOR2, "Returns true if the variant holds a `Vector2`.";
+        is_vector2i, VECTOR2I, "Returns true if the variant holds a `Vector2i`.";
+        is_rect2, RECT2, "Returns true if the variant holds a `Rect2`.";
+        is_rect2i, RECT2I, "Returns true if the variant holds a `Rect2i`.";
+        is_vector3, VECTOR3, "Returns true if the variant holds a `Vector3`.";
+        is_vector3i, VECTOR3I, "Returns true if the variant holds a `Vector3i`.";
+        is_transform2d, TRANSFORM2D, "Returns true if the variant holds a `Transform2D`.";
+        is_vector4, VECTOR4, "Returns true if the variant holds a `Vector4`.";
+        is_vector4i, VECTOR4I, "Returns true if the variant holds a `Vector4i`.";
+        is_plane, PLANE, "Returns true if the variant holds a `Plane`.";
+        is_quaternion, QUATERNION, "Returns true if the variant holds a `Quaternion`.";
+        is_aabb, AABB, "Returns true if the variant holds an `Aabb`.";
+        is_basis, BASIS, "Returns true if the variant holds a `Basis`.";
+        is_transform3d, TRANSFORM3D, "Returns true if the variant holds a `Transform3D`.";
+        is_projection, PROJECTION, "Returns true if the variant holds a `Projection`.";
+        is_color, COLOR, "Returns true if the variant holds a `Color`.";
+        is_string_name, STRING_NAME, "Returns true if the variant holds a `StringName`.";
+        is_node_path, NODE_PATH, "Returns true if the variant holds a `NodePath`.";
+        is_rid, RID, "Returns true if the variant holds an `Rid`.";
+        is_callable, CALLABLE, "Returns true if the variant holds a `Callable`.";
+        is_signal, SIGNAL, "Returns true if the variant holds a `Signal`.";
         is_array, ARRAY, "Returns true if the variant holds an array.\n\nAlias for `self.is_type(VariantType::ARRAY)`.";
         is_dictionary, DICTIONARY, "Returns true if the variant holds a dictionary.\n\nAlias for `self.is_type(VariantType::DICTIONARY)`.";
     }
@@ -263,6 +285,24 @@ impl Variant {
         )
     }
 
+    /// Returns true if the variant holds a packed array type.
+    #[inline]
+    pub fn is_packed_array(&self) -> bool {
+        matches!(
+            self.get_type(),
+            VariantType::PACKED_BYTE_ARRAY
+                | VariantType::PACKED_INT32_ARRAY
+                | VariantType::PACKED_INT64_ARRAY
+                | VariantType::PACKED_FLOAT32_ARRAY
+                | VariantType::PACKED_FLOAT64_ARRAY
+                | VariantType::PACKED_STRING_ARRAY
+                | VariantType::PACKED_VECTOR2_ARRAY
+                | VariantType::PACKED_VECTOR3_ARRAY
+                | VariantType::PACKED_COLOR_ARRAY
+        )
+            || (cfg!(since_api = "4.3") && self.get_type() == VariantType::PACKED_VECTOR4_ARRAY)
+    }
+
     /// Returns the Godot type name of the variant as a `GString`.
     #[inline]
     pub fn get_type_name(&self) -> GString {
@@ -270,6 +310,30 @@ impl Variant {
     }
 
     impl_variant_try_to! {
+        try_to_int, i64, "integer";
+        try_to_float, f64, "float";
+        try_to_bool, bool, "boolean";
+        try_to_vector2, Vector2, "Vector2";
+        try_to_vector2i, Vector2i, "Vector2i";
+        try_to_rect2, Rect2, "Rect2";
+        try_to_rect2i, Rect2i, "Rect2i";
+        try_to_vector3, Vector3, "Vector3";
+        try_to_vector3i, Vector3i, "Vector3i";
+        try_to_transform2d, Transform2D, "Transform2D";
+        try_to_vector4, Vector4, "Vector4";
+        try_to_vector4i, Vector4i, "Vector4i";
+        try_to_plane, Plane, "Plane";
+        try_to_quaternion, Quaternion, "Quaternion";
+        try_to_aabb, Aabb, "Aabb";
+        try_to_basis, Basis, "Basis";
+        try_to_transform3d, Transform3D, "Transform3D";
+        try_to_projection, Projection, "Projection";
+        try_to_color, Color, "Color";
+        try_to_string_name, StringName, "StringName";
+        try_to_node_path, NodePath, "NodePath";
+        try_to_rid, Rid, "Rid";
+        try_to_callable, crate::builtin::Callable, "Callable";
+        try_to_signal, crate::builtin::Signal, "Signal";
         try_to_array, crate::builtin::Array<Variant>, "array";
         try_to_dictionary, crate::builtin::VarDictionary, "dictionary";
         try_to_gstring, GString, "string";
@@ -289,7 +353,30 @@ impl Variant {
         to_int, i64;
         to_float, f64;
         to_bool, bool;
+        to_vector2, Vector2;
+        to_vector2i, Vector2i;
+        to_rect2, Rect2;
+        to_rect2i, Rect2i;
+        to_vector3, Vector3;
+        to_vector3i, Vector3i;
+        to_transform2d, Transform2D;
+        to_vector4, Vector4;
+        to_vector4i, Vector4i;
+        to_plane, Plane;
+        to_quaternion, Quaternion;
+        to_aabb, Aabb;
+        to_basis, Basis;
+        to_transform3d, Transform3D;
+        to_projection, Projection;
+        to_color, Color;
         to_gstring, GString;
+        to_string_name, StringName;
+        to_node_path, NodePath;
+        to_rid, Rid;
+        to_callable, crate::builtin::Callable;
+        to_signal, crate::builtin::Signal;
+        to_array, crate::builtin::Array<Variant>;
+        to_dictionary, crate::builtin::VarDictionary;
     }
 
     /// Returns the type that is currently held by this variant.
@@ -387,6 +474,7 @@ impl Variant {
         self.call_inner(method, args)
     }
 
+    #[track_caller]
     fn call_inner(&self, method: &StringName, args: &[Variant]) -> Variant {
         let mut error = sys::default_call_error();
 
@@ -1097,6 +1185,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self, rhs: Self) -> Self::Output {
                 self.evaluate(&rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1107,6 +1196,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait<&Variant> for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self, rhs: &Variant) -> Self::Output {
                 self.evaluate(rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1118,6 +1208,7 @@ macro_rules! impl_variant_op {
     (assign $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
         impl std::ops::$trait for Variant {
             #[inline]
+            #[track_caller]
             fn $method(&mut self, rhs: Self) {
                 *self = self.evaluate(&rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1127,6 +1218,7 @@ macro_rules! impl_variant_op {
 
         impl std::ops::$trait<&Variant> for Variant {
             #[inline]
+            #[track_caller]
             fn $method(&mut self, rhs: &Variant) {
                 *self = self.evaluate(rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1139,6 +1231,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self) -> Self::Output {
                 let from_type = self.get_type();
                 self.evaluate(&Variant::nil(), $op)
@@ -1165,6 +1258,7 @@ impl_variant_op!(unary Neg, neg, VariantOperator::NEGATE, "-");
 impl std::ops::Not for Variant {
     type Output = Self;
     #[inline]
+    #[track_caller]
     fn not(self) -> Self::Output {
         let from_type = self.get_type();
         let op = if from_type == VariantType::BOOL {

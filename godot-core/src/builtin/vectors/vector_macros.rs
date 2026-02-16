@@ -756,6 +756,12 @@ macro_rules! impl_float_vector_fns {
                 self.to_glam().is_finite()
             }
 
+            #[inline]
+            #[track_caller]
+            pub fn assert_finite(self) {
+                assert!(self.is_finite(), "vector {:?} is not finite", self);
+            }
+
             /// Returns `true` if the vector is normalized, i.e. its length is approximately equal to 1.
             #[inline]
             pub fn is_normalized(self) -> bool {

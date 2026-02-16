@@ -133,6 +133,7 @@ impl Vector3 {
     /// # Panics
     /// If vector is not normalized.
     #[inline]
+    #[track_caller]
     pub fn octahedron_encode(self) -> Vector2 {
         assert!(self.is_normalized(), "vector is not normalized!");
 
@@ -169,6 +170,7 @@ impl Vector3 {
     /// # Panics
     /// If `axis` is not normalized.
     #[inline]
+    #[track_caller]
     pub fn rotated(self, axis: Self, angle: real) -> Self {
         assert!(axis.is_normalized(), "axis is not normalized!");
         Basis::from_axis_angle(axis, angle) * self

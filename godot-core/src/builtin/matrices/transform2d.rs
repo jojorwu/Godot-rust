@@ -232,6 +232,12 @@ impl Transform2D {
         self.a.is_finite() && self.b.is_finite() && self.origin.is_finite()
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(&self) {
+        assert!(self.is_finite(), "transform2d {:?} is not finite", self);
+    }
+
     /// Returns the transform with the basis orthogonal (90 degrees), and
     /// normalized axis vectors (scale of 1 or -1).
     ///

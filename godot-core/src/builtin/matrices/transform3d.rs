@@ -172,6 +172,12 @@ impl Transform3D {
         self.basis.is_finite() && self.origin.is_finite()
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(&self) {
+        assert!(self.is_finite(), "transform3d {:?} is not finite", self);
+    }
+
     /// Returns the transform with the basis orthogonal (90 degrees), and
     /// normalized axis vectors (scale of 1 or -1).
     ///
@@ -466,6 +472,32 @@ impl GlamType for RAffine3 {
 
 impl GlamConv for Transform3D {
     type Glam = RAffine3;
+}
+
+impl std::ops::Index<usize> for Transform3D {
+    type Output = Vector3;
+
+    #[inline]
+    #[track_caller]
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0..=2 => &self.basis.rows[index],
+            3 => &self.origin,
+            _ => panic!("index {index} out of bounds"),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Transform3D {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0..=2 => &mut self.basis.rows[index],
+            3 => &mut self.origin,
+            _ => panic!("index {index} out of bounds"),
+        }
+    }
 }
 
 // SAFETY:

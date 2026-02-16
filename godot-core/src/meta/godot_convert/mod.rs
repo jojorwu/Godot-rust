@@ -126,9 +126,12 @@ pub trait FromGodot: Sized + GodotConvert {
     ///
     /// # Panics
     /// If the conversion fails.
+    #[inline]
+    #[track_caller]
     fn from_godot(via: Self::Via) -> Self {
+        let type_name = std::any::type_name::<Self>();
         Self::try_from_godot(via)
-            .unwrap_or_else(|err| panic!("FromGodot::from_godot() failed: {err}"))
+            .unwrap_or_else(|err| panic!("FromGodot::from_godot<{type_name}>() failed: {err}"))
     }
 
     /// Performs the conversion from a [`Variant`], returning `Err` on failure.
@@ -143,9 +146,12 @@ pub trait FromGodot: Sized + GodotConvert {
     ///
     /// # Panics
     /// If the conversion fails.
+    #[inline]
+    #[track_caller]
     fn from_variant(variant: &Variant) -> Self {
+        let type_name = std::any::type_name::<Self>();
         Self::try_from_variant(variant).unwrap_or_else(|err| {
-            panic!("FromGodot::from_variant() failed -- {err}");
+            panic!("FromGodot::from_variant<{type_name}>() failed -- {err}");
         })
     }
 }
@@ -162,9 +168,12 @@ pub trait VariantBorrow<'a>: GodotConvert {
     fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError>;
 
     /// ⚠️ Tries to borrow the value from the variant, panicking on failure.
+    #[inline]
+    #[track_caller]
     fn borrow_from_variant(variant: &'a Variant) -> Self::Borrowed {
+        let type_name = std::any::type_name::<Self>();
         Self::try_borrow_from_variant(variant).unwrap_or_else(|err| {
-            panic!("VariantBorrow::borrow_from_variant() failed: {err}");
+            panic!("VariantBorrow::borrow_from_variant<{type_name}>() failed: {err}");
         })
     }
 }

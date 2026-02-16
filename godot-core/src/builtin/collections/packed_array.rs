@@ -771,6 +771,8 @@ impl<T: PackedArrayElement> meta::GodotFfiVariant for PackedArray<T> {
 impl<T: PackedArrayElement> ops::Index<usize> for PackedArray<T> {
     type Output = T;
 
+    #[inline]
+    #[track_caller]
     fn index(&self, index: usize) -> &Self::Output {
         let ptr = self.ptr(index);
         // SAFETY: `ptr` checked bounds.
@@ -779,6 +781,8 @@ impl<T: PackedArrayElement> ops::Index<usize> for PackedArray<T> {
 }
 
 impl<T: PackedArrayElement> ops::IndexMut<usize> for PackedArray<T> {
+    #[inline]
+    #[track_caller]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         let ptr = self.ptr_mut(index);
         // SAFETY: `ptr` checked bounds.

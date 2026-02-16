@@ -533,16 +533,21 @@ impl std::ops::Index<Vector4Axis> for Projection {
     }
 }
 
-impl std::ops::IndexMut<Vector4Axis> for Projection {
+impl std::ops::Index<usize> for Projection {
+    type Output = Vector4;
+
     #[inline]
     #[track_caller]
-    fn index_mut(&mut self, index: Vector4Axis) -> &mut Self::Output {
-        match index {
-            Vector4Axis::X => &mut self.cols[0],
-            Vector4Axis::Y => &mut self.cols[1],
-            Vector4Axis::Z => &mut self.cols[2],
-            Vector4Axis::W => &mut self.cols[3],
-        }
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.cols[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for Projection {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.cols[index]
     }
 }
 
