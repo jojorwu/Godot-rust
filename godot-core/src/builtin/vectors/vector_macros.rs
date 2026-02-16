@@ -449,6 +449,7 @@ macro_rules! impl_vector_fns {
             /// Returns a new vector with all components in absolute values (i.e. positive or
             /// zero).
             #[inline]
+            #[track_caller]
             pub fn abs(self) -> Self {
                 Self::from_glam(self.to_glam().abs())
             }
@@ -465,6 +466,7 @@ macro_rules! impl_vector_fns {
 
             /// Returns the length (magnitude) of this vector.
             #[inline]
+            #[track_caller]
             pub fn length(self) -> real {
                 // does the same as glam's length() but also works for integer vectors
                 (self.length_squared() as real).sqrt()
@@ -475,6 +477,7 @@ macro_rules! impl_vector_fns {
             /// Runs faster than [`length()`][Self::length], so prefer it if you need to compare vectors or need the
             /// squared distance for some formula.
             #[inline]
+            #[track_caller]
             pub fn length_squared(self) -> $Scalar {
                 self.to_glam().length_squared()
             }
@@ -483,6 +486,7 @@ macro_rules! impl_vector_fns {
             ///
             #[doc = concat!("You may consider using the fully-qualified syntax `", stringify!($Vector), "::coord_min(a, b)` for symmetry.")]
             #[inline]
+            #[track_caller]
             pub fn coord_min(self, other: Self) -> Self {
                 self.glam2(&other, |a, b| a.min(b))
             }
@@ -491,12 +495,14 @@ macro_rules! impl_vector_fns {
             ///
             #[doc = concat!("You may consider using the fully-qualified syntax `", stringify!($Vector), "::coord_max(a, b)` for symmetry.")]
             #[inline]
+            #[track_caller]
             pub fn coord_max(self, other: Self) -> Self {
                 self.glam2(&other, |a, b| a.max(b))
             }
 
             /// Returns a new vector with each component set to 1 if the component is positive, -1 if negative, and 0 if zero.
             #[inline]
+            #[track_caller]
             pub fn sign(self) -> Self {
                 #[inline]
                 fn f(c: $Scalar) -> $Scalar {
@@ -575,6 +581,7 @@ macro_rules! inline_impl_integer_vector_fns {
         /// # Panics
         /// If `min > max` on any axis.
         #[inline]
+        #[track_caller]
         pub fn clampi(self, min: i32, max: i32) -> Self {
             Self::new(
                 $(
@@ -585,6 +592,7 @@ macro_rules! inline_impl_integer_vector_fns {
 
         /// Returns a new vector with each component set to the minimum of `self` and `with`.
         #[inline]
+        #[track_caller]
         pub fn mini(self, with: i32) -> Self {
             Self::new(
                 $(
@@ -595,6 +603,7 @@ macro_rules! inline_impl_integer_vector_fns {
 
         /// Returns a new vector with each component set to the maximum of `self` and `with`.
         #[inline]
+        #[track_caller]
         pub fn maxi(self, with: i32) -> Self {
             Self::new(
                 $(
@@ -724,7 +733,14 @@ macro_rules! impl_float_vector_fns {
             #[inline]
             #[track_caller]
             pub fn direction_to(self, to: Self) -> Self {
-                self.try_direction_to(to).expect("direction_to() called on equal vectors")
+                self.try_direction_to(to).unwrap_or_else(|| {
+                    panic!(
+                        "{}::direction_to(): called on equal vectors (self={:?}, to={:?})",
+                        std::any::type_name::<Self>(),
+                        self,
+                        to
+                    )
+                })
             }
 
             /// Returns the squared distance between this vector and `to`.
@@ -813,7 +829,12 @@ macro_rules! impl_float_vector_fns {
             #[inline]
             #[track_caller]
             pub fn normalized(self) -> Self {
-                self.try_normalized().expect("normalized() called on zero vector")
+                self.try_normalized().unwrap_or_else(|| {
+                    panic!(
+                        "{}::normalized(): called on zero vector",
+                        std::any::type_name::<Self>()
+                    )
+                })
             }
 
             /// Returns the vector scaled to unit length or [`Self::ZERO`], if called on a zero vector.
@@ -1118,7 +1139,12 @@ macro_rules! impl_vector2_vector3_fns {
             #[inline]
             #[track_caller]
             pub fn bounce(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                assert!(
+                    n.is_normalized(),
+                    "{}::bounce(): n is not normalized (n={:?})",
+                    std::any::type_name::<Self>(),
+                    n
+                );
                 -self.reflect(n)
             }
 
@@ -1150,7 +1176,12 @@ macro_rules! impl_vector2_vector3_fns {
             #[inline]
             #[track_caller]
             pub fn reflect(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                assert!(
+                    n.is_normalized(),
+                    "{}::reflect(): n is not normalized (n={:?})",
+                    std::any::type_name::<Self>(),
+                    n
+                );
                 2.0 * n * self.dot(n) - self
             }
 
@@ -1161,7 +1192,12 @@ macro_rules! impl_vector2_vector3_fns {
             #[inline]
             #[track_caller]
             pub fn slide(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                assert!(
+                    n.is_normalized(),
+                    "{}::slide(): n is not normalized (n={:?})",
+                    std::any::type_name::<Self>(),
+                    n
+                );
                 self - n * self.dot(n)
             }
         }

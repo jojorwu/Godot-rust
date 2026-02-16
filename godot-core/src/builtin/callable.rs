@@ -517,8 +517,7 @@ impl Callable {
 
 impl_builtin_traits! {
     for Callable {
-        // Default is absent by design, to encourage explicit valid initialization.
-
+        Default => callable_construct_default;
         Clone => callable_construct_copy;
         Drop => callable_destroy;
 

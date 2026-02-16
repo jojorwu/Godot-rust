@@ -403,15 +403,16 @@ impl PropertyInfo {
     /// Converts to the FFI type. Keep this object allocated while using that!
     #[doc(hidden)]
     pub fn property_sys(&self) -> sys::GDExtensionPropertyInfo {
+        use crate::builtin::{to_u32, to_u32_from_i32};
         use crate::obj::{EngineBitfield as _, EngineEnum as _};
 
         sys::GDExtensionPropertyInfo {
             type_: self.variant_type.sys(),
             name: sys::SysPtr::force_mut(self.property_name.string_sys()),
             class_name: sys::SysPtr::force_mut(self.class_id.string_sys()),
-            hint: u32::try_from(self.hint_info.hint.ord()).expect("hint.ord()"),
+            hint: to_u32_from_i32(self.hint_info.hint.ord()),
             hint_string: sys::SysPtr::force_mut(self.hint_info.hint_string.string_sys()),
-            usage: u32::try_from(self.usage.ord()).expect("usage.ord()"),
+            usage: to_u32(self.usage.ord()),
         }
     }
 
@@ -434,15 +435,16 @@ impl PropertyInfo {
     ///
     /// This will leak memory unless used together with `free_owned_property_sys`.
     pub(crate) fn into_owned_property_sys(self) -> sys::GDExtensionPropertyInfo {
+        use crate::builtin::{to_u32, to_u32_from_i32};
         use crate::obj::{EngineBitfield as _, EngineEnum as _};
 
         sys::GDExtensionPropertyInfo {
             type_: self.variant_type.sys(),
             name: self.property_name.into_owned_string_sys(),
             class_name: sys::SysPtr::force_mut(self.class_id.string_sys()),
-            hint: u32::try_from(self.hint_info.hint.ord()).expect("hint.ord()"),
+            hint: to_u32_from_i32(self.hint_info.hint.ord()),
             hint_string: self.hint_info.hint_string.into_owned_string_sys(),
-            usage: u32::try_from(self.usage.ord()).expect("usage.ord()"),
+            usage: to_u32(self.usage.ord()),
         }
     }
 
@@ -472,10 +474,12 @@ impl PropertyInfo {
         self,
         property_info_ptr: *mut sys::GDExtensionPropertyInfo,
     ) {
+        use crate::builtin::{to_u32, to_u32_from_i32};
+
         let ptr = &mut *property_info_ptr;
 
-        ptr.usage = u32::try_from(self.usage.ord()).expect("usage.ord()");
-        ptr.hint = u32::try_from(self.hint_info.hint.ord()).expect("hint.ord()");
+        ptr.usage = to_u32(self.usage.ord());
+        ptr.hint = to_u32_from_i32(self.hint_info.hint.ord());
         ptr.type_ = self.variant_type.sys();
 
         *StringName::borrow_string_sys_mut(ptr.name) = self.property_name;

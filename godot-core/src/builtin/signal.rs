@@ -196,6 +196,7 @@ unsafe impl GodotFfi for Signal {
 
 impl_builtin_traits! {
     for Signal {
+        Default => signal_construct_default;
         Clone => signal_construct_copy;
         Drop => signal_destroy;
         PartialEq => signal_operator_equal;

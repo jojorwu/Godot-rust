@@ -270,6 +270,7 @@ impl MethodInfo {
     /// This will leak memory unless used together with `free_owned_method_sys`.
     #[doc(hidden)]
     pub fn into_owned_method_sys(self) -> sys::GDExtensionMethodInfo {
+        use crate::builtin::to_u32;
         use crate::obj::EngineBitfield as _;
 
         // Destructure self to ensure all fields are used.
@@ -283,20 +284,14 @@ impl MethodInfo {
             flags,
         } = self;
 
-        let argument_count: u32 = arguments
-            .len()
-            .try_into()
-            .expect("cannot have more than `u32::MAX` arguments");
+        let argument_count = to_u32(arguments.len() as u64);
         let arguments = arguments
             .into_iter()
             .map(|arg| arg.into_owned_property_sys())
             .collect::<Box<[_]>>();
         let arguments = Box::leak(arguments).as_mut_ptr();
 
-        let default_argument_count: u32 = default_arguments
-            .len()
-            .try_into()
-            .expect("cannot have more than `u32::MAX` default arguments");
+        let default_argument_count = to_u32(default_arguments.len() as u64);
         let default_argument = default_arguments
             .into_iter()
             .map(|arg| arg.into_owned_var_sys())
@@ -311,7 +306,7 @@ impl MethodInfo {
             arguments,
             default_argument_count,
             default_arguments,
-            flags: flags.ord().try_into().expect("flags should be valid"),
+            flags: to_u32(flags.ord()),
         }
     }
 
