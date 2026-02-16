@@ -441,7 +441,12 @@ impl Projection {
     #[inline]
     #[track_caller]
     pub fn assert_finite(&self) {
-        assert!(self.is_finite(), "projection {:?} is not finite", self);
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
     }
 
     /// Returns `true` if this Projection performs an orthogonal projection.

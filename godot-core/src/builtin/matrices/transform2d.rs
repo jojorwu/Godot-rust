@@ -235,7 +235,12 @@ impl Transform2D {
     #[inline]
     #[track_caller]
     pub fn assert_finite(&self) {
-        assert!(self.is_finite(), "transform2d {:?} is not finite", self);
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
     }
 
     /// Returns the transform with the basis orthogonal (90 degrees), and

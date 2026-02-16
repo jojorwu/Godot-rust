@@ -694,7 +694,7 @@ impl<T: ArrayElement> Array<T> {
         let from = to_i64(from.unwrap_or(0));
         let index = self.as_inner().find(&value.to_variant(), from);
         if index >= 0 {
-            Some(index.try_into().unwrap())
+            Some(to_usize(index))
         } else {
             None
         }

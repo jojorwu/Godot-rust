@@ -759,7 +759,12 @@ macro_rules! impl_float_vector_fns {
             #[inline]
             #[track_caller]
             pub fn assert_finite(self) {
-                assert!(self.is_finite(), "vector {:?} is not finite", self);
+                assert!(
+                    self.is_finite(),
+                    "{} {:?} is not finite",
+                    std::any::type_name::<Self>(),
+                    self
+                );
             }
 
             /// Returns `true` if the vector is normalized, i.e. its length is approximately equal to 1.

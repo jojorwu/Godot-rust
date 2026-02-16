@@ -479,7 +479,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
         let from = to_i64(from.unwrap_or(0));
         let index = T::op_find(self.as_inner(), value.into_arg(), from);
         if index >= 0 {
-            Some(index.try_into().unwrap())
+            Some(to_usize(index))
         } else {
             None
         }

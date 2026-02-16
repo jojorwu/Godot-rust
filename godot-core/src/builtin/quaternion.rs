@@ -276,7 +276,8 @@ impl Quaternion {
     pub fn assert_normalized(&self) {
         assert!(
             self.is_normalized(),
-            "quaternion {:?} is not normalized",
+            "{} {:?} is not normalized",
+            std::any::type_name::<Self>(),
             self
         );
     }

@@ -261,7 +261,8 @@ impl Plane {
     pub fn assert_normalized(&self) {
         assert!(
             self.normal.is_normalized(),
-            "normal {:?} is not normalized",
+            "{} normal {:?} is not normalized",
+            std::any::type_name::<Self>(),
             self.normal
         );
     }

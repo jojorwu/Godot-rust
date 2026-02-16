@@ -360,7 +360,8 @@ impl Color {
     pub fn assert_normalized(&self) {
         assert!(
             self.is_normalized(),
-            "RGBA values need to be in range `0.0..=1.0` before conversion, but were {:?}. See: `Color::normalized()` method.",
+            "{}: RGBA values need to be in range `0.0..=1.0` before conversion, but were {:?}. See: `Color::normalized()` method.",
+            std::any::type_name::<Self>(),
             self
         );
     }

@@ -157,7 +157,7 @@ impl GString {
     /// _Godot equivalent: `length`_
     #[doc(alias = "length")]
     pub fn len(&self) -> usize {
-        self.as_inner().length().try_into().unwrap()
+        crate::builtin::to_usize(self.as_inner().length())
     }
 
     crate::declare_hash_u32_method! {

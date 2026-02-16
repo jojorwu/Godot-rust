@@ -89,29 +89,31 @@ pub(crate) fn with_utf8_buffer<R, F>(s: sys::GDExtensionConstStringPtr, f: F) ->
 where
     F: FnOnce(&str) -> R,
 {
-    let len = unsafe { interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0) };
-    if len == 0 {
+    let len_i64 = unsafe { interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0) };
+    if len_i64 == 0 {
         return f("");
     }
 
+    let len = crate::builtin::to_usize(len_i64);
+
     const STACK_BUF_SIZE: usize = 1024;
-    if len as usize <= STACK_BUF_SIZE {
+    if len <= STACK_BUF_SIZE {
         let mut buf = [0u8; STACK_BUF_SIZE];
         unsafe {
             interface_fn!(string_to_utf8_chars)(
                 s,
                 buf.as_mut_ptr() as *mut std::ffi::c_char,
-                len,
+                len_i64,
             );
-            f(std::str::from_utf8_unchecked(&buf[..len as usize]))
+            f(std::str::from_utf8_unchecked(&buf[..len]))
         }
     } else {
-        let mut buffer = vec![0u8; len as usize];
+        let mut buffer = vec![0u8; len];
         unsafe {
             interface_fn!(string_to_utf8_chars)(
                 s,
                 buffer.as_mut_ptr() as *mut std::ffi::c_char,
-                len,
+                len_i64,
             );
             f(std::str::from_utf8_unchecked(&buffer))
         }
