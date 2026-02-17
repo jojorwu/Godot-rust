@@ -123,7 +123,10 @@ impl Variant {
     /// When this variant holds a different type.
     #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
-        T::from_variant(self)
+        let type_name = std::any::type_name::<T>();
+        self.try_to::<T>().unwrap_or_else(|err| {
+            panic!("Variant::to<{type_name}>() failed: {err}")
+        })
     }
 
     /// Convert to type `T`, returning `Err` on failure.
@@ -429,10 +432,9 @@ impl Variant {
     pub fn object_id(&self) -> Option<crate::obj::InstanceId> {
         #[cfg(since_api = "4.4")]
         {
-            assert!(
-                self.get_type() != VariantType::OBJECT || self.is_object_alive(),
-                "Variant::object_id(): object has been freed"
-            );
+            if self.get_type() == VariantType::OBJECT && !self.is_object_alive() {
+                panic!("Variant::object_id(): object has been freed");
+            }
             self.object_id_unchecked()
         }
 
@@ -514,7 +516,7 @@ impl Variant {
 
         if error.error != sys::GDEXTENSION_CALL_OK {
             let arg_types: Vec<_> = args.iter().map(Variant::get_type).collect();
-            sys::panic_call_error(&error, "call", &arg_types);
+            sys::panic_call_error(&error, &method.to_string(), &arg_types);
         }
         result
     }

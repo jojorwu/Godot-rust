@@ -124,7 +124,10 @@ impl VarDictionary {
         if self.contains_key(key.clone()) {
             self.get_or_nil(key)
         } else {
-            panic!("key {key:?} missing in dictionary: {self:?}")
+            panic!(
+                "{}::at(): key {key:?} missing in dictionary",
+                std::any::type_name::<Self>()
+            )
         }
     }
 

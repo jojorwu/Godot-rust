@@ -152,7 +152,7 @@ pub fn panic_call_error(
 
     // Note: Godot also outputs thread ID
     // In Godot source: variant.cpp:3043 or core_bind.cpp:2742
-    panic!("Function call failed:  {function_name} -- {reason}.");
+    panic!("godot-rust: function call '{function_name}' failed -- {reason}");
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------------

@@ -603,7 +603,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// Always.
     fn panic_out_of_bounds(&self, index: usize) -> ! {
         panic!(
-            "Array index {index} is out of bounds: length is {}",
+            "{} index {index} is out of bounds: length is {}",
+            std::any::type_name::<Self>(),
             self.len()
         );
     }

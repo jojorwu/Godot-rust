@@ -934,7 +934,8 @@ impl<T: ArrayElement> Array<T> {
         let ptr = self.ptr_or_null(index);
         assert!(
             !ptr.is_null(),
-            "Array index {index} out of bounds (len {len})",
+            "{} index {index} out of bounds (len {len})",
+            std::any::type_name::<Self>(),
             len = self.len(),
         );
         ptr
@@ -963,7 +964,8 @@ impl<T: ArrayElement> Array<T> {
         let ptr = self.ptr_mut_or_null(index);
         assert!(
             !ptr.is_null(),
-            "Array index {index} out of bounds (len {len})",
+            "{} index {index} out of bounds (len {len})",
+            std::any::type_name::<Self>(),
             len = self.len(),
         );
         ptr

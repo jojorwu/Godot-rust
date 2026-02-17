@@ -505,7 +505,20 @@ impl Callable {
     #[track_caller]
     pub fn call_as<T: meta::FromGodot>(&self, args: &[Variant]) -> T {
         self.try_call_as::<T>(args).unwrap_or_else(|| {
-            panic!("Callable::call_as(): method call failed or wrong return type")
+            let method = self
+                .method_name()
+                .map(|n| n.to_string())
+                .unwrap_or_else(|| "<unknown>".to_string());
+            let object_id = self
+                .object_id()
+                .map(|id| id.to_u64().to_string())
+                .unwrap_or_else(|| "<none>".to_string());
+            panic!(
+                "Callable::call_as(): method '{}' on object {} failed or return type could not be converted to {}",
+                method,
+                object_id,
+                std::any::type_name::<T>()
+            )
         })
     }
 
