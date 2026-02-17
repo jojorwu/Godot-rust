@@ -165,6 +165,27 @@ pub(crate) fn to_u32_from_i32(i: i32) -> u32 {
     })
 }
 
+#[track_caller]
+pub(crate) fn to_i32(i: i64) -> i32 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} exceeds i32::MAX or is too small, which is not supported")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_u64(i: i64) -> u64 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} is negative, which is not supported for u64")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_i64_from_u64(i: u64) -> i64 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} exceeds i64::MAX, which is not supported by Godot")
+    })
+}
+
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // #[test] utils for serde
 

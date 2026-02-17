@@ -121,7 +121,9 @@ impl Default for PropertyInfo {
 
 impl PropertyInfo {
     /// Create a `PropertyInfo` from a dictionary.
+    #[track_caller]
     pub fn from_dictionary(dict: &VarDictionary) -> Self {
+        use crate::builtin::{to_i32, to_u64};
         use crate::obj::EngineEnum;
 
         let variant_type = dict
@@ -138,7 +140,7 @@ impl PropertyInfo {
 
         let hint = dict
             .get_as::<&str, i64>("hint")
-            .map(|h| PropertyHint::from_ord(h as i32))
+            .map(|h| PropertyHint::from_ord(to_i32(h)))
             .unwrap_or(PropertyHint::NONE);
 
         let hint_string = dict
@@ -147,7 +149,7 @@ impl PropertyInfo {
 
         let usage = dict
             .get_as::<&str, i64>("usage")
-            .map(|u| PropertyUsageFlags::from_ord(u as u64))
+            .map(|u| PropertyUsageFlags::from_ord(to_u64(u)))
             .unwrap_or(PropertyUsageFlags::DEFAULT);
 
         Self {
@@ -160,17 +162,18 @@ impl PropertyInfo {
     }
 
     /// Convert `PropertyInfo` to a dictionary.
+    #[track_caller]
     pub fn to_dictionary(&self) -> VarDictionary {
-        use crate::builtin::vdict;
+        use crate::builtin::{to_i64_from_u64, vdict};
         use crate::obj::EngineEnum;
 
         vdict! {
-            "type": self.variant_type.ord() as i64,
+            "type": i64::from(self.variant_type.ord()),
             "name": self.property_name.clone(),
             "class_name": self.class_id.to_string_name(),
-            "hint": self.hint_info.hint.ord() as i64,
+            "hint": i64::from(self.hint_info.hint.ord()),
             "hint_string": self.hint_info.hint_string.clone(),
-            "usage": self.usage.ord() as i64,
+            "usage": to_i64_from_u64(self.usage.ord()),
         }
     }
 

@@ -388,7 +388,7 @@ impl<T: GodotClass> Gd<T> {
             .raw
             .try_with_ref_counted(|refc| refc.get_reference_count());
 
-        Some(rc.map(|i| i as usize))
+        Some(rc.map(|i| crate::builtin::to_usize(i.into())))
     }
 
     /// Create a non-owning pointer from this.

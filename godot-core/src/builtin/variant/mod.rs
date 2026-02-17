@@ -77,7 +77,8 @@ macro_rules! impl_variant_to_relaxed {
                 self.try_to_relaxed::<$ty>()
                     .unwrap_or_else(|err| {
                         panic!(
-                            "Variant::{}(): failed to convert to {}: {err}",
+                            "{}::{}(): failed to convert to {}: {err}",
+                            std::any::type_name::<Self>(),
                             stringify!($name),
                             std::any::type_name::<$ty>()
                         )
@@ -93,8 +94,14 @@ impl Variant {
     #[track_caller]
     fn panic_op(op: &str, lhs: VariantType, rhs: Option<VariantType>) -> ! {
         match rhs {
-            Some(rhs) => panic!("Variant operator {op} failed between {lhs:?} and {rhs:?}"),
-            None => panic!("Variant operator {op} failed for {lhs:?}"),
+            Some(rhs) => panic!(
+                "{} operator {op} failed between {lhs:?} and {rhs:?}",
+                std::any::type_name::<Self>()
+            ),
+            None => panic!(
+                "{} operator {op} failed for {lhs:?}",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 
@@ -583,7 +590,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_keyed(): operation invalid for type {:?}",
+            "{}::get_keyed(): operation invalid for type {:?}",
+            std::any::type_name::<Self>(),
             self.get_type()
         );
         ret
@@ -606,7 +614,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_keyed(): operation invalid for type {:?}",
+            "{}::set_keyed(): operation invalid for type {:?}",
+            std::any::type_name::<Self>(),
             self.get_type()
         );
     }
@@ -629,7 +638,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_named(): operation invalid for type {:?}",
+            "{}::get_named(): operation invalid for type {:?}",
+            std::any::type_name::<Self>(),
             self.get_type()
         );
         ret
@@ -652,7 +662,8 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_named(): operation invalid for type {:?}",
+            "{}::set_named(): operation invalid for type {:?}",
+            std::any::type_name::<Self>(),
             self.get_type()
         );
     }
@@ -678,12 +689,14 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::get_indexed(): operation invalid for type {:?}",
+            "{}::get_indexed(): operation invalid for type {:?}",
+            std::any::type_name::<Self>(),
             self.get_type()
         );
         assert!(
             !sys::conv::bool_from_sys(oob),
-            "Variant::get_indexed(): index {index} out of bounds"
+            "{}::get_indexed(): index {index} out of bounds",
+            std::any::type_name::<Self>()
         );
         ret
     }
@@ -708,12 +721,14 @@ impl Variant {
         }
         assert!(
             sys::conv::bool_from_sys(valid),
-            "Variant::set_indexed(): operation invalid for type {:?}",
+            "{}::set_indexed(): operation invalid for type {:?}",
+            std::any::type_name::<Self>(),
             self.get_type()
         );
         assert!(
             !sys::conv::bool_from_sys(oob),
-            "Variant::set_indexed(): index {index} out of bounds"
+            "{}::set_indexed(): index {index} out of bounds",
+            std::any::type_name::<Self>()
         );
     }
 

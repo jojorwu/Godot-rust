@@ -178,7 +178,7 @@ impl ClassId {
     /// Returns an owned or borrowed `str` representing the class name.
     pub fn to_cow_str(&self) -> CowStr {
         let cache = CLASS_ID_CACHE.lock();
-        let entry = cache.get_entry(self.global_index as usize);
+        let entry = cache.get_entry(to_usize(i64::from(self.global_index)));
         entry.rust_str.clone()
     }
 
@@ -224,7 +224,7 @@ impl ClassId {
     // Takes a closure because the mutex guard protects the reference; so the &StringName cannot leave the scope.
     fn with_string_name<R>(&self, func: impl FnOnce(&StringName) -> R) -> R {
         let cache = CLASS_ID_CACHE.lock();
-        let entry = cache.get_entry(self.global_index as usize);
+        let entry = cache.get_entry(to_usize(i64::from(self.global_index)));
 
         let string_name = entry
             .godot_str

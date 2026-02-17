@@ -477,12 +477,12 @@ impl Callable {
     /// Despite its name, this does **not** directly undo previous `bind()` calls. See
     /// [Godot docs](https://docs.godotengine.org/en/latest/classes/class_callable.html#class-callable-method-unbind) for up-to-date semantics.
     pub fn unbind(&self, args: usize) -> Callable {
-        self.as_inner().unbind(args as i64)
+        self.as_inner().unbind(super::to_i64(args))
     }
 
     #[cfg(since_api = "4.3")]
     pub fn get_argument_count(&self) -> usize {
-        self.as_inner().get_argument_count() as usize
+        super::to_usize(self.as_inner().get_argument_count())
     }
 
     /// Get number of bound arguments.
@@ -493,7 +493,7 @@ impl Callable {
         // This does NOT fix the bug before Godot 4.4, just cap it at zero. unbind() will still erroneously decrease the bound arguments count.
         let alleged_count = self.as_inner().get_bound_arguments_count();
 
-        alleged_count.max(0) as usize
+        super::to_usize(alleged_count.max(0))
     }
 
     #[doc(hidden)]
@@ -685,7 +685,8 @@ mod custom_callable {
         r_return: sys::GDExtensionVariantPtr,
         r_error: *mut sys::GDExtensionCallError,
     ) {
-        let arg_refs: &[&Variant] = Variant::borrow_ref_slice(p_args, p_argument_count as usize);
+        let arg_refs: &[&Variant] =
+            Variant::borrow_ref_slice(p_args, crate::builtin::to_usize(p_argument_count));
 
         let name = {
             let c: &C = CallableUserdata::inner_from_raw(callable_userdata);
@@ -712,7 +713,8 @@ mod custom_callable {
         F: FnMut(&[&Variant]) -> R,
         R: ToGodot,
     {
-        let arg_refs: &[&Variant] = Variant::borrow_ref_slice(p_args, p_argument_count as usize);
+        let arg_refs: &[&Variant] =
+            Variant::borrow_ref_slice(p_args, crate::builtin::to_usize(p_argument_count));
 
         let w: &FnWrapper<F> = CallableUserdata::inner_from_raw(callable_userdata);
         let ctx = meta::CallContext::custom_callable(&w.name);

@@ -1359,7 +1359,9 @@ impl PackedByteArray {
     /// in Rust.)
     #[track_caller]
     pub fn compress(&self, compression_mode: CompressionMode) -> Result<PackedByteArray, CollectionError> {
-        let compressed: PackedByteArray = self.as_inner().compress(to_i64(compression_mode.ord() as usize));
+        let compressed: PackedByteArray = self
+            .as_inner()
+            .compress(to_i64(to_usize(compression_mode.ord().into())));
         populated_or_err(compressed)
     }
 
@@ -1378,9 +1380,10 @@ impl PackedByteArray {
         buffer_size: usize,
         compression_mode: CompressionMode,
     ) -> Result<PackedByteArray, CollectionError> {
-        let decompressed: PackedByteArray = self
-            .as_inner()
-            .decompress(to_i64(buffer_size), to_i64(compression_mode.ord() as usize));
+        let decompressed: PackedByteArray = self.as_inner().decompress(
+            to_i64(buffer_size),
+            to_i64(to_usize(compression_mode.ord().into())),
+        );
 
         populated_or_err(decompressed)
     }
@@ -1409,9 +1412,10 @@ impl PackedByteArray {
         compression_mode: CompressionMode,
     ) -> Result<PackedByteArray, CollectionError> {
         let max_output_size = max_output_size.map(to_i64).unwrap_or(-1);
-        let decompressed: PackedByteArray = self
-            .as_inner()
-            .decompress_dynamic(max_output_size, to_i64(compression_mode.ord() as usize));
+        let decompressed: PackedByteArray = self.as_inner().decompress_dynamic(
+            max_output_size,
+            to_i64(to_usize(compression_mode.ord().into())),
+        );
 
         populated_or_err(decompressed)
     }

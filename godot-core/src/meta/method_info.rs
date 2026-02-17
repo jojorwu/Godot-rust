@@ -107,13 +107,17 @@ pub struct MethodInfo {
 
 impl MethodInfo {
     /// Create a `MethodInfo` from a dictionary.
+    #[track_caller]
     pub fn from_dictionary(dict: &VarDictionary) -> Self {
-        use crate::builtin::VarArray;
+        use crate::builtin::{to_i32, to_u64, VarArray};
         use crate::obj::EngineBitfield;
 
         let method_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();
 
-        let id = dict.get_as::<&str, i64>("id").unwrap_or(0) as i32;
+        let id = dict
+            .get_as::<&str, i64>("id")
+            .map(to_i32)
+            .unwrap_or(0);
 
         let return_type = dict
             .get_as::<&str, VarDictionary>("return")
@@ -136,7 +140,7 @@ impl MethodInfo {
 
         let flags = dict
             .get_as::<&str, i64>("flags")
-            .map(|f| MethodFlags::from_ord(f as u64))
+            .map(|f| MethodFlags::from_ord(to_u64(f)))
             .unwrap_or(MethodFlags::DEFAULT);
 
         Self {
@@ -151,8 +155,9 @@ impl MethodInfo {
     }
 
     /// Convert `MethodInfo` to a dictionary.
+    #[track_caller]
     pub fn to_dictionary(&self) -> VarDictionary {
-        use crate::builtin::{vdict, VarArray};
+        use crate::builtin::{to_i64_from_u64, vdict, VarArray};
         use crate::obj::EngineBitfield;
 
         let args: VarArray = self
@@ -168,8 +173,8 @@ impl MethodInfo {
             "args": args,
             "default_args": default_args,
             "return": self.return_type.to_dictionary(),
-            "flags": self.flags.ord() as i64,
-            "id": self.id as i64,
+            "flags": to_i64_from_u64(self.flags.ord()),
+            "id": i64::from(self.id),
         }
     }
 

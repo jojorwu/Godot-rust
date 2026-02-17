@@ -331,7 +331,7 @@ pub trait IndexEnum: EngineEnum {
     ///
     /// Note that two enumerators may have the same index, if they have the same ordinal.
     fn to_index(self) -> usize {
-        self.ord() as usize
+        crate::builtin::to_usize(self.ord().into())
     }
 }
 
