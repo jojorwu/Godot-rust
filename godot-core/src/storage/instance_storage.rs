@@ -38,7 +38,7 @@ pub struct AtomicLifecycle {
 impl AtomicLifecycle {
     pub fn new(value: Lifecycle) -> Self {
         Self {
-            atomic: std::sync::atomic::AtomicU32::new(value as u32),
+            atomic: std::sync::atomic::AtomicU32::new(crate::builtin::to_u32(value as u64)),
         }
     }
 
@@ -425,5 +425,5 @@ extern "C" fn reference_callback(
     _p_binding: *mut std::os::raw::c_void,
     _p_reference: sys::GDExtensionBool,
 ) -> sys::GDExtensionBool {
-    true as u8
+    sys::conv::SYS_TRUE
 }

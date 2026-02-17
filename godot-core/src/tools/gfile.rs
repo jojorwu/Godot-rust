@@ -819,7 +819,7 @@ impl Read for GFile {
             return Ok(0);
         }
 
-        let gd_buffer = self.fa.get_buffer(bytes_to_read as i64);
+        let gd_buffer = self.fa.get_buffer(crate::builtin::to_i64(bytes_to_read));
         let bytes_read = gd_buffer.len();
         buf[0..bytes_read].copy_from_slice(gd_buffer.as_slice());
 
@@ -896,13 +896,14 @@ impl BufRead for GFile {
     fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
         // We need to determine number of remaining bytes - otherwise the `FileAccess::get_buffer return in an error`.
         let remaining_bytes = self.check_file_length() - self.fa.get_position();
-        let buffer_read_size = cmp::min(remaining_bytes as usize, Self::BUFFER_SIZE);
+        let buffer_read_size = cmp::min(remaining_bytes, Self::BUFFER_SIZE as u64);
 
-        // We need to keep the amount of last read side to be able to adjust cursor position in `consume`.
-        self.last_buffer_size = buffer_read_size;
-
-        self.buffer = self.fa.get_buffer(buffer_read_size as i64);
+        self.buffer = self.fa.get_buffer(crate::builtin::to_i64(buffer_read_size as usize));
         self.check_error()?;
+
+        // We need to keep the amount of last read size to be able to adjust cursor position in `consume`.
+        // We use the actual number of bytes read, as the cursor moved by that amount.
+        self.last_buffer_size = self.buffer.len();
 
         Ok(self.buffer.as_slice())
     }
@@ -910,7 +911,8 @@ impl BufRead for GFile {
     #[track_caller]
     fn consume(&mut self, amt: usize) {
         // Cursor is being moved by `FileAccess::get_buffer()` call, so we need to adjust it.
-        let offset = (self.last_buffer_size - amt) as i64;
+        // amt is guaranteed to be <= last_buffer_size by BufRead contract.
+        let offset = (self.last_buffer_size as i64) - (amt as i64);
         let pos = SeekFrom::Current(-offset);
 
         self.seek(pos).expect("failed to consume bytes during read");

@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use std::cell::OnceCell;
 use std::marker::PhantomData;
+use std::sync::OnceLock;
 use std::{fmt, ptr};
 
 use godot_ffi as sys;
@@ -88,18 +88,18 @@ pub struct VarDictionary {
     opaque: OpaqueDictionary,
 
     /// Lazily computed and cached element type information for the key type.
-    cached_key_type: OnceCell<ElementType>,
+    cached_key_type: OnceLock<ElementType>,
 
     /// Lazily computed and cached element type information for the value type.
-    cached_value_type: OnceCell<ElementType>,
+    cached_value_type: OnceLock<ElementType>,
 }
 
 impl VarDictionary {
     fn from_opaque(opaque: OpaqueDictionary) -> Self {
         Self {
             opaque,
-            cached_key_type: OnceCell::new(),
-            cached_value_type: OnceCell::new(),
+            cached_key_type: OnceLock::new(),
+            cached_value_type: OnceLock::new(),
         }
     }
 
@@ -956,8 +956,8 @@ impl<'a> DictionaryIter<'a> {
                 ptr::addr_of_mut!(valid_u8),
             )
         };
-        let valid = u8_to_bool(valid_u8);
-        let has_next = u8_to_bool(has_next);
+        let valid = sys::conv::bool_from_sys(valid_u8);
+        let has_next = sys::conv::bool_from_sys(has_next);
 
         if has_next {
             assert!(valid);
@@ -1193,18 +1193,6 @@ impl<K: FromGodot> Iterator for TypedKeys<'_, K> {
     }
 }
 
-// ----------------------------------------------------------------------------------------------------------------------------------------------
-// Helper functions
-
-fn u8_to_bool(u: u8) -> bool {
-    match u {
-        0 => false,
-        1 => true,
-        _ => panic!("Invalid boolean value {u}"),
-    }
-}
-
-// ----------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Constructs [`VarDictionary`] literals, close to Godot's own syntax.
 ///

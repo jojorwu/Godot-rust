@@ -84,8 +84,8 @@ impl ElementType {
     /// Used by clone-like operations like `duplicate()`, `slice()`, etc. where we want to preserve cached type information to avoid
     /// redundant FFI calls. Only transfers if the source has computed info and destination doesn't.
     pub(crate) fn transfer_cache(
-        source_cache: &std::cell::OnceCell<ElementType>,
-        dest_cache: &std::cell::OnceCell<ElementType>,
+        source_cache: &std::sync::OnceLock<ElementType>,
+        dest_cache: &std::sync::OnceLock<ElementType>,
     ) {
         if let Some(source_value) = source_cache.get() {
             // Ignore result. If dest is already set, that's fine.
@@ -107,7 +107,7 @@ impl ElementType {
     ///
     /// Returns the computed `ElementType` and updates the cache.
     pub(crate) fn get_or_compute_cached(
-        cache: &std::cell::OnceCell<ElementType>,
+        cache: &std::sync::OnceLock<ElementType>,
         get_builtin_type: impl Fn() -> i64,
         get_class_name: impl Fn() -> crate::builtin::StringName,
         get_script_variant: impl Fn() -> crate::builtin::Variant,

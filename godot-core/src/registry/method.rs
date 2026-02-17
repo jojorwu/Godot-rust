@@ -116,7 +116,7 @@ impl ClassMethodInfo {
             method_userdata: std::ptr::null_mut(),
             call_func: self.call_func,
             ptrcall_func: self.ptrcall_func,
-            method_flags: self.method_flags.ord() as u32,
+            method_flags: crate::builtin::to_u32(self.method_flags.ord()),
             has_return_value: self.return_value.is_some() as u8,
             return_value_info: std::ptr::addr_of_mut!(return_value_sys),
             return_value_metadata,
@@ -185,16 +185,10 @@ impl ClassMethodInfo {
     }
 
     fn argument_count(&self) -> u32 {
-        self.arguments
-            .len()
-            .try_into()
-            .expect("arguments length should fit in u32")
+        crate::builtin::to_u32(self.arguments.len() as u64)
     }
 
     fn default_argument_count(&self) -> u32 {
-        self.default_arguments
-            .len()
-            .try_into()
-            .expect("arguments length should fit in u32")
+        crate::builtin::to_u32(self.default_arguments.len() as u64)
     }
 }

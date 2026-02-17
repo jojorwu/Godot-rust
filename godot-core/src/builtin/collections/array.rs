@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use std::cell::OnceCell;
 use std::marker::PhantomData;
+use std::sync::OnceLock;
 use std::{cmp, fmt};
 
 use godot_ffi as sys;
@@ -187,7 +187,7 @@ pub struct Array<T: ArrayElement> {
     _phantom: PhantomData<T>,
 
     /// Lazily computed and cached element type information.
-    pub(super) cached_element_type: OnceCell<ElementType>,
+    pub(super) cached_element_type: OnceLock<ElementType>,
 }
 
 /// Guard that can only call immutable methods on the array.
@@ -241,7 +241,7 @@ impl<T: ArrayElement> Array<T> {
         Self {
             opaque,
             _phantom: PhantomData,
-            cached_element_type: OnceCell::new(),
+            cached_element_type: OnceLock::new(),
         }
     }
 
@@ -1048,7 +1048,7 @@ impl<T: ArrayElement> Array<T> {
         let result = Array::<U> {
             opaque: self.opaque,
             _phantom: PhantomData,
-            cached_element_type: OnceCell::new(),
+            cached_element_type: OnceLock::new(),
         };
 
         // Transfer cached type to avoid redundant FFI calls.

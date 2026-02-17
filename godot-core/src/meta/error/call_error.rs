@@ -270,8 +270,8 @@ impl CallError {
             }
             sys::GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT => {
                 // Index calculation relies on patterns like call("...", varargs), might not always work...
-                let from = arg_types[vararg_offset + argument as usize];
-                let to = VariantType::from_sys(expected as sys::GDExtensionVariantType);
+                let from = arg_types[vararg_offset + crate::builtin::to_usize(i64::from(argument))];
+                let to = VariantType::from_sys(expected as _);
                 let i = argument + 1;
 
                 Self::failed_param_conversion_engine(call_ctx, i, from, to)
@@ -279,7 +279,7 @@ impl CallError {
             sys::GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS
             | sys::GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS => {
                 let arg_count = arg_types.len() - vararg_offset;
-                let param_count = expected as usize;
+                let param_count = crate::builtin::to_usize(i64::from(expected));
                 Self::failed_param_count(call_ctx, arg_count, param_count)
             }
             sys::GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL => {
