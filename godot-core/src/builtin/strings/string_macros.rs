@@ -21,8 +21,15 @@ macro_rules! impl_shared_string_api {
             /// # Panics (safeguards-balanced)
             /// If `index` is out of bounds. In disengaged level, `0` is returned instead.
             // Unicode conversion panic is not documented because we rely on Godot strings having valid Unicode.
+            #[track_caller]
             pub fn unicode_at(&self, index: usize) -> char {
-                sys::balanced_assert!(index < self.len(), "unicode_at: index {} out of bounds (len {})", index, self.len());
+                sys::balanced_assert!(
+                    index < self.len(),
+                    "{}::unicode_at: index {} out of bounds (len {})",
+                    std::any::type_name::<Self>(),
+                    index,
+                    self.len()
+                );
 
                 let char_i64 = self.as_inner().unicode_at(index as i64);
 
@@ -327,10 +334,8 @@ macro_rules! impl_shared_string_api {
             /// Alias for [`begins_with()`][Self::begins_with].
             #[inline]
             pub fn starts_with(&self, text: impl AsArg<GString>) -> bool {
-                self.find(text) == Some(0)
+                self.begins_with(text)
             }
-
-
         }
 
         // --------------------------------------------------------------------------------------------------------------------------------------

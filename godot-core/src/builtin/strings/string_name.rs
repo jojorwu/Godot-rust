@@ -137,7 +137,7 @@ impl StringName {
     /// _Godot equivalent: `length`_
     #[doc(alias = "length")]
     pub fn len(&self) -> usize {
-        self.as_inner().length() as usize
+        crate::builtin::to_usize(self.as_inner().length())
     }
 
     crate::declare_hash_u32_method! {
@@ -429,17 +429,10 @@ impl ExactSizeIterator for IntoIter {}
 
 // API design: see PartialEq for GString.
 impl PartialEq<&str> for StringName {
+    #[inline]
     fn eq(&self, other: &&str) -> bool {
-        #[cfg(since_api = "4.5")]
-        {
-            self.chars().iter().copied().eq(other.chars())
-        }
-
-        #[cfg(before_api = "4.5")]
-        {
-            let gstring = GString::from(self);
-            super::compare_gstring_to_str(gstring.string_sys(), other)
-        }
+        let gstring = GString::from(self);
+        super::compare_gstring_to_str(gstring.string_sys(), other)
     }
 }
 
