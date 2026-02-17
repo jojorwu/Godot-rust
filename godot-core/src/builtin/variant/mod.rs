@@ -516,7 +516,11 @@ impl Variant {
 
         if error.error != sys::GDEXTENSION_CALL_OK {
             let arg_types: Vec<_> = args.iter().map(Variant::get_type).collect();
-            sys::panic_call_error(&error, &method.to_string(), &arg_types);
+
+            let type_name = self.get_type_name();
+            let context = format!("{type_name}::{method}");
+
+            sys::panic_call_error(&error, &context, &arg_types);
         }
         result
     }

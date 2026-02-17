@@ -299,6 +299,7 @@ impl Basis {
 
     /// Check if the element at `basis_{i,i}` is 1, and all the other values in
     /// that row and column are 0.
+    #[track_caller]
     fn is_identity_index(&self, index: usize) -> bool {
         let row = self.rows[index];
         let col = match index {

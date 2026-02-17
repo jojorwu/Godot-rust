@@ -522,6 +522,7 @@ macro_rules! impl_vector_fns {
     }
 }
 
+#[track_caller]
 pub(super) fn snap_one(mut value: i32, step: i32) -> i32 {
     assert!(
         value != i32::MIN || step != -1,
