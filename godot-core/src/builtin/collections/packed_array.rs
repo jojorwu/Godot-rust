@@ -1108,6 +1108,7 @@ macro_rules! declare_encode_decode {
         /// **Note:** byte order and encoding pattern is an implementation detail. For portable byte representation and faster encoding, use
         /// [`as_mut_slice()`][Self::as_mut_slice] and the various Rust standard APIs such as
         #[doc = concat!("[`", stringify!($Ty), "::to_be_bytes()`].")]
+        #[track_caller]
         pub fn $encode_fn(&mut self, byte_offset: usize, value: $Ty) -> Result<(), CollectionError> {
             // sys::static_assert!(std::mem::size_of::<$Ty>() == $bytes); -- used for testing, can't keep enabled due to half-floats.
 
@@ -1119,7 +1120,7 @@ macro_rules! declare_encode_decode {
             }
 
             self.as_inner()
-                .$encode_fn(byte_offset as i64, value as $Via);
+                .$encode_fn(to_i64(byte_offset), value as $Via);
             Ok(())
         }
 
@@ -1131,6 +1132,7 @@ macro_rules! declare_encode_decode {
         /// **Note:** byte order and encoding pattern is an implementation detail. For portable byte representation and faster decoding, use
         /// [`as_slice()`][Self::as_slice] and the various Rust standard APIs such as
         #[doc = concat!("[`", stringify!($Ty), "::from_be_bytes()`].")]
+        #[track_caller]
         pub fn $decode_fn(&self, byte_offset: usize) -> Result<$Ty, CollectionError> {
             if byte_offset + $bytes > self.len() {
                 return Err(CollectionError::OutOfBounds {
@@ -1139,7 +1141,7 @@ macro_rules! declare_encode_decode {
                 });
             }
 
-            let decoded: $Via = self.as_inner().$decode_fn(byte_offset as i64);
+            let decoded: $Via = self.as_inner().$decode_fn(to_i64(byte_offset));
             Ok(decoded as $Ty)
         }
     };
@@ -1242,6 +1244,7 @@ impl PackedByteArray {
     ///
     /// Sufficient space must be allocated, depending on the encoded variant's size. If `allow_objects` is false, [`VariantType::OBJECT`] values
     /// are not permitted and will instead be serialized as ID-only. You should set `allow_objects` to false by default.
+    #[track_caller]
     pub fn encode_var(
         &mut self,
         byte_offset: usize,
@@ -1252,12 +1255,12 @@ impl PackedByteArray {
 
         let bytes_written: i64 =
             self.as_inner()
-                .encode_var(byte_offset as i64, value, allow_objects);
+                .encode_var(to_i64(byte_offset), value, allow_objects);
 
         if bytes_written == -1 {
             Err(CollectionError::Encoding)
         } else {
-            Ok(bytes_written as usize)
+            Ok(to_usize(bytes_written))
         }
     }
 
@@ -1288,6 +1291,7 @@ impl PackedByteArray {
     /// can cause arbitrary code execution.
     #[doc(alias = "has_encoded_var", alias = "decode_var_size")]
     #[inline]
+    #[track_caller]
     pub fn decode_var(
         &self,
         byte_offset: usize,
@@ -1295,7 +1299,7 @@ impl PackedByteArray {
     ) -> Result<(Variant, usize), CollectionError> {
         let variant = self
             .as_inner()
-            .decode_var(byte_offset as i64, allow_objects);
+            .decode_var(to_i64(byte_offset), allow_objects);
 
         if variant.is_nil() {
             return Err(CollectionError::Encoding);
@@ -1308,10 +1312,10 @@ impl PackedByteArray {
         // So we combine the two calls for the sake of convenience and to avoid accidental usage.
         let size: i64 = self
             .as_inner()
-            .decode_var_size(byte_offset as i64, allow_objects);
+            .decode_var_size(to_i64(byte_offset), allow_objects);
         sys::strict_assert_ne!(size, -1); // must not happen if we just decoded variant.
 
-        Ok((variant, size as usize))
+        Ok((variant, to_usize(size)))
     }
 
     /// Unreliable `Variant` decoding, allowing `NIL`.
@@ -1334,28 +1338,27 @@ impl PackedByteArray {
     /// You should set `allow_objects` to `false` unless you have a good reason not to. Decoding objects (e.g. coming from remote sources)
     /// can cause arbitrary code execution.
     #[inline]
+    #[track_caller]
     pub fn decode_var_allow_nil(
         &self,
         byte_offset: usize,
         allow_objects: bool,
     ) -> (Variant, usize) {
-        let byte_offset = byte_offset as i64;
+        let byte_offset = to_i64(byte_offset);
 
         let variant = self.as_inner().decode_var(byte_offset, allow_objects);
         let decoded_size = self.as_inner().decode_var_size(byte_offset, allow_objects);
-        let decoded_size = decoded_size.try_into().unwrap_or_else(|_| {
-            panic!("unexpected value {decoded_size} returned from decode_var_size()")
-        });
 
-        (variant, decoded_size)
+        (variant, to_usize(decoded_size))
     }
 
     /// Returns a new `PackedByteArray`, with the data of this array compressed.
     ///
     /// On failure, Godot prints an error and this method returns `Err`. (Note that any empty results coming from Godot are mapped to `Err`
     /// in Rust.)
+    #[track_caller]
     pub fn compress(&self, compression_mode: CompressionMode) -> Result<PackedByteArray, CollectionError> {
-        let compressed: PackedByteArray = self.as_inner().compress(compression_mode.ord() as i64);
+        let compressed: PackedByteArray = self.as_inner().compress(to_i64(compression_mode.ord() as usize));
         populated_or_err(compressed)
     }
 
@@ -1368,6 +1371,7 @@ impl PackedByteArray {
     ///
     /// **Note:** Decompression is not guaranteed to work with data not compressed by Godot, for example if data compressed with the deflate
     /// compression mode lacks a checksum or header.
+    #[track_caller]
     pub fn decompress(
         &self,
         buffer_size: usize,
@@ -1375,7 +1379,7 @@ impl PackedByteArray {
     ) -> Result<PackedByteArray, CollectionError> {
         let decompressed: PackedByteArray = self
             .as_inner()
-            .decompress(buffer_size as i64, compression_mode.ord() as i64);
+            .decompress(to_i64(buffer_size), to_i64(compression_mode.ord() as usize));
 
         populated_or_err(decompressed)
     }
@@ -1397,15 +1401,16 @@ impl PackedByteArray {
     ///
     /// **Note:** Decompression is not guaranteed to work with data not compressed by Godot, for example if data compressed with the deflate
     /// compression mode lacks a checksum or header.
+    #[track_caller]
     pub fn decompress_dynamic(
         &self,
         max_output_size: Option<usize>,
         compression_mode: CompressionMode,
     ) -> Result<PackedByteArray, CollectionError> {
-        let max_output_size = max_output_size.map(|i| i as i64).unwrap_or(-1);
+        let max_output_size = max_output_size.map(to_i64).unwrap_or(-1);
         let decompressed: PackedByteArray = self
             .as_inner()
-            .decompress_dynamic(max_output_size, compression_mode.ord() as i64);
+            .decompress_dynamic(max_output_size, to_i64(compression_mode.ord() as usize));
 
         populated_or_err(decompressed)
     }

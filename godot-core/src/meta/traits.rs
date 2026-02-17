@@ -75,8 +75,11 @@ pub trait GodotType: GodotConvert<Via = Self> + sealed::Sealed + Sized + 'static
     fn try_from_ffi(ffi: Self::Ffi) -> Result<Self, ConvertError>;
 
     #[doc(hidden)]
+    #[track_caller]
     fn from_ffi(ffi: Self::Ffi) -> Self {
-        Self::try_from_ffi(ffi).expect("Failed conversion from FFI representation to Rust type")
+        let type_name = std::any::type_name::<Self>();
+        Self::try_from_ffi(ffi)
+            .unwrap_or_else(|err| panic!("GodotType::from_ffi<{type_name}>() failed: {err}"))
     }
 
     #[doc(hidden)]

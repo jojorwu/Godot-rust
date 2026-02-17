@@ -233,6 +233,7 @@ impl<T: GodotClass> Gd<T> {
     /// If no such instance ID is registered, or if the dynamic type of the object behind that instance ID
     /// is not compatible with `T`, then `None` is returned.
     #[inline]
+    #[track_caller]
     pub fn try_from_instance_id(instance_id: InstanceId) -> Result<Self, ConvertError> {
         let ptr = classes::object_ptr_from_id(instance_id);
 
@@ -347,6 +348,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// Unlike [`Object::get_class()`][crate::classes::Object::get_class], this returns `StringName` instead of `GString` and needs no
     /// `Inherits<Object>` bound.
+    #[track_caller]
     pub(crate) fn dynamic_class_string(&self) -> StringName {
         unsafe {
             StringName::new_with_string_uninit(|ptr| {
@@ -357,7 +359,13 @@ impl<T: GodotClass> Gd<T> {
                 );
 
                 let success = sys::conv::bool_from_sys(success);
-                assert!(success, "failed to get class name for object {self:?}");
+                assert!(
+                    success,
+                    "{}::dynamic_class_string(): failed to get class name for object {:?} (ID {})",
+                    std::any::type_name::<Self>(),
+                    self,
+                    self.instance_id_unchecked()
+                );
             })
         }
     }
@@ -617,6 +625,7 @@ impl<T: GodotClass> Gd<T> {
     /// If `T`'s dynamic class doesn't implement `AsDyn<D>`, `Err(self)` is returned, meaning you can reuse the original
     /// object for further casts.
     #[inline]
+    #[track_caller]
     pub fn try_dynify<D>(self) -> Result<DynGd<T, D>, Self>
     where
         T: GodotClass + Bounds<Declarer = bounds::DeclEngine>,
@@ -672,6 +681,7 @@ impl<T: GodotClass> Gd<T> {
     /// This is the default for most initializations from FFI. In cases where reference counter
     /// should explicitly **not** be updated, [`Self::from_obj_sys_weak`] is available.
     #[inline]
+    #[track_caller]
     pub(crate) unsafe fn from_obj_sys(ptr: sys::GDExtensionObjectPtr) -> Self {
         sys::strict_assert!(
             !ptr.is_null(),
@@ -682,6 +692,7 @@ impl<T: GodotClass> Gd<T> {
     }
 
     #[inline]
+    #[track_caller]
     pub(crate) unsafe fn from_obj_sys_weak_or_none(
         ptr: sys::GDExtensionObjectPtr,
     ) -> Result<Self, ConvertError> {
@@ -689,6 +700,7 @@ impl<T: GodotClass> Gd<T> {
     }
 
     #[inline]
+    #[track_caller]
     pub(crate) unsafe fn from_obj_sys_weak(ptr: sys::GDExtensionObjectPtr) -> Self {
         Self::from_obj_sys_weak_or_none(ptr).unwrap()
     }

@@ -5,7 +5,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use crate::builtin::{to_usize, Array, Callable, VarArray, Variant};
+use crate::builtin::{to_i64, to_usize, Array, Callable, VarArray, Variant};
 use crate::meta::{ArrayElement, AsArg};
 use crate::{meta, sys};
 
@@ -49,6 +49,7 @@ impl<'a, T: ArrayElement> ArrayFunctionalOps<'a, T> {
     /// assert_eq!(even, array![2, 4]);
     /// ```
     #[must_use]
+    #[track_caller]
     pub fn filter(&self, callable: &Callable) -> Array<T> {
         // SAFETY: filter() returns array of same type as self.
         unsafe { self.array.as_inner().filter(callable) }
@@ -71,6 +72,7 @@ impl<'a, T: ArrayElement> ArrayFunctionalOps<'a, T> {
     /// assert_eq!(rounded, varray![1, 2, 2]);
     /// ```
     #[must_use]
+    #[track_caller]
     pub fn map(&self, callable: &Callable) -> VarArray {
         // SAFETY: map() returns an untyped array (element type Variant).
         unsafe { self.array.as_inner().map(callable) }
@@ -96,6 +98,7 @@ impl<'a, T: ArrayElement> ArrayFunctionalOps<'a, T> {
     /// assert_eq!(sum, 10.to_variant());
     /// ```
     #[must_use]
+    #[track_caller]
     pub fn reduce(&self, callable: &Callable, initial: &Variant) -> Variant {
         self.array.as_inner().reduce(callable, initial)
     }
@@ -115,6 +118,7 @@ impl<'a, T: ArrayElement> ArrayFunctionalOps<'a, T> {
     /// }));
     /// assert!(any_even);
     /// ```
+    #[track_caller]
     pub fn any(&self, callable: &Callable) -> bool {
         self.array.as_inner().any(callable)
     }
@@ -134,6 +138,7 @@ impl<'a, T: ArrayElement> ArrayFunctionalOps<'a, T> {
     /// }));
     /// assert!(all_even);
     /// ```
+    #[track_caller]
     pub fn all(&self, callable: &Callable) -> bool {
         self.array.as_inner().all(callable)
     }
@@ -158,8 +163,9 @@ impl<'a, T: ArrayElement> ArrayFunctionalOps<'a, T> {
     /// assert_eq!(array.functional_ops().find_custom(&is_even, Some(2)), Some(3)); // value 4
     /// ```
     #[cfg(since_api = "4.4")]
+    #[track_caller]
     pub fn find_custom(&self, callable: &Callable, from: Option<usize>) -> Option<usize> {
-        let from = from.map(|i| i as i64).unwrap_or(0);
+        let from = from.map(to_i64).unwrap_or(0);
         let found_index = self.array.as_inner().find_custom(callable, from);
 
         sys::found_to_option(found_index)
@@ -185,8 +191,9 @@ impl<'a, T: ArrayElement> ArrayFunctionalOps<'a, T> {
     /// assert_eq!(array.functional_ops().rfind_custom(&is_even, Some(2)), Some(1)); // value 2
     /// ```
     #[cfg(since_api = "4.4")]
+    #[track_caller]
     pub fn rfind_custom(&self, callable: &Callable, from: Option<usize>) -> Option<usize> {
-        let from = from.map(|i| i as i64).unwrap_or(-1);
+        let from = from.map(to_i64).unwrap_or(-1);
         let found_index = self.array.as_inner().rfind_custom(callable, from);
 
         sys::found_to_option(found_index)
@@ -202,6 +209,7 @@ impl<'a, T: ArrayElement> ArrayFunctionalOps<'a, T> {
     /// Calling `bsearch_custom()` on an unsorted array results in unspecified behavior. Consider using
     /// [`AnyArray::sort_unstable_custom()`][crate::builtin::AnyArray::sort_unstable_custom()] beforehand.
     /// to ensure the sorting order is compatible with your callable's ordering.
+    #[track_caller]
     pub fn bsearch_custom(&self, value: impl AsArg<T>, pred: &Callable) -> usize {
         meta::arg_into_ref!(value: T);
 
