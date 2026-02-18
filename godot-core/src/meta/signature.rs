@@ -165,7 +165,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                         method_bind.0,
                         ValidatedObject::object_ptr(validated_obj.as_ref()),
                         ptrs,
-                        crate::builtin::to_i64(total_count),
+                        total_count as i64,
                         return_ptr,
                         &raw mut err,
                     );
@@ -236,7 +236,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                         object_ptr,
                         method_sname_ptr,
                         sys_args.as_ptr(),
-                        crate::builtin::to_i64(sys_args.len()),
+                        sys_args.len() as i64,
                         return_ptr,
                         &raw mut err,
                     );
@@ -289,11 +289,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 // Important: this calls from_sys_init_default().
                 // SAFETY: `return_ptr` is a pointer to an uninitialized FFI value, which is safe to initialize.
                 // `type_ptrs` contains valid pointers to arguments.
-                utility_fn(
-                    return_ptr,
-                    type_ptrs,
-                    crate::builtin::to_i32(crate::builtin::to_i64(total_count)),
-                );
+                utility_fn(return_ptr, type_ptrs, total_count as i32);
             })
         }
     }
@@ -338,12 +334,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 };
 
                 // Important: this calls from_sys_init_default().
-                builtin_fn(
-                    type_ptr,
-                    type_ptrs,
-                    return_ptr,
-                    crate::builtin::to_i32(crate::builtin::to_i64(total_count)),
-                );
+                builtin_fn(type_ptr, type_ptrs, return_ptr, total_count as i32);
             })
         }
     }
@@ -400,7 +391,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     type_ptr,
                     explicit_args.as_ptr(),
                     return_ptr,
-                    crate::builtin::to_i32(crate::builtin::to_i64(explicit_args.len())),
+                    explicit_args.len() as i32,
                 );
             })
         }
@@ -424,7 +415,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 utility_fn(
                     return_ptr,
                     explicit_args.as_ptr(),
-                    crate::builtin::to_i32(crate::builtin::to_i64(explicit_args.len())),
+                    explicit_args.len() as i32,
                 );
             })
         }

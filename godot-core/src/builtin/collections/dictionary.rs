@@ -943,7 +943,7 @@ impl<'a> DictionaryIter<'a> {
         variant_dict: &Variant,
         mut next_value: Variant,
     ) -> Option<Variant> {
-        let mut valid_u8: u8 = 0;
+        let mut valid: sys::GDExtensionBool = sys::conv::SYS_FALSE;
 
         // SAFETY:
         // `dictionary` is a valid dictionary since we have a reference to it,
@@ -953,10 +953,10 @@ impl<'a> DictionaryIter<'a> {
             iter_fn(
                 variant_dict.var_sys(),
                 next_value.var_sys_mut(),
-                ptr::addr_of_mut!(valid_u8),
+                ptr::addr_of_mut!(valid),
             )
         };
-        let valid = sys::conv::bool_from_sys(valid_u8);
+        let valid = sys::conv::bool_from_sys(valid);
         let has_next = sys::conv::bool_from_sys(has_next);
 
         if has_next {
@@ -1193,6 +1193,7 @@ impl<K: FromGodot> Iterator for TypedKeys<'_, K> {
     }
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------------
 
 /// Constructs [`VarDictionary`] literals, close to Godot's own syntax.
 ///

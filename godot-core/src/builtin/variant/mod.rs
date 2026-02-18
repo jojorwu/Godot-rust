@@ -542,8 +542,8 @@ impl Variant {
     pub fn evaluate(&self, rhs: &Variant, op: VariantOperator) -> Option<Variant> {
         use crate::obj::EngineEnum;
 
-        let op_sys = op.ord() as sys::GDExtensionVariantOperator;
-        let mut is_valid = false as u8;
+        let op_sys = i64::from(op.ord()) as sys::GDExtensionVariantOperator;
+        let mut is_valid = sys::conv::SYS_FALSE;
 
         let result = unsafe {
             Self::new_with_var_uninit(|variant_ptr| {
@@ -557,7 +557,7 @@ impl Variant {
             })
         };
 
-        if is_valid == 1 {
+        if sys::conv::bool_from_sys(is_valid) {
             Some(result)
         } else {
             None
@@ -578,7 +578,7 @@ impl Variant {
     /// If the operation is invalid for this variant type.
     #[track_caller]
     pub fn get_keyed(&self, key: &Variant) -> Variant {
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_keyed)(
@@ -603,7 +603,7 @@ impl Variant {
     /// If the operation is invalid for this variant type.
     #[track_caller]
     pub fn set_keyed(&mut self, key: &Variant, value: &Variant) {
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         unsafe {
             interface_fn!(variant_set_keyed)(
                 self.var_sys_mut(),
@@ -626,7 +626,7 @@ impl Variant {
     /// If the operation is invalid for this variant type.
     #[track_caller]
     pub fn get_named(&self, name: &StringName) -> Variant {
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_named)(
@@ -651,7 +651,7 @@ impl Variant {
     /// If the operation is invalid for this variant type.
     #[track_caller]
     pub fn set_named(&mut self, name: &StringName, value: &Variant) {
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         unsafe {
             interface_fn!(variant_set_named)(
                 self.var_sys_mut(),
@@ -675,8 +675,8 @@ impl Variant {
     /// * If the index is out of bounds.
     #[track_caller]
     pub fn get_indexed(&self, index: i64) -> Variant {
-        let mut valid = false as sys::GDExtensionBool;
-        let mut oob = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
+        let mut oob = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_indexed)(
@@ -708,8 +708,8 @@ impl Variant {
     /// * If the index is out of bounds.
     #[track_caller]
     pub fn set_indexed(&mut self, index: i64, value: &Variant) {
-        let mut valid = false as sys::GDExtensionBool;
-        let mut oob = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
+        let mut oob = sys::conv::SYS_FALSE;
         unsafe {
             interface_fn!(variant_set_indexed)(
                 self.var_sys_mut(),
@@ -742,8 +742,8 @@ impl Variant {
     /// Gets the value at the specified index and converts it to `T` (fallible).
     #[inline]
     pub fn get_index_as<T: FromGodot>(&self, index: i64) -> Option<T> {
-        let mut valid = false as sys::GDExtensionBool;
-        let mut oob = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
+        let mut oob = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_indexed)(
@@ -772,7 +772,7 @@ impl Variant {
     #[inline]
     pub fn get_as<K: ToGodot, T: FromGodot>(&self, key: K) -> Option<T> {
         let key = key.to_variant();
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_keyed)(

@@ -128,7 +128,7 @@ impl PropertyInfo {
 
         let variant_type = dict
             .get_as::<&str, i64>("type")
-            .map(|ty| VariantType::from_sys(ty as sys::GDExtensionVariantType))
+            .map(|ty| VariantType::from_sys(ty as _))
             .unwrap_or(VariantType::NIL);
 
         let property_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();
@@ -501,6 +501,8 @@ impl PropertyInfo {
     pub(crate) unsafe fn new_from_sys(
         property_info_ptr: *mut sys::GDExtensionPropertyInfo,
     ) -> Self {
+        use crate::builtin::to_i32;
+
         let ptr = *property_info_ptr;
 
         Self {
@@ -508,10 +510,10 @@ impl PropertyInfo {
             class_id: ClassId::none(),
             property_name: StringName::new_from_string_sys(ptr.name),
             hint_info: PropertyHintInfo {
-                hint: PropertyHint::from_ord(ptr.hint.to_owned() as i32),
+                hint: PropertyHint::from_ord(to_i32(i64::from(ptr.hint))),
                 hint_string: GString::new_from_string_sys(ptr.hint_string),
             },
-            usage: PropertyUsageFlags::from_ord(ptr.usage as u64),
+            usage: PropertyUsageFlags::from_ord(u64::from(ptr.usage)),
         }
     }
 }

@@ -8,6 +8,7 @@
 use std::any::TypeId;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use std::fmt;
 use std::hash::Hash;
 
@@ -258,14 +259,14 @@ impl fmt::Debug for ClassId {
 /// `StringName` needs to be lazy-initialized because the Godot binding may not be initialized yet.
 struct ClassIdEntry {
     rust_str: CowStr,
-    godot_str: std::sync::OnceLock<StringName>,
+    godot_str: OnceLock<StringName>,
 }
 
 impl ClassIdEntry {
     const fn new(rust_str: CowStr) -> Self {
         Self {
             rust_str,
-            godot_str: std::sync::OnceLock::new(),
+            godot_str: OnceLock::new(),
         }
     }
 
@@ -370,7 +371,7 @@ impl ClassIdCache {
         // `.gdextension` reload, keep the backing entries (and thus the `string_to_index` map) but drop cached Godot `StringNames`
         // and the `TypeId` lookup so they can be rebuilt.
         for entry in &mut self.entries {
-            entry.godot_str = std::sync::OnceLock::new();
+            entry.godot_str = OnceLock::new();
         }
 
         self.type_to_index.clear();

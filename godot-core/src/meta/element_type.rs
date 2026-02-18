@@ -6,6 +6,7 @@
  */
 
 use std::fmt;
+use std::sync::OnceLock;
 
 use crate::builtin::VariantType;
 use crate::classes::Script;
@@ -84,8 +85,8 @@ impl ElementType {
     /// Used by clone-like operations like `duplicate()`, `slice()`, etc. where we want to preserve cached type information to avoid
     /// redundant FFI calls. Only transfers if the source has computed info and destination doesn't.
     pub(crate) fn transfer_cache(
-        source_cache: &std::sync::OnceLock<ElementType>,
-        dest_cache: &std::sync::OnceLock<ElementType>,
+        source_cache: &OnceLock<ElementType>,
+        dest_cache: &OnceLock<ElementType>,
     ) {
         if let Some(source_value) = source_cache.get() {
             // Ignore result. If dest is already set, that's fine.
@@ -107,15 +108,14 @@ impl ElementType {
     ///
     /// Returns the computed `ElementType` and updates the cache.
     pub(crate) fn get_or_compute_cached(
-        cache: &std::sync::OnceLock<ElementType>,
+        cache: &OnceLock<ElementType>,
         get_builtin_type: impl Fn() -> i64,
         get_class_name: impl Fn() -> crate::builtin::StringName,
         get_script_variant: impl Fn() -> crate::builtin::Variant,
     ) -> ElementType {
         let cached = *cache.get_or_init(|| {
             let sys_variant_type = get_builtin_type();
-            let variant_type =
-                VariantType::from_sys(sys_variant_type as crate::sys::GDExtensionVariantType);
+            let variant_type = VariantType::from_sys(sys_variant_type as _);
 
             if variant_type == VariantType::NIL {
                 ElementType::Untyped
@@ -139,8 +139,7 @@ impl ElementType {
         #[cfg(safeguards_strict)]
         if matches!(cached, ElementType::Untyped) {
             let sys_variant_type = get_builtin_type();
-            let variant_type =
-                VariantType::from_sys(sys_variant_type as crate::sys::GDExtensionVariantType);
+            let variant_type = VariantType::from_sys(sys_variant_type as _);
 
             assert_eq!(
                 variant_type,
