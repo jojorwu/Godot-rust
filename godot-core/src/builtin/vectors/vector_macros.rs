@@ -262,6 +262,43 @@ macro_rules! impl_vector_index {
                 }
             }
         }
+
+        impl std::ops::Index<usize> for $Vector {
+            type Output = $Scalar;
+            #[inline]
+            #[track_caller]
+            fn index(&self, index: usize) -> &$Scalar {
+                let mut i = 0usize;
+                $(
+                    if i == index {
+                        return &self.$components;
+                    }
+                    i += 1;
+                )*
+                panic!(
+                    "{}::index(): index {index} out of bounds (len {i})",
+                    std::any::type_name::<Self>()
+                );
+            }
+        }
+
+        impl std::ops::IndexMut<usize> for $Vector {
+            #[inline]
+            #[track_caller]
+            fn index_mut(&mut self, index: usize) -> &mut $Scalar {
+                let mut i = 0usize;
+                $(
+                    if i == index {
+                        return &mut self.$components;
+                    }
+                    i += 1;
+                )*
+                panic!(
+                    "{}::index_mut(): index {index} out of bounds (len {i})",
+                    std::any::type_name::<Self>()
+                );
+            }
+        }
     }
 }
 

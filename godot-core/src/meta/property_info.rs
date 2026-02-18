@@ -348,12 +348,6 @@ impl PropertyInfo {
         self.with_hint_info(hint_info)
     }
 
-    /// Sets the suffix for a range hint.
-    pub fn with_suffix(self, suffix: &str) -> Self {
-        let hint_info = self.hint_info.clone().with_suffix(suffix);
-        self.with_hint_info(hint_info)
-    }
-
     /// Create a new `PropertyInfo` representing a group in Godot.
     ///
     /// See [`EditorInspector`](https://docs.godotengine.org/en/latest/classes/class_editorinspector.html#class-editorinspector) in Godot for

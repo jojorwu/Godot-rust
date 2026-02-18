@@ -130,9 +130,12 @@ impl Variant {
     /// When this variant holds a different type.
     #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
-        let type_name = std::any::type_name::<T>();
         self.try_to::<T>().unwrap_or_else(|err| {
-            panic!("Variant::to<{type_name}>() failed: {err}")
+            panic!(
+                "{}::to<{}>() failed: {err}",
+                std::any::type_name::<Self>(),
+                std::any::type_name::<T>()
+            )
         })
     }
 
@@ -440,7 +443,7 @@ impl Variant {
         #[cfg(since_api = "4.4")]
         {
             if self.get_type() == VariantType::OBJECT && !self.is_object_alive() {
-                panic!("Variant::object_id(): object has been freed");
+                panic!("{}::object_id(): object has been freed", std::any::type_name::<Self>());
             }
             self.object_id_unchecked()
         }
@@ -456,7 +459,7 @@ impl Variant {
                         ErrorKind::FromVariant(FromVariantError::DeadObject)
                     ) =>
                 {
-                    panic!("Variant::object_id(): object has been freed")
+                    panic!("{}::object_id(): object has been freed", std::any::type_name::<Self>())
                 }
                 _ => None, // other conversion errors
             }

@@ -68,10 +68,11 @@ impl NodePath {
         let index_i64 = crate::builtin::to_i64(index);
 
         // Not safety-critical, Godot will do another check. But better error message.
-        sys::balanced_assert!(
+        assert!(
             index_i64 < inner.get_name_count(),
-            "{} '{self}': name at index {index} is out of bounds",
-            std::any::type_name::<Self>()
+            "{} '{self}': name at index {index} is out of bounds (len {})",
+            std::any::type_name::<Self>(),
+            inner.get_name_count()
         );
 
         inner.get_name(index_i64)
@@ -96,10 +97,11 @@ impl NodePath {
         let inner = self.as_inner();
         let index_i64 = crate::builtin::to_i64(index);
 
-        sys::balanced_assert!(
+        assert!(
             index_i64 < inner.get_subname_count(),
-            "{} '{self}': subname at index {index} is out of bounds",
-            std::any::type_name::<Self>()
+            "{} '{self}': subname at index {index} is out of bounds (len {})",
+            std::any::type_name::<Self>(),
+            inner.get_subname_count()
         );
 
         inner.get_subname(index_i64)
@@ -170,8 +172,8 @@ impl NodePath {
         let begin = if GdextBuild::since_api("4.4") {
             from
         } else {
-            let name_count = self.get_name_count() as i64;
-            let subname_count = self.get_subname_count() as i64;
+            let name_count = crate::builtin::to_i64(self.get_name_count());
+            let subname_count = crate::builtin::to_i64(self.get_subname_count());
             let total_count = name_count + subname_count;
 
             let mut begin = from.clamp(-total_count, total_count);

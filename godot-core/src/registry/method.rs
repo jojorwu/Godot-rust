@@ -117,7 +117,7 @@ impl ClassMethodInfo {
             call_func: self.call_func,
             ptrcall_func: self.ptrcall_func,
             method_flags: crate::builtin::to_u32(self.method_flags.ord()),
-            has_return_value: self.return_value.is_some() as u8,
+            has_return_value: sys::conv::bool_to_sys(self.return_value.is_some()),
             return_value_info: std::ptr::addr_of_mut!(return_value_sys),
             return_value_metadata,
             argument_count: self.argument_count(),

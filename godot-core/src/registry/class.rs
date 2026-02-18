@@ -734,8 +734,8 @@ fn default_registration_info(class_name: ClassId) -> ClassRegistrationInfo {
 #[cfg(before_api = "4.3")]
 fn default_creation_info() -> sys::GDExtensionClassCreationInfo2 {
     sys::GDExtensionClassCreationInfo2 {
-        is_virtual: false as u8,
-        is_abstract: false as u8,
+        is_virtual: sys::conv::SYS_FALSE,
+        is_abstract: sys::conv::SYS_FALSE,
         is_exposed: sys::conv::SYS_TRUE,
         set_func: None,
         get_func: None,
@@ -762,8 +762,8 @@ fn default_creation_info() -> sys::GDExtensionClassCreationInfo2 {
 #[cfg(all(since_api = "4.3", before_api = "4.4"))]
 fn default_creation_info() -> sys::GDExtensionClassCreationInfo3 {
     sys::GDExtensionClassCreationInfo3 {
-        is_virtual: false as u8,
-        is_abstract: false as u8,
+        is_virtual: sys::conv::SYS_FALSE,
+        is_abstract: sys::conv::SYS_FALSE,
         is_exposed: sys::conv::SYS_TRUE,
         is_runtime: sys::conv::SYS_TRUE,
         set_func: None,
@@ -791,8 +791,8 @@ fn default_creation_info() -> sys::GDExtensionClassCreationInfo3 {
 #[cfg(since_api = "4.4")]
 fn default_creation_info() -> sys::GDExtensionClassCreationInfo4 {
     sys::GDExtensionClassCreationInfo4 {
-        is_virtual: false as u8,
-        is_abstract: false as u8,
+        is_virtual: sys::conv::SYS_FALSE,
+        is_abstract: sys::conv::SYS_FALSE,
         is_exposed: sys::conv::SYS_TRUE,
         is_runtime: sys::conv::SYS_TRUE,
         icon_path: ptr::null(),
