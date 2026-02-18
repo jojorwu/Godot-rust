@@ -49,7 +49,7 @@ use crate::builtin::{real, RAffine2, RMat2, Rect2, Vector2};
 /// # Godot docs
 ///
 /// [`Transform2D` (stable)](https://docs.godotengine.org/en/stable/classes/class_transform2d.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Transform2D {

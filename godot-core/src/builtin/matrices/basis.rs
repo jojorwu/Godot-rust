@@ -45,7 +45,7 @@ use crate::builtin::{real, EulerOrder, Quaternion, RMat3, RQuat, RVec2, RVec3, V
 /// # Godot docs
 ///
 /// [`Basis` (stable)](https://docs.godotengine.org/en/stable/classes/class_basis.html)
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Basis {

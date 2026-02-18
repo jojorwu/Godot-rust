@@ -40,7 +40,7 @@ use crate::builtin::{
 /// # Godot docs
 ///
 /// [`Projection` (stable)](https://docs.godotengine.org/en/stable/classes/class_projection.html)
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Projection {
@@ -631,6 +631,16 @@ impl ProjectionPlane {
             _ => None,
         }
     }
+
+    #[track_caller]
+    pub fn from_ord(ord: i64) -> Self {
+        Self::try_from_ord(ord).unwrap_or_else(|| {
+            panic!(
+                "{}::from_ord(): ordinal {ord} does not map to any valid projection plane",
+                std::any::type_name::<Self>()
+            )
+        })
+    }
 }
 
 /// The eye to create a projection for, when creating a projection adjusted for head-mounted displays.
@@ -649,6 +659,16 @@ impl ProjectionEye {
             2 => Some(Self::RIGHT),
             _ => None,
         }
+    }
+
+    #[track_caller]
+    pub fn from_ord(ord: i64) -> Self {
+        Self::try_from_ord(ord).unwrap_or_else(|| {
+            panic!(
+                "{}::from_ord(): ordinal {ord} does not map to any valid projection eye",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 }
 

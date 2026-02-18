@@ -260,12 +260,8 @@ impl<T: ArrayElement> Array<T> {
     #[inline]
     #[track_caller]
     pub fn at(&self, index: usize) -> T {
-        // Panics on out-of-bounds.
         let ptr = self.ptr(index);
-
-        // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
-        let variant = unsafe { Variant::borrow_var_sys(ptr) };
-        T::from_variant(variant)
+        self.get_and_convert(ptr)
     }
 
     /// Returns the value at the specified index, or `None` if the index is out-of-bounds.
@@ -275,13 +271,7 @@ impl<T: ArrayElement> Array<T> {
     #[track_caller]
     pub fn get(&self, index: usize) -> Option<T> {
         let ptr = self.ptr_or_null(index);
-        if ptr.is_null() {
-            return None;
-        }
-
-        // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
-        let variant = unsafe { Variant::borrow_var_sys(ptr) };
-        Some(T::from_variant(variant))
+        (!ptr.is_null()).then(|| self.get_and_convert(ptr))
     }
 
     /// ⚠️ Returns the element at the given index, converted to `U`, panicking if out of bounds or conversion fails.
@@ -502,6 +492,16 @@ impl<T: ArrayElement> Array<T> {
         T::from_variant(&variant)
     }
 
+    /// ⚠️ Removes and returns the element at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U {
+        self.remove(index).to_variant().to::<U>()
+    }
+
     /// Removes the first occurrence of a value from the array.
     ///
     /// If the value does not exist in the array, nothing happens. To remove an element by index, use [`remove()`][Self::remove] instead.
@@ -694,6 +694,14 @@ impl<T: ArrayElement> Array<T> {
     pub fn max(&self) -> Option<T> {
         let max = self.as_inner().max();
         (!max.is_nil()).then(|| T::from_variant(&max))
+    }
+
+    #[inline]
+    #[track_caller]
+    fn get_and_convert(&self, ptr: sys::GDExtensionConstVariantPtr) -> T {
+        // SAFETY: `ptr` is a live pointer to a variant since caller checked bounds.
+        let variant = unsafe { Variant::borrow_var_sys(ptr) };
+        T::from_variant(variant)
     }
 
     /// Returns a random element from the array, or `None` if it is empty.

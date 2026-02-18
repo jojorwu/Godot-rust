@@ -397,18 +397,15 @@ impl<T: PackedArrayElement> PackedArray<T> {
         let variant = self.to_variant();
         let method = crate::static_sname!(c"reserve");
         let arg = Variant::from(crate::builtin::to_i64(capacity));
-        let _result_variant = variant.call(method, &[arg]);
+        let result_variant = variant.call(method, &[arg]);
 
         // Variant::call() on a PackedArray modifies it in-place.
         // We re-assign from the variant to ensure COW changes are picked up.
         // If the call failed, the variant might return Nil.
-        let expected_type = match Self::VARIANT_TYPE {
-            ExtVariantType::Variant => VariantType::NIL,
-            ExtVariantType::Concrete(ty) => ty,
-        };
-
-        if variant.get_type() == expected_type {
-            *self = variant.to::<Self>();
+        if let Ok(array) = result_variant.try_to::<Self>() {
+            *self = array;
+        } else if let Ok(array) = variant.try_to::<Self>() {
+            *self = array;
         }
     }
 
@@ -1361,7 +1358,7 @@ impl PackedByteArray {
     pub fn compress(&self, compression_mode: CompressionMode) -> Result<PackedByteArray, CollectionError> {
         let compressed: PackedByteArray = self
             .as_inner()
-            .compress(to_i64(to_usize(compression_mode.ord().into())));
+            .compress(i64::from(compression_mode.ord()));
         populated_or_err(compressed)
     }
 
@@ -1382,7 +1379,7 @@ impl PackedByteArray {
     ) -> Result<PackedByteArray, CollectionError> {
         let decompressed: PackedByteArray = self.as_inner().decompress(
             to_i64(buffer_size),
-            to_i64(to_usize(compression_mode.ord().into())),
+            i64::from(compression_mode.ord()),
         );
 
         populated_or_err(decompressed)
@@ -1414,7 +1411,7 @@ impl PackedByteArray {
         let max_output_size = max_output_size.map(to_i64).unwrap_or(-1);
         let decompressed: PackedByteArray = self.as_inner().decompress_dynamic(
             max_output_size,
-            to_i64(to_usize(compression_mode.ord().into())),
+            i64::from(compression_mode.ord()),
         );
 
         populated_or_err(decompressed)

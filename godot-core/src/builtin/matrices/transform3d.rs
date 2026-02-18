@@ -49,7 +49,7 @@ use crate::builtin::{real, Aabb, Basis, Plane, Projection, RAffine3, Vector3};
 /// # Godot docs
 ///
 /// [`Transform3D` (stable)](https://docs.godotengine.org/en/stable/classes/class_transform3d.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Transform3D {
