@@ -369,6 +369,12 @@ impl Color {
     fn as_inner(&self) -> InnerColor<'_> {
         InnerColor::from_outer(self)
     }
+
+    /// Returns `true` if this color and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
 }
 
 // SAFETY:

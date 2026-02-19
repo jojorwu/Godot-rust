@@ -555,6 +555,12 @@ impl Basis {
         self.rows[1].z = col.y;
         self.rows[2].z = col.z;
     }
+
+    /// Returns `true` if this basis and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
+    }
 }
 
 impl Display for Basis {
@@ -675,6 +681,12 @@ impl std::ops::Index<usize> for Basis {
     #[inline]
     #[track_caller]
     fn index(&self, index: usize) -> &Self::Output {
+        if index >= 3 {
+            panic!(
+                "{}::index(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            );
+        }
         &self.rows[index]
     }
 }
@@ -683,6 +695,12 @@ impl std::ops::IndexMut<usize> for Basis {
     #[inline]
     #[track_caller]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        if index >= 3 {
+            panic!(
+                "{}::index_mut(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            );
+        }
         &mut self.rows[index]
     }
 }

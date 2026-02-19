@@ -167,18 +167,22 @@ impl Quaternion {
         Self::new(-self.x, -self.y, -self.z, self.w)
     }
 
+    /// Returns `true` if each component of this quaternion is finite.
     pub fn is_finite(self) -> bool {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite() && self.w.is_finite()
     }
 
+    /// Returns `true` if this quaternion is normalized, i.e. its length is approximately equal to 1.
     pub fn is_normalized(self) -> bool {
         self.length_squared().approx_eq(&1.0)
     }
 
+    /// Returns the length (magnitude) of this quaternion.
     pub fn length(self) -> real {
         self.length_squared().sqrt()
     }
 
+    /// Returns the squared length (squared magnitude) of this quaternion.
     pub fn length_squared(self) -> real {
         self.dot(self)
     }
@@ -298,6 +302,11 @@ impl Quaternion {
         inner::InnerQuaternion::from_outer(self)
     }
 
+    /// Returns `true` if this quaternion and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
+    }
 }
 
 impl Add for Quaternion {

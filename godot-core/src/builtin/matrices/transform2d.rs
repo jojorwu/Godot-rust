@@ -336,6 +336,12 @@ impl Transform2D {
     pub fn basis_xform_inv(&self, v: Vector2) -> Vector2 {
         self.basis().inverse() * v
     }
+
+    /// Returns `true` if this transform and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
+    }
 }
 
 impl Display for Transform2D {
@@ -480,7 +486,10 @@ impl std::ops::Index<usize> for Transform2D {
             0 => &self.a,
             1 => &self.b,
             2 => &self.origin,
-            _ => panic!("index {index} out of bounds"),
+            _ => panic!(
+                "{}::index(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 }
@@ -493,7 +502,10 @@ impl std::ops::IndexMut<usize> for Transform2D {
             0 => &mut self.a,
             1 => &mut self.b,
             2 => &mut self.origin,
-            _ => panic!("index {index} out of bounds"),
+            _ => panic!(
+                "{}::index_mut(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 }

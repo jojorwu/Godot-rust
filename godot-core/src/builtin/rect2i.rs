@@ -288,6 +288,14 @@ impl Rect2i {
             self.size
         );
     }
+
+    /// Returns `true` if this rectangle and `other` are approximately equal.
+    ///
+    /// For integer rectangles, this is the same as exact equality.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self == other
+    }
 }
 
 // SAFETY:

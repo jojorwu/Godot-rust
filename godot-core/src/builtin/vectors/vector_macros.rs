@@ -915,6 +915,12 @@ macro_rules! impl_float_vector_fns {
                     ),*
                 )
             }
+
+            /// Returns `true` if this vector and `other` are approximately equal.
+            #[inline]
+            pub fn is_equal_approx(self, other: Self) -> bool {
+                $crate::builtin::math::ApproxEq::approx_eq(&self, &other)
+            }
         }
 
         impl $crate::builtin::math::ApproxEq for $Vector {

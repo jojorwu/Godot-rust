@@ -493,6 +493,12 @@ impl Projection {
     pub(crate) fn as_inner(&self) -> inner::InnerProjection<'_> {
         inner::InnerProjection::from_outer(self)
     }
+
+    /// Returns `true` if this projection and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
+    }
 }
 
 impl From<Transform3D> for Projection {
@@ -544,6 +550,12 @@ impl std::ops::Index<usize> for Projection {
     #[inline]
     #[track_caller]
     fn index(&self, index: usize) -> &Self::Output {
+        if index >= 4 {
+            panic!(
+                "{}::index(): index {index} out of bounds (len 4)",
+                std::any::type_name::<Self>()
+            );
+        }
         &self.cols[index]
     }
 }
@@ -552,6 +564,12 @@ impl std::ops::IndexMut<usize> for Projection {
     #[inline]
     #[track_caller]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        if index >= 4 {
+            panic!(
+                "{}::index_mut(): index {index} out of bounds (len 4)",
+                std::any::type_name::<Self>()
+            );
+        }
         &mut self.cols[index]
     }
 }

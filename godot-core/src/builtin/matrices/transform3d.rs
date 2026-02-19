@@ -285,6 +285,12 @@ impl Transform3D {
             origin: self.origin + (self.basis * offset),
         }
     }
+
+    /// Returns `true` if this transform and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
+    }
 }
 
 impl Display for Transform3D {
@@ -488,7 +494,10 @@ impl std::ops::Index<usize> for Transform3D {
         match index {
             0..=2 => &self.basis.rows[index],
             3 => &self.origin,
-            _ => panic!("index {index} out of bounds"),
+            _ => panic!(
+                "{}::index(): index {index} out of bounds (len 4)",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 }
@@ -500,7 +509,10 @@ impl std::ops::IndexMut<usize> for Transform3D {
         match index {
             0..=2 => &mut self.basis.rows[index],
             3 => &mut self.origin,
-            _ => panic!("index {index} out of bounds"),
+            _ => panic!(
+                "{}::index_mut(): index {index} out of bounds (len 4)",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 }
