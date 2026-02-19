@@ -1075,6 +1075,7 @@ macro_rules! impl_variant_partial_eq {
         $(
             impl PartialEq<$ty> for Variant {
                 #[inline]
+                #[allow(clippy::unnecessary_cast)]
                 fn eq(&self, other: &$ty) -> bool {
                     let $lhs = self;
                     let $rhs = other;

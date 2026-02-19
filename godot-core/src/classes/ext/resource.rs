@@ -55,10 +55,7 @@ impl Resource {
         self.duplicate_ex()
             .deep(subresources)
             .done()
-            .expect(&format!(
-                "{}::duplicate() failed",
-                std::any::type_name::<Self>()
-            ))
+            .unwrap_or_else(|| panic!("{}::duplicate() failed", std::any::type_name::<Self>()))
             .cast::<T>()
     }
 

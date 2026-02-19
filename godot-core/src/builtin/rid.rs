@@ -35,12 +35,13 @@ use sys::{ffi_methods, static_assert, static_assert_eq_size_align, ExtVariantTyp
 // eligible for it, it is also guaranteed to have it. Meaning the layout of this type is identical to `u64`.
 // See: https://doc.rust-lang.org/nomicon/ffi.html#the-nullable-pointer-optimization
 // Cannot use `#[repr(C)]` as it does not use the nullable pointer optimization.
-#[derive(Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[derive(Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 pub enum Rid {
     /// A valid RID may refer to some resource, but is not guaranteed to do so.
     Valid(NonZeroU64),
 
     /// An invalid RID will never refer to a resource. Internally it is represented as a 0.
+    #[default]
     Invalid,
 }
 
@@ -55,12 +56,6 @@ static_assert_eq_size_align!(Rid, u64);
 //
 // Ensure that `Rid::Invalid` actually is represented by 0, as it should be.
 static_assert!(unsafe { std::mem::transmute::<Rid, u64>(Rid::Invalid) } == 0u64);
-
-impl Default for Rid {
-    fn default() -> Self {
-        Self::Invalid
-    }
-}
 
 impl Rid {
     /// Create a new RID.

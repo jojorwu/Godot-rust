@@ -296,10 +296,12 @@ impl Node {
     where
         T: Inherits<SceneTree>,
     {
-        self.try_get_tree_as::<T>().expect(&format!(
-            "{}::get_tree_as(): scene tree not found or bad type",
-            std::any::type_name::<Self>()
-        ))
+        self.try_get_tree_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_tree_as(): scene tree not found or bad type",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     /// Retrieves the scene tree, cast to type `T` (fallible).

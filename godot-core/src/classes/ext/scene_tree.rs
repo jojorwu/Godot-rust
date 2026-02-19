@@ -65,10 +65,12 @@ impl SceneTree {
     where
         T: Inherits<Node>,
     {
-        self.try_get_current_scene_as::<T>().expect(&format!(
-            "{}::get_current_scene_as(): current scene not found or bad type",
-            std::any::type_name::<Self>()
-        ))
+        self.try_get_current_scene_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_current_scene_as(): current scene not found or bad type",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     /// Retrieves the current scene, cast to type `T` (fallible).
