@@ -646,10 +646,10 @@ impl<T: ArrayElement> Array<T> {
 
         let step = step.unwrap_or(1);
         let (begin, end) = range.signed();
-        let end = end.unwrap_or(i32::MAX as i64);
+        let end = end.unwrap_or(i64::from(i32::MAX));
 
         // SAFETY: slice() returns a typed array with the same type as Self, and all values are taken from `self` so have the right type.
-        let subarray: Self = unsafe { self.as_inner().slice(begin, end, step as i64, deep) };
+        let subarray: Self = unsafe { self.as_inner().slice(begin, end, i64::from(step), deep) };
 
         subarray
     }

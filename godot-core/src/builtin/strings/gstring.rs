@@ -136,7 +136,7 @@ impl GString {
                         ctor(
                             string_ptr,
                             bytes.as_ptr() as *const std::ffi::c_char,
-                            bytes.len() as i64,
+                            crate::builtin::to_i64(bytes.len()),
                         );
                     })
                 };
@@ -192,7 +192,7 @@ impl GString {
             ptr = interface_fn!(string_operator_index_const)(s, 0);
         }
 
-        (ptr.cast(), len as usize)
+        (ptr.cast(), crate::builtin::to_usize(len))
     }
 
     ffi_methods! {
@@ -303,7 +303,10 @@ impl GString {
         );
 
         unsafe {
-            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), index as i64);
+            let ptr = interface_fn!(string_operator_index)(
+                self.string_sys_mut(),
+                crate::builtin::to_i64(index),
+            );
             *ptr = character as u32;
         }
     }
@@ -491,7 +494,7 @@ impl From<&str> for GString {
                 ctor(
                     string_ptr,
                     bytes.as_ptr() as *const std::ffi::c_char,
-                    bytes.len() as i64,
+                    crate::builtin::to_i64(bytes.len()),
                 );
             })
         }
@@ -507,7 +510,7 @@ impl From<&[char]> for GString {
                 ctor(
                     string_ptr,
                     chars.as_ptr() as *const sys::char32_t,
-                    chars.len() as i64,
+                    crate::builtin::to_i64(chars.len()),
                 );
             })
         }

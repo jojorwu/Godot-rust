@@ -187,7 +187,7 @@ impl NodePath {
         };
 
         self.as_inner()
-            .slice(begin, exclusive_end.unwrap_or(i32::MAX as i64))
+            .slice(begin, exclusive_end.unwrap_or(i64::from(i32::MAX)))
     }
 
     crate::meta::declare_arg_method! {

@@ -507,7 +507,7 @@ impl From<&str> for StringName {
                 sys::interface_fn!(string_name_new_with_utf8_chars_and_len)(
                     ptr,
                     utf8.as_ptr() as *const std::ffi::c_char,
-                    utf8.len() as i64,
+                    crate::builtin::to_i64(utf8.len()),
                 );
             })
         }

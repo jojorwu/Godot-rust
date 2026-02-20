@@ -568,9 +568,11 @@ pub(super) fn snap_one(mut value: i32, step: i32) -> i32 {
 
     if step != 0 {
         // Can overflow if step / 2 + value is not in range of i32.
-        let a = (step / 2).checked_add(value).expect(
-            "snapped() overflowed, this happened because step / 2 + component is not in range of i32",
-        );
+        let a = (step / 2).checked_add(value).unwrap_or_else(|| {
+            panic!(
+                "snapped() overflowed, this happened because step / 2 + component is not in range of i32"
+            )
+        });
 
         // Manually implement `a.div_floor(step)` since Rust's native method is still unstable, as of 1.79.0.
 
@@ -611,7 +613,7 @@ macro_rules! inline_impl_integer_vector_fns {
         /// in a formula.
         #[inline]
         pub fn distance_squared_to(self, to: Self) -> i32 {
-            (to - self).length_squared() as i32
+            (to - self).length_squared()
         }
 
         /// Returns `self` with each component limited to a range defined by `min` and `max`.
