@@ -128,8 +128,9 @@ pub mod inner {
 macro_rules! declare_hash_u32_method {
     ( $( $docs:tt )+ ) => {
         $( $docs )+
+        #[track_caller]
         pub fn hash_u32(&self) -> u32 {
-            self.as_inner().hash().try_into().expect("Godot hashes are uint32_t")
+            $crate::builtin::to_u32_from_i64(self.as_inner().hash())
         }
     }
 }
@@ -141,6 +142,13 @@ macro_rules! declare_hash_u32_method {
 pub(crate) fn to_i64(i: usize) -> i64 {
     i.try_into().unwrap_or_else(|_| {
         panic!("godot-rust: size {i} exceeds i64::MAX, which is not supported by Godot")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_u32_from_i64(i: i64) -> u32 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} is negative or exceeds u32::MAX, which is not supported")
     })
 }
 

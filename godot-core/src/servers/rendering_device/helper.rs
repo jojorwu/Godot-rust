@@ -40,8 +40,11 @@ impl ComputePipeline {
             .compute_list_bind_compute_pipeline(compute_list, self.pipeline.rid());
 
         for (i, uniform_set) in self.uniform_sets.iter().enumerate() {
-            self.rd
-                .compute_list_bind_uniform_set(compute_list, uniform_set.rid(), i as u32);
+            self.rd.compute_list_bind_uniform_set(
+                compute_list,
+                uniform_set.rid(),
+                crate::builtin::to_u32(i as u64),
+            );
         }
 
         self.rd

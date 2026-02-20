@@ -53,12 +53,14 @@ impl OwnedMesh {
         let vertex_array = arrays.at(0);
         match vertex_array.get_type() {
             VariantType::PACKED_VECTOR3_ARRAY => {
-                vertex_array.to::<PackedVector3Array>().len() as i32
+                crate::builtin::to_i32(vertex_array.to::<PackedVector3Array>().len() as i64)
             }
             VariantType::PACKED_VECTOR2_ARRAY => {
-                vertex_array.to::<PackedVector2Array>().len() as i32
+                crate::builtin::to_i32(vertex_array.to::<PackedVector2Array>().len() as i64)
             }
-            VariantType::ARRAY => vertex_array.to::<crate::builtin::AnyArray>().len() as i32,
+            VariantType::ARRAY => {
+                crate::builtin::to_i32(vertex_array.to::<crate::builtin::AnyArray>().len() as i64)
+            }
             _ => 0,
         }
     }

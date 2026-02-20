@@ -807,6 +807,8 @@ impl GFile {
 impl Read for GFile {
     #[track_caller]
     fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        use crate::builtin::to_i64;
+
         let length = self.check_file_length();
         let position = self.fa.get_position();
         if position >= length {
@@ -819,7 +821,7 @@ impl Read for GFile {
             return Ok(0);
         }
 
-        let gd_buffer = self.fa.get_buffer(bytes_to_read as i64);
+        let gd_buffer = self.fa.get_buffer(to_i64(bytes_to_read));
         let bytes_read = gd_buffer.len();
         buf[0..bytes_read].copy_from_slice(gd_buffer.as_slice());
 
@@ -864,7 +866,15 @@ impl Seek for GFile {
                 Ok(position)
             }
             SeekFrom::End(offset) => {
-                if (self.check_file_length() as i64) < offset {
+                let length = self.check_file_length();
+                let new_pos = (length as i64).checked_add(offset).ok_or_else(|| {
+                    std::io::Error::new(
+                        ErrorKind::InvalidInput,
+                        "seek position overflowed",
+                    )
+                })?;
+
+                if new_pos < 0 {
                     return Err(std::io::Error::new(
                         ErrorKind::InvalidInput,
                         "Position can't be set before the file beginning",
@@ -875,7 +885,14 @@ impl Seek for GFile {
                 Ok(self.fa.get_position())
             }
             SeekFrom::Current(offset) => {
-                let new_pos = self.fa.get_position() as i64 + offset;
+                let current_pos = self.fa.get_position();
+                let new_pos = (current_pos as i64).checked_add(offset).ok_or_else(|| {
+                    std::io::Error::new(
+                        ErrorKind::InvalidInput,
+                        "seek position overflowed",
+                    )
+                })?;
+
                 if new_pos < 0 {
                     return Err(std::io::Error::new(
                         ErrorKind::InvalidInput,
@@ -894,15 +911,25 @@ impl Seek for GFile {
 impl BufRead for GFile {
     #[track_caller]
     fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
+        use crate::builtin::to_i64;
+
         // We need to determine number of remaining bytes - otherwise the `FileAccess::get_buffer return in an error`.
-        let remaining_bytes = self.check_file_length() - self.fa.get_position();
-        let buffer_read_size = cmp::min(remaining_bytes as usize, Self::BUFFER_SIZE);
+        let length = self.check_file_length();
+        let position = self.fa.get_position();
+
+        let buffer_read_size = if position >= length {
+            0
+        } else {
+            let remaining_bytes = length - position;
+            cmp::min(remaining_bytes as usize, Self::BUFFER_SIZE)
+        };
+
+        self.buffer = self.fa.get_buffer(to_i64(buffer_read_size));
+        self.check_error()?;
 
         // We need to keep the amount of last read side to be able to adjust cursor position in `consume`.
-        self.last_buffer_size = buffer_read_size;
-
-        self.buffer = self.fa.get_buffer(buffer_read_size as i64);
-        self.check_error()?;
+        // Use actual length in case Godot returned fewer bytes.
+        self.last_buffer_size = self.buffer.len();
 
         Ok(self.buffer.as_slice())
     }
@@ -910,9 +937,9 @@ impl BufRead for GFile {
     #[track_caller]
     fn consume(&mut self, amt: usize) {
         // Cursor is being moved by `FileAccess::get_buffer()` call, so we need to adjust it.
-        let offset = (self.last_buffer_size - amt) as i64;
+        let offset = (self.last_buffer_size as i64) - (amt as i64);
         let pos = SeekFrom::Current(-offset);
 
-        self.seek(pos).expect("failed to consume bytes during read");
+        self.seek(pos).unwrap_or_else(|err| panic!("GFile::consume(): failed to seek: {err}"));
     }
 }

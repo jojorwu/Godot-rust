@@ -123,6 +123,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// # Panics
     /// If `index` is out of bounds.
     #[inline]
+    #[track_caller]
     pub fn at(&self, index: usize) -> T {
         self.get(index)
             .unwrap_or_else(|| self.panic_out_of_bounds(index))
@@ -222,6 +223,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// On large arrays, this method is much slower than [`push()`][Self::push], as it will move all the array's elements after the inserted
     /// element. The larger the array, the slower `insert` will be.
+    #[track_caller]
     pub fn insert(&mut self, index: usize, value: impl AsArg<T>) {
         // Intentional > and not >=.
         if index > self.len() {
@@ -246,7 +248,9 @@ impl<T: PackedArrayElement> PackedArray<T> {
     #[doc(alias = "remove_at")]
     #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
-        let element = self.get(index).expect("index out of bounds"); // panics on out-of-bounds
+        let element = self
+            .get(index)
+            .unwrap_or_else(|| self.panic_out_of_bounds(index));
         T::op_remove_at(self.as_inner(), to_i64(index));
         element
     }
@@ -307,6 +311,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Adds an element at the beginning of the array, in O(n).
+    #[track_caller]
     pub fn push_front(&mut self, value: impl AsArg<T>) {
         self.insert(0, value);
     }
@@ -348,6 +353,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns a random element from the array, or `None` if it is empty.
+    #[track_caller]
     pub fn pick_random(&self) -> Option<T> {
         if self.is_empty() {
             return None;

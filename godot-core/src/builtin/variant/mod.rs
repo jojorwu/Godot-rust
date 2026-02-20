@@ -810,13 +810,13 @@ impl Variant {
     ///
     /// _Godot equivalent : `@GlobalScope.hash()`_
     #[inline]
+    #[track_caller]
     pub fn hash_u32(&self) -> u32 {
         // @GlobalScope.hash() actually calls the VariantUtilityFunctions::hash(&Variant) function (C++).
         // This function calls the passed reference's `hash` method, which returns a uint32_t.
         // Therefore, casting this function to u32 is always fine.
-        unsafe { interface_fn!(variant_hash)(self.var_sys()) }
-            .try_into()
-            .expect("Godot hashes are uint32_t")
+        let hash = unsafe { interface_fn!(variant_hash)(self.var_sys()) };
+        crate::builtin::to_u32_from_i64(hash)
     }
 
     /// Interpret the `Variant` as `bool`.

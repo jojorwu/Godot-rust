@@ -67,7 +67,7 @@ pub(crate) fn debug_string_variant(
                 .try_to_relaxed::<i32>()
                 .expect("get_reference_count() must return integer");
 
-            Ok(count as usize)
+            Ok(crate::builtin::to_usize(count as i64))
         });
 
         debug_string_parts(f, ty, id, class, refcount, None)
