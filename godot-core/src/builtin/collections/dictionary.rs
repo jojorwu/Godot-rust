@@ -612,6 +612,30 @@ impl VarDictionary {
         }
     }
 
+    /// Returns a random key from the dictionary, or `None` if it is empty.
+    ///
+    /// _Godot equivalent: `pick_random` (returns key)_
+    #[cfg(since_api = "4.4")]
+    pub fn pick_random(&self) -> Option<Variant> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let variant = self.to_variant();
+        let method = crate::static_sname!(c"pick_random");
+        let result = variant.call(method, &[]);
+
+        Some(result)
+    }
+
+    /// Returns a random key from the dictionary, converted to `K`, or `None` if empty or conversion fails.
+    #[cfg(since_api = "4.4")]
+    #[inline]
+    #[track_caller]
+    pub fn pick_random_as<K: FromGodot>(&self) -> Option<K> {
+        self.pick_random().and_then(|v| v.try_to::<K>().ok())
+    }
+
     /// Reserves capacity for at least `capacity` elements.
     ///
     /// The dictionary may reserve more space to avoid frequent reallocations.

@@ -318,7 +318,10 @@ impl Basis {
             0 => row == Vector3::RIGHT,
             1 => row == Vector3::UP,
             2 => row == Vector3::BACK,
-            _ => unreachable!(),
+            _ => unreachable!(
+                "{}::is_identity_index(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 

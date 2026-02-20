@@ -545,6 +545,19 @@ impl<'a> VariantBorrow<'a> for Variant {
     }
 }
 
+macro_rules! impl_variant_borrow_by_try_to {
+    ($($ty:ty),* $(,)?) => {
+        $(
+            impl<'a> VariantBorrow<'a> for $ty {
+                type Borrowed = $ty;
+                fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
+                    variant.try_to::<$ty>()
+                }
+            }
+        )*
+    };
+}
+
 impl<'a, T: ArrayElement> VariantBorrow<'a> for Array<T> {
     type Borrowed = Array<T>;
     fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
@@ -552,65 +565,14 @@ impl<'a, T: ArrayElement> VariantBorrow<'a> for Array<T> {
     }
 }
 
-impl<'a> VariantBorrow<'a> for crate::builtin::GString {
-    type Borrowed = crate::builtin::GString;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::GString>()
-    }
-}
-
-impl<'a> VariantBorrow<'a> for crate::builtin::StringName {
-    type Borrowed = crate::builtin::StringName;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::StringName>()
-    }
-}
-
-impl<'a> VariantBorrow<'a> for crate::builtin::Vector4 {
-    type Borrowed = crate::builtin::Vector4;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::Vector4>()
-    }
-}
-
-impl<'a> VariantBorrow<'a> for crate::builtin::Rect2 {
-    type Borrowed = crate::builtin::Rect2;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::Rect2>()
-    }
-}
-
-impl<'a> VariantBorrow<'a> for crate::builtin::Aabb {
-    type Borrowed = crate::builtin::Aabb;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::Aabb>()
-    }
-}
-
-impl<'a> VariantBorrow<'a> for crate::builtin::Plane {
-    type Borrowed = crate::builtin::Plane;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::Plane>()
-    }
-}
-
-impl<'a> VariantBorrow<'a> for crate::builtin::Basis {
-    type Borrowed = crate::builtin::Basis;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::Basis>()
-    }
-}
-
-impl<'a> VariantBorrow<'a> for crate::builtin::Transform3D {
-    type Borrowed = crate::builtin::Transform3D;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::Transform3D>()
-    }
-}
-
-impl<'a> VariantBorrow<'a> for crate::builtin::Color {
-    type Borrowed = crate::builtin::Color;
-    fn try_borrow_from_variant(variant: &'a Variant) -> Result<Self::Borrowed, ConvertError> {
-        variant.try_to::<crate::builtin::Color>()
-    }
+impl_variant_borrow_by_try_to! {
+    crate::builtin::GString,
+    crate::builtin::StringName,
+    crate::builtin::Vector4,
+    crate::builtin::Rect2,
+    crate::builtin::Aabb,
+    crate::builtin::Plane,
+    crate::builtin::Basis,
+    crate::builtin::Transform3D,
+    crate::builtin::Color,
 }

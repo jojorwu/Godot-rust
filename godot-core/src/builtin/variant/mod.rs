@@ -105,6 +105,18 @@ impl Variant {
         }
     }
 
+    #[cold]
+    #[inline(never)]
+    #[track_caller]
+    fn panic_invalid_access(&self, op: &str) -> ! {
+        panic!(
+            "{}::{}(): operation invalid for type {:?}",
+            std::any::type_name::<Self>(),
+            op,
+            self.get_type()
+        );
+    }
+
     /// Create an empty variant (`null` value in GDScript).
     ///
     /// If a Godot engine API accepts object (not variant) parameters and you'd like to pass `null`, use
@@ -591,12 +603,9 @@ impl Variant {
                 ptr::addr_of_mut!(valid),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "{}::get_keyed(): operation invalid for type {:?}",
-            std::any::type_name::<Self>(),
-            self.get_type()
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("get_keyed");
+        }
         ret
     }
 
@@ -615,12 +624,9 @@ impl Variant {
                 ptr::addr_of_mut!(valid),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "{}::set_keyed(): operation invalid for type {:?}",
-            std::any::type_name::<Self>(),
-            self.get_type()
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("set_keyed");
+        }
     }
 
     /// Gets the value of a named key from this variant.
@@ -639,12 +645,9 @@ impl Variant {
                 ptr::addr_of_mut!(valid),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "{}::get_named(): operation invalid for type {:?}",
-            std::any::type_name::<Self>(),
-            self.get_type()
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("get_named");
+        }
         ret
     }
 
@@ -663,12 +666,9 @@ impl Variant {
                 ptr::addr_of_mut!(valid),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "{}::set_named(): operation invalid for type {:?}",
-            std::any::type_name::<Self>(),
-            self.get_type()
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("set_named");
+        }
     }
 
     /// Gets the value at the specified index from this variant.
@@ -690,17 +690,15 @@ impl Variant {
                 ptr::addr_of_mut!(oob),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "{}::get_indexed(): operation invalid for type {:?}",
-            std::any::type_name::<Self>(),
-            self.get_type()
-        );
-        assert!(
-            !sys::conv::bool_from_sys(oob),
-            "{}::get_indexed(): index {index} out of bounds",
-            std::any::type_name::<Self>()
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("get_indexed");
+        }
+        if sys::conv::bool_from_sys(oob) {
+            panic!(
+                "{}::get_indexed(): index {index} out of bounds",
+                std::any::type_name::<Self>()
+            );
+        }
         ret
     }
 
@@ -722,17 +720,15 @@ impl Variant {
                 ptr::addr_of_mut!(oob),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "{}::set_indexed(): operation invalid for type {:?}",
-            std::any::type_name::<Self>(),
-            self.get_type()
-        );
-        assert!(
-            !sys::conv::bool_from_sys(oob),
-            "{}::set_indexed(): index {index} out of bounds",
-            std::any::type_name::<Self>()
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("set_indexed");
+        }
+        if sys::conv::bool_from_sys(oob) {
+            panic!(
+                "{}::set_indexed(): index {index} out of bounds",
+                std::any::type_name::<Self>()
+            );
+        }
     }
 
     /// ⚠️ Gets the value at the specified index and converts it to `T`, panicking on failure.
