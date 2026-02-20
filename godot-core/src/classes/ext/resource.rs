@@ -36,6 +36,7 @@ impl ResourceLoader {
     }
 
     /// Alias for [`load_as()`][Self::load_as].
+    #[inline]
     pub fn load_typed<T>(&self, path: impl AsArg<GString>) -> Gd<T>
     where
         T: Inherits<Resource>,
@@ -60,6 +61,7 @@ impl Resource {
     }
 
     /// Alias for [`duplicate_as()`][Self::duplicate_as].
+    #[inline]
     pub fn duplicate_typed<T>(&self, subresources: bool) -> Gd<T>
     where
         T: Inherits<Resource>,
@@ -94,6 +96,7 @@ impl ResourceSaver {
     }
 
     /// Alias for [`save_as()`][Self::save_as].
+    #[inline]
     pub fn save_typed<T>(&self, obj: &Gd<T>, path: impl AsArg<GString>)
     where
         T: Inherits<Resource>,

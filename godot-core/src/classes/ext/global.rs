@@ -76,12 +76,13 @@ impl crate::classes::ClassDb {
 #[cfg(feature = "codegen-full")]
 impl crate::classes::EditorInterface {
     /// Retrieves the editor main screen control, cast to type `T`.
+    #[track_caller]
     pub fn get_editor_main_screen_as<T>(&self) -> Gd<T>
     where
         T: Inherits<crate::classes::Control>,
     {
         self.get_editor_main_screen()
-            .expect("Editor main screen not found")
+            .unwrap_or_else(|| panic!("Editor main screen not found"))
             .upcast::<crate::classes::Control>()
             .cast::<T>()
     }
@@ -95,12 +96,13 @@ impl crate::classes::EditorInterface {
     }
 
     /// Retrieves the editor base control, cast to type `T`.
+    #[track_caller]
     pub fn get_base_control_as<T>(&self) -> Gd<T>
     where
         T: Inherits<crate::classes::Control>,
     {
         self.get_base_control()
-            .expect("Editor base control not found")
+            .unwrap_or_else(|| panic!("Editor base control not found"))
             .upcast::<crate::classes::Control>()
             .cast::<T>()
     }

@@ -117,6 +117,17 @@ impl Variant {
         );
     }
 
+    #[cold]
+    #[inline(never)]
+    #[track_caller]
+    fn panic_to<T>(err: ConvertError) -> ! {
+        panic!(
+            "{}::to<{}>() failed: {err}",
+            std::any::type_name::<Self>(),
+            std::any::type_name::<T>()
+        )
+    }
+
     /// Create an empty variant (`null` value in GDScript).
     ///
     /// If a Godot engine API accepts object (not variant) parameters and you'd like to pass `null`, use
@@ -142,13 +153,7 @@ impl Variant {
     /// When this variant holds a different type.
     #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
-        self.try_to::<T>().unwrap_or_else(|err| {
-            panic!(
-                "{}::to<{}>() failed: {err}",
-                std::any::type_name::<Self>(),
-                std::any::type_name::<T>()
-            )
-        })
+        self.try_to::<T>().unwrap_or_else(|err| Self::panic_to::<T>(err))
     }
 
     /// Convert to type `T`, returning `Err` on failure.

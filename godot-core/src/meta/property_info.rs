@@ -421,15 +421,16 @@ impl PropertyInfo {
 
     #[doc(hidden)]
     pub fn empty_sys() -> sys::GDExtensionPropertyInfo {
+        use crate::builtin::{to_u32, to_u32_from_i32};
         use crate::obj::{EngineBitfield as _, EngineEnum as _};
 
         sys::GDExtensionPropertyInfo {
             type_: VariantType::NIL.sys(),
             name: std::ptr::null_mut(),
             class_name: std::ptr::null_mut(),
-            hint: PropertyHint::NONE.ord() as u32,
+            hint: to_u32_from_i32(PropertyHint::NONE.ord()),
             hint_string: std::ptr::null_mut(),
-            usage: PropertyUsageFlags::NONE.ord() as u32,
+            usage: to_u32(PropertyUsageFlags::NONE.ord()),
         }
     }
 

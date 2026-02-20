@@ -85,8 +85,10 @@ where
     R: RangeBounds<usize>,
 {
     fn signed(&self) -> (i64, Option<i64>) {
-        let lower_bound = lower_bound(self.start_bound().map(|v| *v as i64)).unwrap_or(0);
-        let upper_bound = upper_bound(self.end_bound().map(|v| *v as i64));
+        use crate::builtin::to_i64;
+
+        let lower_bound = lower_bound(self.start_bound().map(|v| to_i64(*v))).unwrap_or(0);
+        let upper_bound = upper_bound(self.end_bound().map(|v| to_i64(*v)));
 
         (lower_bound, upper_bound)
     }

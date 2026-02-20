@@ -250,7 +250,7 @@ impl AnyArray {
         self.balanced_ensure_mutable();
 
         let method = crate::static_sname!(c"reserve");
-        let arg = Variant::from(capacity as i64);
+        let arg = Variant::from(to_i64(capacity));
         let variant = self.ffi_to_variant();
         variant.call(method, &[arg]);
 

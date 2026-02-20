@@ -112,6 +112,7 @@ impl Object {
     }
 
     /// Returns the list of properties for this object as a `Vec<PropertyInfo>`.
+    #[inline]
     pub fn get_property_list_typed(&self) -> Vec<PropertyInfo> {
         self.get_property_list()
             .iter_shared()

@@ -203,7 +203,9 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.get_child(index as i32)
+        use crate::builtin::{to_i32, to_i64};
+
+        self.get_child(to_i32(to_i64(index)))
             .and_then(|node| node.try_cast::<T>().ok())
     }
 
@@ -219,6 +221,7 @@ impl Node {
     /// Retrieves all children, cast to type `T`.
     ///
     /// Children that cannot be cast to `T` are ignored.
+    #[inline]
     pub fn get_children_as<T>(&self) -> Vec<Gd<T>>
     where
         T: Inherits<Node>,
@@ -230,6 +233,7 @@ impl Node {
     }
 
     /// Alias for [`get_children_as()`][Self::get_children_as].
+    #[inline]
     pub fn get_children_typed<T>(&self) -> Vec<Gd<T>>
     where
         T: Inherits<Node>,
@@ -272,6 +276,7 @@ impl Node {
     }
 
     /// Returns an iterator over children of type `T`.
+    #[inline]
     pub fn iter_children_typed<T>(&self) -> impl Iterator<Item = Gd<T>> + '_
     where
         T: Inherits<Node>,
@@ -282,6 +287,7 @@ impl Node {
     }
 
     /// Returns the first child of type `T`.
+    #[inline]
     pub fn get_first_child_typed<T>(&self) -> Option<Gd<T>>
     where
         T: Inherits<Node>,

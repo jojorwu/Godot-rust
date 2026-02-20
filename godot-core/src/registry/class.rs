@@ -493,13 +493,13 @@ fn fill_class_info(item: PluginItem, c: &mut ClassRegistrationInfo) {
                 &mut c.godot_params.create_instance_func,
                 generated_create_fn,
             )
-            .expect("duplicate: create_instance_func (def)");
+            .unwrap_or_else(|_| panic!("duplicate: create_instance_func (def)"));
 
             fill_into(
                 &mut c.godot_params.recreate_instance_func,
                 generated_recreate_fn,
             )
-            .expect("duplicate: recreate_instance_func (def)");
+            .unwrap_or_else(|_| panic!("duplicate: recreate_instance_func (def)"));
 
             c.godot_params.is_exposed = sys::conv::bool_to_sys(!is_internal);
 
@@ -540,10 +540,10 @@ fn fill_class_info(item: PluginItem, c: &mut ClassRegistrationInfo) {
             // multiple `impl I{Class} for Thing` definitions.
 
             fill_into(&mut c.godot_params.create_instance_func, user_create_fn)
-                .expect("duplicate: create_instance_func (i)");
+                .unwrap_or_else(|_| panic!("duplicate: create_instance_func (i)"));
 
             fill_into(&mut c.godot_params.recreate_instance_func, user_recreate_fn)
-                .expect("duplicate: recreate_instance_func (i)");
+                .unwrap_or_else(|_| panic!("duplicate: recreate_instance_func (i)"));
 
             c.godot_params.to_string_func = user_to_string_fn;
             c.godot_params.notification_func = user_on_notification_fn;
@@ -595,7 +595,7 @@ fn register_class_raw(mut info: ClassRegistrationInfo) {
     let class_name = info.class_name;
     let parent_class_name = info
         .parent_class_name
-        .expect("class defined (parent_class_name)");
+        .unwrap_or_else(|| panic!("class defined (parent_class_name)"));
 
     // Register virtual functions -- if the user provided some via #[godot_api], take those; otherwise, use the
     // ones generated alongside #[derive(GodotClass)]. The latter can also be null, if no OnReady is provided.

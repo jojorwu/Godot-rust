@@ -269,8 +269,10 @@ impl CallError {
                 Self::new(call_ctx, "method not found", None)
             }
             sys::GDEXTENSION_CALL_ERROR_INVALID_ARGUMENT => {
+                use crate::builtin::to_usize;
+
                 // Index calculation relies on patterns like call("...", varargs), might not always work...
-                let from = arg_types[vararg_offset + argument as usize];
+                let from = arg_types[vararg_offset + to_usize(i64::from(argument))];
                 let to = VariantType::from_sys(expected as sys::GDExtensionVariantType);
                 let i = argument + 1;
 
@@ -278,8 +280,14 @@ impl CallError {
             }
             sys::GDEXTENSION_CALL_ERROR_TOO_MANY_ARGUMENTS
             | sys::GDEXTENSION_CALL_ERROR_TOO_FEW_ARGUMENTS => {
+                use crate::builtin::to_usize;
+
                 let arg_count = arg_types.len() - vararg_offset;
-                let param_count = expected as usize;
+                let param_count = if expected < 0 {
+                    0 // Should not happen in practice.
+                } else {
+                    to_usize(i64::from(expected))
+                };
                 Self::failed_param_count(call_ctx, arg_count, param_count)
             }
             sys::GDEXTENSION_CALL_ERROR_INSTANCE_IS_NULL => {

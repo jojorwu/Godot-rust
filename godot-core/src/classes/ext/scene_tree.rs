@@ -38,6 +38,7 @@ impl SceneTree {
     }
 
     /// Alias for [`get_first_node_in_group_as()`][Self::get_first_node_in_group_as].
+    #[inline]
     pub fn get_first_node_in_group_typed<T>(&mut self, group: impl AsArg<StringName>) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -48,6 +49,7 @@ impl SceneTree {
     /// Retrieves all nodes in a group, cast to type `T`.
     ///
     /// Nodes that cannot be cast to `T` are ignored.
+    #[inline]
     pub fn get_nodes_in_group_as<T>(&mut self, group: impl AsArg<StringName>) -> Vec<Gd<T>>
     where
         T: Inherits<Node>,
