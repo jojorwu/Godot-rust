@@ -289,14 +289,14 @@ impl MethodInfo {
             flags,
         } = self;
 
-        let argument_count = to_u32(arguments.len() as u64);
+        let argument_count = crate::builtin::to_u32_from_usize(arguments.len());
         let arguments = arguments
             .into_iter()
             .map(|arg| arg.into_owned_property_sys())
             .collect::<Box<[_]>>();
         let arguments = Box::leak(arguments).as_mut_ptr();
 
-        let default_argument_count = to_u32(default_arguments.len() as u64);
+        let default_argument_count = crate::builtin::to_u32_from_usize(default_arguments.len());
         let default_argument = default_arguments
             .into_iter()
             .map(|arg| arg.into_owned_var_sys())

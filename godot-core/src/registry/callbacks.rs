@@ -328,7 +328,7 @@ pub unsafe extern "C" fn get_property_list<T: cap::GodotGetPropertyList>(
 
     // SAFETY: Godot ensures that `count` is initialized and valid to write into.
     unsafe {
-        *count = crate::builtin::to_u32(property_list_sys.len() as u64);
+        *count = crate::builtin::to_u32_from_usize(property_list_sys.len());
     }
 
     Box::leak(property_list_sys).as_mut_ptr()

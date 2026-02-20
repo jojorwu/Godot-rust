@@ -128,7 +128,7 @@ impl PropertyInfo {
 
         let variant_type = dict
             .get_as::<&str, i64>("type")
-            .map(|ty| VariantType::from_sys(ty as _))
+            .map(|ty| VariantType::from_sys(crate::builtin::to_i32(ty) as _))
             .unwrap_or(VariantType::NIL);
 
         let property_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();

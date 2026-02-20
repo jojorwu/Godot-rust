@@ -534,7 +534,7 @@ impl Variant {
                     sys::SysPtr::force_mut(self.var_sys()),
                     method.string_sys(),
                     args_ptr,
-                    args.len() as i64,
+                    crate::builtin::to_i64(args.len()),
                     variant_ptr,
                     ptr::addr_of_mut!(error),
                 )
@@ -562,7 +562,7 @@ impl Variant {
     pub fn evaluate(&self, rhs: &Variant, op: VariantOperator) -> Option<Variant> {
         use crate::obj::EngineEnum;
 
-        let op_sys = i64::from(op.ord()) as sys::GDExtensionVariantOperator;
+        let op_sys = crate::builtin::to_i32(i64::from(op.ord())) as sys::GDExtensionVariantOperator;
         let mut is_valid = sys::conv::SYS_FALSE;
 
         let result = unsafe {
@@ -831,8 +831,8 @@ impl Variant {
     #[inline]
     pub fn booleanize(&self) -> bool {
         // See Variant::is_zero(), roughly https://github.com/godotengine/godot/blob/master/core/variant/variant.cpp#L859.
-
-        unsafe { interface_fn!(variant_booleanize)(self.var_sys()) != 0 }
+        let booleanized = unsafe { interface_fn!(variant_booleanize)(self.var_sys()) };
+        sys::conv::bool_from_sys(booleanized)
     }
 
     /// Assuming that this is of type `OBJECT`, checks whether the object is dead.

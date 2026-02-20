@@ -290,12 +290,12 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     type_ptrs_vec.as_ptr()
                 };
 
-                use crate::builtin::{to_i32, to_i64};
+                use crate::builtin::to_i32;
 
                 // Important: this calls from_sys_init_default().
                 // SAFETY: `return_ptr` is a pointer to an uninitialized FFI value, which is safe to initialize.
                 // `type_ptrs` contains valid pointers to arguments.
-                utility_fn(return_ptr, type_ptrs, to_i32(to_i64(total_count)));
+                utility_fn(return_ptr, type_ptrs, to_i32(total_count as i64));
             })
         }
     }
@@ -339,10 +339,15 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     type_ptrs_vec.as_ptr()
                 };
 
-                use crate::builtin::{to_i32, to_i64};
+                use crate::builtin::to_i32;
 
                 // Important: this calls from_sys_init_default().
-                builtin_fn(type_ptr, type_ptrs, return_ptr, to_i32(to_i64(total_count)));
+                builtin_fn(
+                    type_ptr,
+                    type_ptrs,
+                    return_ptr,
+                    to_i32(total_count as i64),
+                );
             })
         }
     }
@@ -395,13 +400,13 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
 
         unsafe {
             Self::raw_ptrcall(args, &call_ctx, |explicit_args, return_ptr| {
-                use crate::builtin::{to_i32, to_i64};
+                use crate::builtin::to_i32;
 
                 builtin_fn(
                     type_ptr,
                     explicit_args.as_ptr(),
                     return_ptr,
-                    to_i32(to_i64(explicit_args.len())),
+                    to_i32(explicit_args.len() as i64),
                 );
             })
         }
@@ -422,12 +427,12 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
 
         unsafe {
             Self::raw_ptrcall(args, &call_ctx, |explicit_args, return_ptr| {
-                use crate::builtin::{to_i32, to_i64};
+                use crate::builtin::to_i32;
 
                 utility_fn(
                     return_ptr,
                     explicit_args.as_ptr(),
-                    to_i32(to_i64(explicit_args.len())),
+                    to_i32(explicit_args.len() as i64),
                 );
             })
         }

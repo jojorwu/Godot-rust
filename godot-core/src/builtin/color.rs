@@ -155,7 +155,7 @@ impl Color {
     /// format where the three color components have 9 bits of precision and all three share a
     /// single 5-bit exponent.
     pub fn from_rgbe9995(rgbe: u32) -> Self {
-        InnerColor::from_rgbe9995(rgbe as i64)
+        InnerColor::from_rgbe9995(i64::from(rgbe))
     }
 
     /// Returns a copy of this color with the given alpha value. Useful for chaining with

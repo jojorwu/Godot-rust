@@ -185,10 +185,10 @@ impl ClassMethodInfo {
     }
 
     fn argument_count(&self) -> u32 {
-        crate::builtin::to_u32(self.arguments.len() as u64)
+        crate::builtin::to_u32_from_usize(self.arguments.len())
     }
 
     fn default_argument_count(&self) -> u32 {
-        crate::builtin::to_u32(self.default_arguments.len() as u64)
+        crate::builtin::to_u32_from_usize(self.default_arguments.len())
     }
 }

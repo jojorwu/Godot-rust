@@ -74,7 +74,7 @@ impl Signal {
     pub fn connect(&self, callable: &Callable) -> Error {
         let error = self.as_inner().connect(callable, 0i64);
 
-        Error::from_godot(error as i32)
+        Error::from_godot(crate::builtin::to_i32(error))
     }
 
     /// Connect signal to a callable, customizing with flags.
@@ -88,7 +88,7 @@ impl Signal {
     pub fn connect_flags(&self, callable: &Callable, flags: ConnectFlags) -> Error {
         let error = self.as_inner().connect(callable, flags.ord() as i64);
 
-        Error::from_godot(error as i32)
+        Error::from_godot(crate::builtin::to_i32(error))
     }
 
     /// Disconnects this signal from the specified [`Callable`].
