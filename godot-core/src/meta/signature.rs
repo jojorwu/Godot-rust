@@ -295,7 +295,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 // Important: this calls from_sys_init_default().
                 // SAFETY: `return_ptr` is a pointer to an uninitialized FFI value, which is safe to initialize.
                 // `type_ptrs` contains valid pointers to arguments.
-                utility_fn(return_ptr, type_ptrs, to_i32(total_count as i64));
+                utility_fn(return_ptr, type_ptrs, to_i32(crate::builtin::to_i64(total_count)));
             })
         }
     }
@@ -346,7 +346,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     type_ptr,
                     type_ptrs,
                     return_ptr,
-                    to_i32(total_count as i64),
+                    to_i32(crate::builtin::to_i64(total_count)),
                 );
             })
         }
@@ -406,7 +406,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     type_ptr,
                     explicit_args.as_ptr(),
                     return_ptr,
-                    to_i32(explicit_args.len() as i64),
+                    to_i32(crate::builtin::to_i64(explicit_args.len())),
                 );
             })
         }
@@ -432,7 +432,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 utility_fn(
                     return_ptr,
                     explicit_args.as_ptr(),
-                    to_i32(explicit_args.len() as i64),
+                    to_i32(crate::builtin::to_i64(explicit_args.len())),
                 );
             })
         }

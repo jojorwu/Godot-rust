@@ -247,7 +247,12 @@ impl<T: GodotClass> Base<T> {
                 let strong_ref_raw = strong_ref.raw;
                 let raw = strong_ref_raw
                     .ffi_cast::<classes::RefCounted>()
-                    .expect("Base must be RefCounted")
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "{}::upcast(): base must be RefCounted",
+                            std::any::type_name::<Self>()
+                        )
+                    })
                     .into_dest(strong_ref_raw);
 
                 e.insert(Gd { raw });

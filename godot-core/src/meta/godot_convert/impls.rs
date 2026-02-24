@@ -415,9 +415,12 @@ impl<T: ArrayElement, const LEN: usize> FromGodot for [T; LEN] {
         }
 
         let array = option_array.map(|some| {
-            some.expect(
-                "Elements were removed from Array during `iter_shared()`, this is not allowed",
-            )
+            some.unwrap_or_else(|| {
+                panic!(
+                    "{}::try_from_godot(): elements were removed from Array during `iter_shared()`; this is not allowed",
+                    std::any::type_name::<Self>()
+                )
+            })
         });
 
         Ok(array)

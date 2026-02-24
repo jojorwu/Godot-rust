@@ -411,9 +411,12 @@ impl<T: GodotClass> Gd<T> {
     #[cfg(feature = "trace")] // itest only.
     #[doc(hidden)]
     pub fn test_refcount(&self) -> Option<usize> {
-        self.maybe_refcount()
-            .transpose()
-            .expect("failed to obtain refcount")
+        self.maybe_refcount().transpose().unwrap_or_else(|_| {
+            panic!(
+                "{}::test_refcount(): failed to obtain refcount",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     /// **Upcast:** convert into a smart pointer to a base class. Always succeeds.
@@ -435,8 +438,13 @@ impl<T: GodotClass> Gd<T> {
         Base: GodotClass,
         T: Inherits<Base>,
     {
-        self.owned_cast()
-            .expect("Upcast failed. This is a bug; please report it.")
+        self.owned_cast().unwrap_or_else(|_| {
+            panic!(
+                "{}::upcast(): upcast to {} failed; this is a bug, please report it",
+                std::any::type_name::<Self>(),
+                std::any::type_name::<Base>()
+            )
+        })
     }
 
     /// Equivalent to [`upcast::<Object>()`][Self::upcast], but without bounds.
@@ -444,8 +452,12 @@ impl<T: GodotClass> Gd<T> {
     #[doc(hidden)] // no public API, but used by #[signal].
     #[inline]
     pub fn upcast_object(self) -> Gd<classes::Object> {
-        self.owned_cast()
-            .expect("Upcast to Object failed. This is a bug; please report it.")
+        self.owned_cast().unwrap_or_else(|_| {
+            panic!(
+                "{}::upcast_object(): upcast to Object failed; this is a bug, please report it",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     // /// Equivalent to [`upcast_mut::<Object>()`][Self::upcast_mut], but without bounds.
@@ -1200,7 +1212,13 @@ where
     }
 
     fn var_pub_get(field: &Self) -> Self::PubType {
-        Self::var_get(field).expect("generated #[var(pub)] getter: uninitialized OnEditor<Gd<T>>")
+        Self::var_get(field).unwrap_or_else(|| {
+            panic!(
+                "{}::var_pub_get(): generated #[var(pub)] getter: uninitialized OnEditor<{}>",
+                std::any::type_name::<Self>(),
+                std::any::type_name::<T>()
+            )
+        })
     }
 
     fn var_pub_set(field: &mut Self, value: Self::PubType) {
