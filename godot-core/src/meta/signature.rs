@@ -82,7 +82,7 @@ where
         func: unsafe fn(sys::GDExtensionClassInstancePtr, Params) -> Ret,
     ) -> CallResult<()> {
         //$crate::out!("in_varcall: {call_ctx}");
-        let arg_count = arg_count as usize;
+        let arg_count = crate::builtin::to_usize(arg_count);
         CallError::check_arg_count(call_ctx, arg_count, default_values.len(), Params::LEN)?;
 
         #[cfg(feature = "trace")]
@@ -156,6 +156,8 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
         let class_fn = sys::interface_fn!(object_method_bind_call);
 
         let variant = args.with_variants(|explicit_args| {
+            use crate::builtin::to_i64;
+
             let total_count = explicit_args.len() + varargs.len();
 
             let call_with_ptrs = |ptrs: *const sys::GDExtensionConstVariantPtr| unsafe {
@@ -165,7 +167,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                         method_bind.0,
                         ValidatedObject::object_ptr(validated_obj.as_ref()),
                         ptrs,
-                        total_count as i64,
+                        to_i64(total_count),
                         return_ptr,
                         &raw mut err,
                     );
@@ -228,6 +230,8 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
         let object_call_script_method = sys::interface_fn!(object_call_script_method);
 
         let variant = args.with_variant_pointers(|sys_args| {
+            use crate::builtin::to_i64;
+
             // SAFETY: `return_ptr` is a pointer to an uninitialized `Variant`, which is safe to initialize.
             unsafe {
                 Variant::new_with_var_uninit(|return_ptr| {
@@ -236,7 +240,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                         object_ptr,
                         method_sname_ptr,
                         sys_args.as_ptr(),
-                        sys_args.len() as i64,
+                        to_i64(sys_args.len()),
                         return_ptr,
                         &raw mut err,
                     );
@@ -286,10 +290,12 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     type_ptrs_vec.as_ptr()
                 };
 
+                use crate::builtin::to_i32;
+
                 // Important: this calls from_sys_init_default().
                 // SAFETY: `return_ptr` is a pointer to an uninitialized FFI value, which is safe to initialize.
                 // `type_ptrs` contains valid pointers to arguments.
-                utility_fn(return_ptr, type_ptrs, total_count as i32);
+                utility_fn(return_ptr, type_ptrs, to_i32(total_count as i64));
             })
         }
     }
@@ -333,8 +339,15 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                     type_ptrs_vec.as_ptr()
                 };
 
+                use crate::builtin::to_i32;
+
                 // Important: this calls from_sys_init_default().
-                builtin_fn(type_ptr, type_ptrs, return_ptr, total_count as i32);
+                builtin_fn(
+                    type_ptr,
+                    type_ptrs,
+                    return_ptr,
+                    to_i32(total_count as i64),
+                );
             })
         }
     }
@@ -387,11 +400,13 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
 
         unsafe {
             Self::raw_ptrcall(args, &call_ctx, |explicit_args, return_ptr| {
+                use crate::builtin::to_i32;
+
                 builtin_fn(
                     type_ptr,
                     explicit_args.as_ptr(),
                     return_ptr,
-                    explicit_args.len() as i32,
+                    to_i32(explicit_args.len() as i64),
                 );
             })
         }
@@ -412,10 +427,12 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
 
         unsafe {
             Self::raw_ptrcall(args, &call_ctx, |explicit_args, return_ptr| {
+                use crate::builtin::to_i32;
+
                 utility_fn(
                     return_ptr,
                     explicit_args.as_ptr(),
-                    explicit_args.len() as i32,
+                    to_i32(explicit_args.len() as i64),
                 );
             })
         }

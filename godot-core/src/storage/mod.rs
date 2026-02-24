@@ -18,6 +18,7 @@ pub use instance_storage::*;
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Shared code for submodules
 
+#[track_caller]
 fn bind_failed<T>(err: Box<dyn std::error::Error>, tracker: &DebugBorrowTracker) -> ! {
     let ty = type_name::<T>();
 
@@ -30,6 +31,7 @@ fn bind_failed<T>(err: Box<dyn std::error::Error>, tracker: &DebugBorrowTracker)
     )
 }
 
+#[track_caller]
 fn bind_mut_failed<T>(err: Box<dyn std::error::Error>, tracker: &DebugBorrowTracker) -> ! {
     let ty = type_name::<T>();
 
@@ -42,6 +44,7 @@ fn bind_mut_failed<T>(err: Box<dyn std::error::Error>, tracker: &DebugBorrowTrac
     )
 }
 
+#[track_caller]
 fn bug_inaccessible<T>(err: Box<dyn std::error::Error>) -> ! {
     // We should never hit this, except maybe in extreme cases like having more than `usize::MAX` borrows.
     let ty = type_name::<T>();

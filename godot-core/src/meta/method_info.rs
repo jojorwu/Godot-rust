@@ -107,13 +107,17 @@ pub struct MethodInfo {
 
 impl MethodInfo {
     /// Create a `MethodInfo` from a dictionary.
+    #[track_caller]
     pub fn from_dictionary(dict: &VarDictionary) -> Self {
-        use crate::builtin::VarArray;
+        use crate::builtin::{to_i32, to_u64, VarArray};
         use crate::obj::EngineBitfield;
 
         let method_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();
 
-        let id = dict.get_as::<&str, i64>("id").unwrap_or(0) as i32;
+        let id = dict
+            .get_as::<&str, i64>("id")
+            .map(to_i32)
+            .unwrap_or(0);
 
         let return_type = dict
             .get_as::<&str, VarDictionary>("return")
@@ -136,7 +140,7 @@ impl MethodInfo {
 
         let flags = dict
             .get_as::<&str, i64>("flags")
-            .map(|f| MethodFlags::from_ord(f as u64))
+            .map(|f| MethodFlags::from_ord(to_u64(f)))
             .unwrap_or(MethodFlags::DEFAULT);
 
         Self {
@@ -151,8 +155,9 @@ impl MethodInfo {
     }
 
     /// Convert `MethodInfo` to a dictionary.
+    #[track_caller]
     pub fn to_dictionary(&self) -> VarDictionary {
-        use crate::builtin::{vdict, VarArray};
+        use crate::builtin::{to_i64_from_u64, vdict, VarArray};
         use crate::obj::EngineBitfield;
 
         let args: VarArray = self
@@ -168,8 +173,8 @@ impl MethodInfo {
             "args": args,
             "default_args": default_args,
             "return": self.return_type.to_dictionary(),
-            "flags": self.flags.ord() as i64,
-            "id": self.id as i64,
+            "flags": to_i64_from_u64(self.flags.ord()),
+            "id": i64::from(self.id),
         }
     }
 
@@ -270,6 +275,7 @@ impl MethodInfo {
     /// This will leak memory unless used together with `free_owned_method_sys`.
     #[doc(hidden)]
     pub fn into_owned_method_sys(self) -> sys::GDExtensionMethodInfo {
+        use crate::builtin::to_u32;
         use crate::obj::EngineBitfield as _;
 
         // Destructure self to ensure all fields are used.
@@ -283,20 +289,14 @@ impl MethodInfo {
             flags,
         } = self;
 
-        let argument_count: u32 = arguments
-            .len()
-            .try_into()
-            .expect("cannot have more than `u32::MAX` arguments");
+        let argument_count = crate::builtin::to_u32_from_usize(arguments.len());
         let arguments = arguments
             .into_iter()
             .map(|arg| arg.into_owned_property_sys())
             .collect::<Box<[_]>>();
         let arguments = Box::leak(arguments).as_mut_ptr();
 
-        let default_argument_count: u32 = default_arguments
-            .len()
-            .try_into()
-            .expect("cannot have more than `u32::MAX` default arguments");
+        let default_argument_count = crate::builtin::to_u32_from_usize(default_arguments.len());
         let default_argument = default_arguments
             .into_iter()
             .map(|arg| arg.into_owned_var_sys())
@@ -311,7 +311,7 @@ impl MethodInfo {
             arguments,
             default_argument_count,
             default_arguments,
-            flags: flags.ord().try_into().expect("flags should be valid"),
+            flags: to_u32(flags.ord()),
         }
     }
 

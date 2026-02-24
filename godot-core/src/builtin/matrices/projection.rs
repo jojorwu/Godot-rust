@@ -40,7 +40,7 @@ use crate::builtin::{
 /// # Godot docs
 ///
 /// [`Projection` (stable)](https://docs.godotengine.org/en/stable/classes/class_projection.html)
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Projection {
@@ -429,6 +429,26 @@ impl Projection {
         self.glam(|mat| mat.inverse())
     }
 
+    /// Returns `true` if each component of this projection is finite.
+    #[inline]
+    pub fn is_finite(&self) -> bool {
+        self.cols[0].is_finite()
+            && self.cols[1].is_finite()
+            && self.cols[2].is_finite()
+            && self.cols[3].is_finite()
+    }
+
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(&self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// Returns `true` if this Projection performs an orthogonal projection.
     ///
     /// _Godot equivalent: `Projection.is_orthogonal()`_
@@ -473,6 +493,12 @@ impl Projection {
     pub(crate) fn as_inner(&self) -> inner::InnerProjection<'_> {
         inner::InnerProjection::from_outer(self)
     }
+
+    /// Returns `true` if this projection and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
+    }
 }
 
 impl From<Transform3D> for Projection {
@@ -506,6 +532,8 @@ impl Mul<Vector4> for Projection {
 impl std::ops::Index<Vector4Axis> for Projection {
     type Output = Vector4;
 
+    #[inline]
+    #[track_caller]
     fn index(&self, index: Vector4Axis) -> &Self::Output {
         match index {
             Vector4Axis::X => &self.cols[0],
@@ -513,6 +541,36 @@ impl std::ops::Index<Vector4Axis> for Projection {
             Vector4Axis::Z => &self.cols[2],
             Vector4Axis::W => &self.cols[3],
         }
+    }
+}
+
+impl std::ops::Index<usize> for Projection {
+    type Output = Vector4;
+
+    #[inline]
+    #[track_caller]
+    fn index(&self, index: usize) -> &Self::Output {
+        if index >= 4 {
+            panic!(
+                "{}::index(): index {index} out of bounds (len 4)",
+                std::any::type_name::<Self>()
+            );
+        }
+        &self.cols[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for Projection {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        if index >= 4 {
+            panic!(
+                "{}::index_mut(): index {index} out of bounds (len 4)",
+                std::any::type_name::<Self>()
+            );
+        }
+        &mut self.cols[index]
     }
 }
 
@@ -591,6 +649,16 @@ impl ProjectionPlane {
             _ => None,
         }
     }
+
+    #[track_caller]
+    pub fn from_ord(ord: i64) -> Self {
+        Self::try_from_ord(ord).unwrap_or_else(|| {
+            panic!(
+                "{}::from_ord(): ordinal {ord} does not map to any valid projection plane",
+                std::any::type_name::<Self>()
+            )
+        })
+    }
 }
 
 /// The eye to create a projection for, when creating a projection adjusted for head-mounted displays.
@@ -609,6 +677,16 @@ impl ProjectionEye {
             2 => Some(Self::RIGHT),
             _ => None,
         }
+    }
+
+    #[track_caller]
+    pub fn from_ord(ord: i64) -> Self {
+        Self::try_from_ord(ord).unwrap_or_else(|| {
+            panic!(
+                "{}::from_ord(): ordinal {ord} does not map to any valid projection eye",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 }
 

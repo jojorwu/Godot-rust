@@ -49,6 +49,8 @@ impl Quaternion {
     ///
     /// # Panics
     /// If the vector3 is not normalized.
+    #[inline]
+    #[track_caller]
     pub fn from_axis_angle(axis: Vector3, angle: real) -> Self {
         assert!(
             axis.is_normalized(),
@@ -76,6 +78,8 @@ impl Quaternion {
     /// 0.001, or better if `double-precision` is enabled.
     ///
     /// *Godot equivalent: `Quaternion(arc_from: Vector3, arc_to: Vector3)`*
+    #[inline]
+    #[track_caller]
     pub fn from_rotation_arc(arc_from: Vector3, arc_to: Vector3) -> Self {
         sys::balanced_assert!(
             arc_from.is_normalized(),
@@ -163,18 +167,22 @@ impl Quaternion {
         Self::new(-self.x, -self.y, -self.z, self.w)
     }
 
+    /// Returns `true` if each component of this quaternion is finite.
     pub fn is_finite(self) -> bool {
         self.x.is_finite() && self.y.is_finite() && self.z.is_finite() && self.w.is_finite()
     }
 
+    /// Returns `true` if this quaternion is normalized, i.e. its length is approximately equal to 1.
     pub fn is_normalized(self) -> bool {
         self.length_squared().approx_eq(&1.0)
     }
 
+    /// Returns the length (magnitude) of this quaternion.
     pub fn length(self) -> real {
         self.length_squared().sqrt()
     }
 
+    /// Returns the squared length (squared magnitude) of this quaternion.
     pub fn length_squared(self) -> real {
         self.dot(self)
     }
@@ -186,6 +194,8 @@ impl Quaternion {
 
     /// # Panics
     /// If the quaternion has length of 0.
+    #[inline]
+    #[track_caller]
     pub fn normalized(self) -> Self {
         let length = self.length();
         assert!(!length.approx_eq(&0.0), "Quaternion has length 0");
@@ -194,24 +204,30 @@ impl Quaternion {
 
     /// # Panics
     /// If either quaternion is not normalized.
+    #[inline]
+    #[track_caller]
     pub fn slerp(self, to: Self, weight: real) -> Self {
-        let normalized_inputs = self.ensure_normalized(&[&to]);
-        assert!(normalized_inputs, "Slerp requires normalized quaternions");
+        self.assert_normalized();
+        to.assert_normalized();
 
         self.as_inner().slerp(to, weight.as_f64())
     }
 
     /// # Panics
     /// If either quaternion is not normalized.
+    #[inline]
+    #[track_caller]
     pub fn slerpni(self, to: Self, weight: real) -> Self {
-        let normalized_inputs = self.ensure_normalized(&[&to]);
-        assert!(normalized_inputs, "Slerpni requires normalized quaternions");
+        self.assert_normalized();
+        to.assert_normalized();
 
         self.as_inner().slerpni(to, weight.as_f64())
     }
 
     /// # Panics
     /// If any quaternions are not normalized.
+    #[inline]
+    #[track_caller]
     pub fn spherical_cubic_interpolate(
         self,
         b: Self,
@@ -219,11 +235,10 @@ impl Quaternion {
         post_b: Self,
         weight: real,
     ) -> Self {
-        let normalized_inputs = self.ensure_normalized(&[&b, &pre_a, &post_b]);
-        assert!(
-            normalized_inputs,
-            "Spherical cubic interpolation requires normalized quaternions"
-        );
+        self.assert_normalized();
+        b.assert_normalized();
+        pre_a.assert_normalized();
+        post_b.assert_normalized();
 
         self.as_inner()
             .spherical_cubic_interpolate(b, pre_a, post_b, weight.as_f64())
@@ -232,6 +247,8 @@ impl Quaternion {
     /// # Panics
     /// If any quaternions are not normalized.
     #[allow(clippy::too_many_arguments)]
+    #[inline]
+    #[track_caller]
     pub fn spherical_cubic_interpolate_in_time(
         self,
         b: Self,
@@ -242,11 +259,10 @@ impl Quaternion {
         pre_a_t: real,
         post_b_t: real,
     ) -> Self {
-        let normalized_inputs = self.ensure_normalized(&[&b, &pre_a, &post_b]);
-        assert!(
-            normalized_inputs,
-            "Spherical cubic interpolation in time requires normalized quaternions"
-        );
+        self.assert_normalized();
+        b.assert_normalized();
+        pre_a.assert_normalized();
+        post_b.assert_normalized();
 
         self.as_inner().spherical_cubic_interpolate_in_time(
             b,
@@ -259,14 +275,37 @@ impl Quaternion {
         )
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_normalized(&self) {
+        assert!(
+            self.is_normalized(),
+            "{} {:?} is not normalized",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     #[doc(hidden)]
     pub fn as_inner(&self) -> inner::InnerQuaternion<'_> {
         inner::InnerQuaternion::from_outer(self)
     }
 
-    #[doc(hidden)]
-    fn ensure_normalized(&self, quats: &[&Quaternion]) -> bool {
-        quats.iter().all(|v| v.is_normalized()) && self.is_normalized()
+    /// Returns `true` if this quaternion and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 }
 
@@ -323,7 +362,10 @@ impl Mul<Vector3> for Quaternion {
     ///
     /// # Panics
     /// If the quaternion is not normalized.
+    #[inline]
+    #[track_caller]
     fn mul(self, rhs: Vector3) -> Self::Output {
+        self.assert_normalized();
         Vector3::from_glam(self.to_glam().mul_vec3(rhs.to_glam()))
     }
 }

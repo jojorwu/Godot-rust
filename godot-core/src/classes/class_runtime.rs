@@ -67,7 +67,7 @@ pub(crate) fn debug_string_variant(
                 .try_to_relaxed::<i32>()
                 .expect("get_reference_count() must return integer");
 
-            Ok(count as usize)
+            Ok(crate::builtin::to_usize(count as i64))
         });
 
         debug_string_parts(f, ty, id, class, refcount, None)
@@ -211,6 +211,7 @@ where
 /// # Panics (balanced+strict safeguards)
 /// If the object has been freed or the instance ID points to a different object.
 #[cfg(safeguards_balanced)]
+#[track_caller]
 pub(crate) fn ensure_object_alive(
     instance_id: InstanceId,
     old_object_ptr: sys::GDExtensionObjectPtr,
@@ -232,6 +233,7 @@ pub(crate) fn ensure_object_alive(
 }
 
 #[cfg(safeguards_strict)]
+#[track_caller]
 pub(crate) fn ensure_object_inherits(derived: ClassId, base: ClassId, instance_id: InstanceId) {
     if derived == base
         || base == Object::class_id() // for Object base, anything inherits by definition
@@ -247,6 +249,7 @@ pub(crate) fn ensure_object_inherits(derived: ClassId, base: ClassId, instance_i
 }
 
 #[cfg(safeguards_strict)]
+#[track_caller]
 pub(crate) fn ensure_binding_not_null<T>(binding: sys::GDExtensionClassInstancePtr)
 where
     T: GodotClass + Bounds<Declarer = bounds::DeclUser>,

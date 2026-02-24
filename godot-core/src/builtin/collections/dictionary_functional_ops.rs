@@ -24,6 +24,7 @@ impl<'a> DictionaryFunctionalOps<'a> {
     ///
     /// The callable has signature `fn(key, value) -> bool`.
     #[must_use]
+    #[track_caller]
     pub fn filter(&self, callable: &Callable) -> VarDictionary {
         #[cfg(since_api = "4.3")]
         {
@@ -50,6 +51,7 @@ impl<'a> DictionaryFunctionalOps<'a> {
     ///
     /// The callable has signature `fn(key, value) -> Variant`.
     #[must_use]
+    #[track_caller]
     pub fn map(&self, callable: &Callable) -> VarDictionary {
         #[cfg(since_api = "4.3")]
         {
@@ -76,6 +78,7 @@ impl<'a> DictionaryFunctionalOps<'a> {
     /// The callable takes three arguments: the accumulator, the current key and the current value.
     /// It returns the new accumulator value. The process starts with `initial` as the accumulator.
     #[must_use]
+    #[track_caller]
     pub fn reduce(&self, callable: &Callable, initial: &Variant) -> Variant {
         let mut acc = initial.clone();
         for (key, value) in self.dict.iter_shared() {
@@ -88,6 +91,7 @@ impl<'a> DictionaryFunctionalOps<'a> {
     /// Returns `true` if the callable returns a truthy value for at least one element.
     ///
     /// The callable has signature `fn(key, value) -> bool`.
+    #[track_caller]
     pub fn any(&self, callable: &Callable) -> bool {
         #[cfg(since_api = "4.3")]
         {
@@ -111,6 +115,7 @@ impl<'a> DictionaryFunctionalOps<'a> {
     /// Returns `true` if the callable returns a truthy value for all elements.
     ///
     /// The callable has signature `fn(key, value) -> bool`.
+    #[track_caller]
     pub fn all(&self, callable: &Callable) -> bool {
         #[cfg(since_api = "4.3")]
         {

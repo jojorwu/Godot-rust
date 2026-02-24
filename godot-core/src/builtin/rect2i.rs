@@ -34,7 +34,7 @@ use crate::builtin::{Rect2, Side, Vector2i};
 ///
 /// # Godot docs
 /// [`Rect2i` (stable)](https://docs.godotengine.org/en/stable/classes/class_rect2i.html)
-#[derive(Default, Copy, Clone, Eq, PartialEq, Hash, Debug)]
+#[derive(Default, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Rect2i {
@@ -106,6 +106,7 @@ impl Rect2i {
     /// Returns a `Rect2i` with equivalent position and area, modified so that the top-left corner
     /// is the origin and `width` and `height` are positive.
     #[inline]
+    #[track_caller]
     pub fn abs(self) -> Self {
         let abs_size = self.size.abs();
         let offset = Vector2i::new(cmp::min(self.size.x, 0), cmp::min(self.size.y, 0));
@@ -116,7 +117,8 @@ impl Rect2i {
     ///
     /// Any `Rect2i` encloses itself, i.e. an enclosed `Rect2i` does is not required to be a proper sub-rect.
     #[inline]
-    pub const fn encloses(self, other: Self) -> bool {
+    #[track_caller]
+    pub fn encloses(self, other: Self) -> bool {
         self.assert_nonnegative();
         other.assert_nonnegative();
 
@@ -130,6 +132,7 @@ impl Rect2i {
 
     /// Returns a copy of this `Rect2i` expanded so that the borders align with the given point.
     #[inline]
+    #[track_caller]
     pub fn expand(self, to: Vector2i) -> Self {
         self.assert_nonnegative();
 
@@ -161,6 +164,7 @@ impl Rect2i {
     /// `amount` may be negative, but care must be taken: If the resulting `size` has
     /// negative components the computation may be incorrect.
     #[inline]
+    #[track_caller]
     pub fn grow(self, amount: i32) -> Self {
         let amount_2d = Vector2i::new(amount, amount);
         Self::from_position_end(self.position - amount_2d, self.end() + amount_2d)
@@ -171,6 +175,7 @@ impl Rect2i {
     /// The individual amounts may be negative, but care must be taken: If the resulting `size` has
     /// negative components the computation may be incorrect.
     #[inline]
+    #[track_caller]
     pub fn grow_individual(self, left: i32, top: i32, right: i32, bottom: i32) -> Self {
         let top_left = Vector2i::new(left, top);
         let bottom_right = Vector2i::new(right, bottom);
@@ -182,6 +187,7 @@ impl Rect2i {
     /// `amount` may be negative, but care must be taken: If the resulting `size` has
     /// negative components the computation may be incorrect.
     #[inline]
+    #[track_caller]
     pub fn grow_side(self, side: Side, amount: i32) -> Self {
         match side {
             Side::LEFT => self.grow_individual(amount, 0, 0, 0),
@@ -204,7 +210,8 @@ impl Rect2i {
     /// _Godot equivalent: `Rect2i.has_point` function_
     #[doc(alias = "has_point")]
     #[inline]
-    pub const fn contains_point(self, point: Vector2i) -> bool {
+    #[track_caller]
+    pub fn contains_point(self, point: Vector2i) -> bool {
         self.assert_nonnegative();
 
         let end = self.end();
@@ -220,6 +227,7 @@ impl Rect2i {
     ///
     /// Note that rectangles that only share a border do not intersect.
     #[inline]
+    #[track_caller]
     pub fn intersect(self, b: Self) -> Option<Self> {
         self.assert_nonnegative();
         b.assert_nonnegative();
@@ -243,12 +251,14 @@ impl Rect2i {
     /// Returns `true` if the `Rect2i` overlaps with `b` (i.e. they have at least one
     /// point in common)
     #[inline]
+    #[track_caller]
     pub fn intersects(self, b: Self) -> bool {
         self.intersect(b).is_some()
     }
 
     /// Returns a larger `Rect2i` that contains this `Rect2i` and `b`.
     #[inline]
+    #[track_caller]
     pub fn merge(self, b: Self) -> Self {
         self.assert_nonnegative();
         b.assert_nonnegative();
@@ -269,9 +279,22 @@ impl Rect2i {
     ///
     /// Certain functions will fail to give a correct result if the size is negative.
     #[inline]
-    pub const fn assert_nonnegative(self) {
-        // We can't use type_name or formatting in const assert yet.
-        assert!(!self.is_negative(), "Rect2i size is negative");
+    #[track_caller]
+    pub fn assert_nonnegative(self) {
+        assert!(
+            !self.is_negative(),
+            "{} size {:?} is negative (must be non-negative)",
+            std::any::type_name::<Self>(),
+            self.size
+        );
+    }
+
+    /// Returns `true` if this rectangle and `other` are approximately equal.
+    ///
+    /// For integer rectangles, this is the same as exact equality.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self == other
     }
 }
 
@@ -299,29 +322,11 @@ impl std::fmt::Display for Rect2i {
     }
 }
 
-impl From<(Vector2i, Vector2i)> for Rect2i {
-    #[inline]
-    fn from((position, size): (Vector2i, Vector2i)) -> Self {
-        Self { position, size }
-    }
-}
-
-impl PartialEq<(Vector2i, Vector2i)> for Rect2i {
-    #[inline]
-    fn eq(&self, other: &(Vector2i, Vector2i)) -> bool {
-        self.position == other.0 && self.size == other.1
-    }
-}
-
-impl PartialEq<Rect2i> for (Vector2i, Vector2i) {
-    #[inline]
-    fn eq(&self, other: &Rect2i) -> bool {
-        other == self
-    }
-}
-
 impl_geometric_interop!(Rect2i, (i32, i32, i32, i32),
     [i32; 4], from_components, [x, y, w, h], self => [self.position.x, self.position.y, self.size.x, self.size.y]);
+
+impl_geometric_interop!(Rect2i, (Vector2i, Vector2i),
+    [Vector2i; 2], new, [position, size], self => [self.position, self.size]);
 
 #[cfg(test)]
 mod test {

@@ -150,10 +150,10 @@ where
     let code = || make_user_instance(unsafe { Base::from_base(&base) });
     let user_instance = handle_panic(context, std::panic::AssertUnwindSafe(code))?;
 
-    // Print shouldn't be necessary as panic itself is printed. If this changes, re-enable in error case:
-    // godot_error!("failed to create instance of {class_name}; Rust init() panicked");
-
+    // Mark initialization as complete, now that user constructor has finished.
+    // We do this BEFORE constructing InstanceStorage, so that if it needs to access the instance it sees it as initialized.
     let mut base_copy = unsafe { Base::from_base(&base) };
+    base_copy.mark_initialized();
 
     let instance = InstanceStorage::<T>::construct(user_instance, base);
     let instance_rust_ptr = instance.into_raw();
@@ -171,9 +171,6 @@ where
     }
 
     postinit(base_ptr);
-
-    // Mark initialization as complete, now that user constructor has finished.
-    base_copy.mark_initialized();
 
     // No std::mem::forget(base_copy) here, since Base may stores other fields that need deallocation.
     Ok(instance_ptr)
@@ -331,10 +328,7 @@ pub unsafe extern "C" fn get_property_list<T: cap::GodotGetPropertyList>(
 
     // SAFETY: Godot ensures that `count` is initialized and valid to write into.
     unsafe {
-        *count = property_list_sys
-            .len()
-            .try_into()
-            .expect("property list cannot be longer than `u32::MAX`");
+        *count = crate::builtin::to_u32_from_usize(property_list_sys.len());
     }
 
     Box::leak(property_list_sys).as_mut_ptr()

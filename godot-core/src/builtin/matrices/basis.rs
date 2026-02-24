@@ -18,7 +18,7 @@ use crate::builtin::{real, EulerOrder, Quaternion, RMat3, RQuat, RVec2, RVec3, V
 
 /// A 3x3 matrix, typically used as an orthogonal basis for [`Transform3D`](crate::builtin::Transform3D).
 ///
-/// Indexing into a `Basis` is done in row-major order. So `mat[1]` would return the first *row* and not
+/// Indexing into a `Basis` is done in row-major order. So `mat[0]` would return the first *row* and not
 /// the first *column*/basis vector. This means that indexing into the matrix happens in the same order
 /// it usually does in math, except that we index starting at 0.
 ///
@@ -45,7 +45,7 @@ use crate::builtin::{real, EulerOrder, Quaternion, RMat3, RQuat, RVec2, RVec3, V
 /// # Godot docs
 ///
 /// [`Basis` (stable)](https://docs.godotengine.org/en/stable/classes/class_basis.html)
-#[derive(Copy, Clone, PartialEq, Debug)]
+#[derive(Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Basis {
@@ -299,9 +299,18 @@ impl Basis {
 
     /// Check if the element at `basis_{i,i}` is 1, and all the other values in
     /// that row and column are 0.
+    #[track_caller]
     fn is_identity_index(&self, index: usize) -> bool {
         let row = self.rows[index];
-        let col = self.transposed().rows[index];
+        let col = match index {
+            0 => self.col_a(),
+            1 => self.col_b(),
+            2 => self.col_c(),
+            _ => panic!(
+                "{}::is_identity_index(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            ),
+        };
         if row != col {
             return false;
         }
@@ -309,7 +318,10 @@ impl Basis {
             0 => row == Vector3::RIGHT,
             1 => row == Vector3::UP,
             2 => row == Vector3::BACK,
-            _ => panic!("Unknown Index {index}"),
+            _ => unreachable!(
+                "{}::is_identity_index(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 
@@ -396,6 +408,7 @@ impl Basis {
     ///
     /// _Godot equivalent: `Basis.orthonormalized()`_
     #[must_use]
+    #[track_caller]
     pub fn orthonormalized(&self) -> Self {
         assert!(
             !self.determinant().is_zero_approx(),
@@ -481,6 +494,17 @@ impl Basis {
         self.rows[0].is_finite() && self.rows[1].is_finite() && self.rows[2].is_finite()
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(&self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// Returns the first column of the matrix,
     ///
     /// _Godot equivalent: `Basis.x`_, see [`Basis`] for why it's changed
@@ -533,6 +557,12 @@ impl Basis {
         self.rows[0].z = col.x;
         self.rows[1].z = col.y;
         self.rows[2].z = col.z;
+    }
+
+    /// Returns `true` if this basis and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
     }
 }
 
@@ -645,6 +675,36 @@ impl XformInv<Vector3> for Basis {
             self.col_b().dot(rhs),
             self.col_c().dot(rhs),
         )
+    }
+}
+
+impl std::ops::Index<usize> for Basis {
+    type Output = Vector3;
+
+    #[inline]
+    #[track_caller]
+    fn index(&self, index: usize) -> &Self::Output {
+        if index >= 3 {
+            panic!(
+                "{}::index(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            );
+        }
+        &self.rows[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for Basis {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        if index >= 3 {
+            panic!(
+                "{}::index_mut(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            );
+        }
+        &mut self.rows[index]
     }
 }
 

@@ -86,6 +86,14 @@ impl Vector3i {
     pub fn as_inner(&self) -> inner::InnerVector3i<'_> {
         inner::InnerVector3i::from_outer(self)
     }
+
+    /// Returns `true` if this vector and `other` are approximately equal.
+    ///
+    /// For integer vectors, this is the same as exact equality.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self == other
+    }
 }
 
 impl_vector3x_fns!(Vector3i, Vector2i, i32);

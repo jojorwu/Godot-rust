@@ -50,7 +50,7 @@ use crate::builtin::{inner, real, Basis, RVec3, Vector2, Vector3i};
 /// # Godot docs
 ///
 /// [`Vector3` (stable)](https://docs.godotengine.org/en/stable/classes/class_vector3.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Vector3 {
@@ -133,6 +133,7 @@ impl Vector3 {
     /// # Panics
     /// If vector is not normalized.
     #[inline]
+    #[track_caller]
     pub fn octahedron_encode(self) -> Vector2 {
         assert!(self.is_normalized(), "vector is not normalized!");
 
@@ -169,6 +170,7 @@ impl Vector3 {
     /// # Panics
     /// If `axis` is not normalized.
     #[inline]
+    #[track_caller]
     pub fn rotated(self, axis: Self, angle: real) -> Self {
         assert!(axis.is_normalized(), "axis is not normalized!");
         Basis::from_axis_angle(axis, angle) * self

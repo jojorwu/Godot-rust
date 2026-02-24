@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use std::cell::OnceCell;
 use std::marker::PhantomData;
+use std::sync::OnceLock;
 use std::{fmt, ptr};
 
 use godot_ffi as sys;
@@ -88,18 +88,18 @@ pub struct VarDictionary {
     opaque: OpaqueDictionary,
 
     /// Lazily computed and cached element type information for the key type.
-    cached_key_type: OnceCell<ElementType>,
+    cached_key_type: OnceLock<ElementType>,
 
     /// Lazily computed and cached element type information for the value type.
-    cached_value_type: OnceCell<ElementType>,
+    cached_value_type: OnceLock<ElementType>,
 }
 
 impl VarDictionary {
     fn from_opaque(opaque: OpaqueDictionary) -> Self {
         Self {
             opaque,
-            cached_key_type: OnceCell::new(),
-            cached_value_type: OnceCell::new(),
+            cached_key_type: OnceLock::new(),
+            cached_value_type: OnceLock::new(),
         }
     }
 
@@ -116,6 +116,7 @@ impl VarDictionary {
     ///
     /// If there is no value for the given key. Note that this is distinct from a `NIL` value, which is returned as `Variant::nil()`.
     #[inline]
+    #[track_caller]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
         // Code duplication with get(), to avoid third clone (since K: ToGodot takes ownership).
 
@@ -123,7 +124,10 @@ impl VarDictionary {
         if self.contains_key(key.clone()) {
             self.get_or_nil(key)
         } else {
-            panic!("key {key:?} missing in dictionary: {self:?}")
+            panic!(
+                "{}::at(): key {key:?} missing in dictionary",
+                std::any::type_name::<Self>()
+            )
         }
     }
 
@@ -152,12 +156,14 @@ impl VarDictionary {
     /// # Panics
     /// If there is no value for the given key, or if the value cannot be converted to `V`.
     #[inline]
+    #[track_caller]
     pub fn at_as<K: ToGodot, V: FromGodot>(&self, key: K) -> V {
         self.at(key).to::<V>()
     }
 
     /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn get_as<K: ToGodot, V: FromGodot>(&self, key: K) -> Option<V> {
         self.get(key).and_then(|v| v.try_to::<V>().ok())
     }
@@ -231,13 +237,20 @@ impl VarDictionary {
     #[doc(alias = "size")]
     #[inline]
     pub fn len(&self) -> usize {
-        self.as_inner().size().try_into().unwrap()
+        crate::builtin::to_usize(self.as_inner().size())
     }
 
     /// Returns true if the dictionary is empty.
     #[inline]
     pub fn is_empty(&self) -> bool {
         self.as_inner().is_empty()
+    }
+
+    /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<K: ToGodot, V: FromGodot>(&mut self, key: K) -> Option<V> {
+        self.remove(key).and_then(|v| v.try_to::<V>().ok())
     }
 
     /// Reverse-search a key by its value.
@@ -272,6 +285,7 @@ impl VarDictionary {
     ///
     /// _Godot equivalent: `dict[key] = value`_
     #[inline]
+    #[track_caller]
     pub fn set<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) {
         self.balanced_ensure_mutable();
         self.set_inner(key.to_variant(), value.to_variant());
@@ -291,6 +305,7 @@ impl VarDictionary {
     /// If you don't need the previous value, use [`set()`][Self::set] instead.
     #[must_use]
     #[inline]
+    #[track_caller]
     pub fn insert<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -306,6 +321,7 @@ impl VarDictionary {
     /// _Godot equivalent: `erase`_
     #[doc(alias = "erase")]
     #[inline]
+    #[track_caller]
     pub fn remove<K: ToGodot>(&mut self, key: K) -> Option<Variant> {
         self.balanced_ensure_mutable();
 
@@ -338,6 +354,7 @@ impl VarDictionary {
     ///
     /// # Panics
     /// If any key cannot be converted to `K`.
+    #[track_caller]
     pub fn typed_keys<K: FromGodot>(&self) -> Vec<K> {
         self.keys_array()
             .iter_shared()
@@ -364,6 +381,7 @@ impl VarDictionary {
     ///
     /// # Panics
     /// If any value cannot be converted to `V`.
+    #[track_caller]
     pub fn typed_values<V: FromGodot>(&self) -> Vec<V> {
         self.values_array()
             .iter_shared()
@@ -534,6 +552,7 @@ impl VarDictionary {
     ///
     /// # Panics (safeguards-balanced)
     /// If the dictionary is marked as read-only.
+    #[track_caller]
     fn balanced_ensure_mutable(&self) {
         sys::balanced_assert!(
             !self.is_read_only(),
@@ -591,6 +610,30 @@ impl VarDictionary {
         {
             false
         }
+    }
+
+    /// Returns a random key from the dictionary, or `None` if it is empty.
+    ///
+    /// _Godot equivalent: `pick_random` (returns key)_
+    #[cfg(since_api = "4.4")]
+    pub fn pick_random(&self) -> Option<Variant> {
+        if self.is_empty() {
+            return None;
+        }
+
+        let variant = self.to_variant();
+        let method = crate::static_sname!(c"pick_random");
+        let result = variant.call(method, &[]);
+
+        Some(result)
+    }
+
+    /// Returns a random key from the dictionary, converted to `K`, or `None` if empty or conversion fails.
+    #[cfg(since_api = "4.4")]
+    #[inline]
+    #[track_caller]
+    pub fn pick_random_as<K: FromGodot>(&self) -> Option<K> {
+        self.pick_random().and_then(|v| v.try_to::<K>().ok())
     }
 
     /// Reserves capacity for at least `capacity` elements.
@@ -924,7 +967,7 @@ impl<'a> DictionaryIter<'a> {
         variant_dict: &Variant,
         mut next_value: Variant,
     ) -> Option<Variant> {
-        let mut valid_u8: u8 = 0;
+        let mut valid: sys::GDExtensionBool = sys::conv::SYS_FALSE;
 
         // SAFETY:
         // `dictionary` is a valid dictionary since we have a reference to it,
@@ -934,11 +977,11 @@ impl<'a> DictionaryIter<'a> {
             iter_fn(
                 variant_dict.var_sys(),
                 next_value.var_sys_mut(),
-                ptr::addr_of_mut!(valid_u8),
+                ptr::addr_of_mut!(valid),
             )
         };
-        let valid = u8_to_bool(valid_u8);
-        let has_next = u8_to_bool(has_next);
+        let valid = sys::conv::bool_from_sys(valid);
+        let has_next = sys::conv::bool_from_sys(has_next);
 
         if has_next {
             assert!(valid);
@@ -1171,17 +1214,6 @@ impl<K: FromGodot> Iterator for TypedKeys<'_, K> {
 
     fn size_hint(&self) -> (usize, Option<usize>) {
         self.iter.size_hint()
-    }
-}
-
-// ----------------------------------------------------------------------------------------------------------------------------------------------
-// Helper functions
-
-fn u8_to_bool(u: u8) -> bool {
-    match u {
-        0 => false,
-        1 => true,
-        _ => panic!("Invalid boolean value {u}"),
     }
 }
 

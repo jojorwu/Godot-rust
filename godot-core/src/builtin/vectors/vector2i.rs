@@ -81,6 +81,14 @@ impl Vector2i {
     pub fn as_inner(&self) -> inner::InnerVector2i<'_> {
         inner::InnerVector2i::from_outer(self)
     }
+
+    /// Returns `true` if this vector and `other` are approximately equal.
+    ///
+    /// For integer vectors, this is the same as exact equality.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self == other
+    }
 }
 
 impl_vector_fns!(Vector2i, glam::IVec2, i32, (x, y));

@@ -123,6 +123,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// # Panics
     /// If `index` is out of bounds.
     #[inline]
+    #[track_caller]
     pub fn at(&self, index: usize) -> T {
         self.get(index)
             .unwrap_or_else(|| self.panic_out_of_bounds(index))
@@ -130,6 +131,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
 
     /// Returns a copy of the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U>
     where
         T: ToGodot,
@@ -143,6 +145,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// # Panics
     /// If `index` is out of bounds, or if the value cannot be converted to `U`.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U
     where
         T: ToGodot,
@@ -220,6 +223,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     ///
     /// On large arrays, this method is much slower than [`push()`][Self::push], as it will move all the array's elements after the inserted
     /// element. The larger the array, the slower `insert` will be.
+    #[track_caller]
     pub fn insert(&mut self, index: usize, value: impl AsArg<T>) {
         // Intentional > and not >=.
         if index > self.len() {
@@ -242,10 +246,26 @@ impl<T: PackedArrayElement> PackedArray<T> {
     // `Array` and with `Vec::remove`. Compared to shifting all the subsequent array
     // elements to their new position, the overhead of retrieving this element is trivial.
     #[doc(alias = "remove_at")]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
-        let element = self.get(index).expect("index out of bounds"); // panics on out-of-bounds
+        let element = self
+            .get(index)
+            .unwrap_or_else(|| self.panic_out_of_bounds(index));
         T::op_remove_at(self.as_inner(), to_i64(index));
         element
+    }
+
+    /// ⚠️ Removes and returns the element at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U
+    where
+        T: ToGodot,
+    {
+        self.remove(index).to_variant().to::<U>()
     }
 
     /// Removes and returns the last element of the array. Returns `None` if the array is empty.
@@ -261,6 +281,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U>
     where
         T: ToGodot,
@@ -278,6 +300,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U>
     where
         T: ToGodot,
@@ -287,6 +311,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Adds an element at the beginning of the array, in O(n).
+    #[track_caller]
     pub fn push_front(&mut self, value: impl AsArg<T>) {
         self.insert(0, value);
     }
@@ -298,6 +323,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn front_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
@@ -316,6 +343,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn back_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
@@ -324,6 +353,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns a random element from the array, or `None` if it is empty.
+    #[track_caller]
     pub fn pick_random(&self) -> Option<T> {
         if self.is_empty() {
             return None;
@@ -338,6 +368,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     }
 
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
+    #[inline]
+    #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U>
     where
         T: ToGodot,
@@ -371,18 +403,15 @@ impl<T: PackedArrayElement> PackedArray<T> {
         let variant = self.to_variant();
         let method = crate::static_sname!(c"reserve");
         let arg = Variant::from(crate::builtin::to_i64(capacity));
-        let _result_variant = variant.call(method, &[arg]);
+        let result_variant = variant.call(method, &[arg]);
 
         // Variant::call() on a PackedArray modifies it in-place.
         // We re-assign from the variant to ensure COW changes are picked up.
         // If the call failed, the variant might return Nil.
-        let expected_type = match Self::VARIANT_TYPE {
-            ExtVariantType::Variant => VariantType::NIL,
-            ExtVariantType::Concrete(ty) => ty,
-        };
-
-        if variant.get_type() == expected_type {
-            *self = variant.to::<Self>();
+        if let Ok(array) = result_variant.try_to::<Self>() {
+            *self = array;
+        } else if let Ok(array) = variant.try_to::<Self>() {
+            *self = array;
         }
     }
 
@@ -479,7 +508,7 @@ impl<T: PackedArrayElement> PackedArray<T> {
         let from = to_i64(from.unwrap_or(0));
         let index = T::op_find(self.as_inner(), value.into_arg(), from);
         if index >= 0 {
-            Some(index.try_into().unwrap())
+            Some(to_usize(index))
         } else {
             None
         }
@@ -577,7 +606,8 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// Always.
     fn panic_out_of_bounds(&self, index: usize) -> ! {
         panic!(
-            "Array index {index} is out of bounds: length is {}",
+            "{} index {index} is out of bounds: length is {}",
+            std::any::type_name::<Self>(),
             self.len()
         );
     }
@@ -771,6 +801,8 @@ impl<T: PackedArrayElement> meta::GodotFfiVariant for PackedArray<T> {
 impl<T: PackedArrayElement> ops::Index<usize> for PackedArray<T> {
     type Output = T;
 
+    #[inline]
+    #[track_caller]
     fn index(&self, index: usize) -> &Self::Output {
         let ptr = self.ptr(index);
         // SAFETY: `ptr` checked bounds.
@@ -779,6 +811,8 @@ impl<T: PackedArrayElement> ops::Index<usize> for PackedArray<T> {
 }
 
 impl<T: PackedArrayElement> ops::IndexMut<usize> for PackedArray<T> {
+    #[inline]
+    #[track_caller]
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         let ptr = self.ptr_mut(index);
         // SAFETY: `ptr` checked bounds.
@@ -1078,6 +1112,7 @@ macro_rules! declare_encode_decode {
         /// **Note:** byte order and encoding pattern is an implementation detail. For portable byte representation and faster encoding, use
         /// [`as_mut_slice()`][Self::as_mut_slice] and the various Rust standard APIs such as
         #[doc = concat!("[`", stringify!($Ty), "::to_be_bytes()`].")]
+        #[track_caller]
         pub fn $encode_fn(&mut self, byte_offset: usize, value: $Ty) -> Result<(), CollectionError> {
             // sys::static_assert!(std::mem::size_of::<$Ty>() == $bytes); -- used for testing, can't keep enabled due to half-floats.
 
@@ -1089,7 +1124,7 @@ macro_rules! declare_encode_decode {
             }
 
             self.as_inner()
-                .$encode_fn(byte_offset as i64, value as $Via);
+                .$encode_fn(to_i64(byte_offset), value as $Via);
             Ok(())
         }
 
@@ -1101,6 +1136,7 @@ macro_rules! declare_encode_decode {
         /// **Note:** byte order and encoding pattern is an implementation detail. For portable byte representation and faster decoding, use
         /// [`as_slice()`][Self::as_slice] and the various Rust standard APIs such as
         #[doc = concat!("[`", stringify!($Ty), "::from_be_bytes()`].")]
+        #[track_caller]
         pub fn $decode_fn(&self, byte_offset: usize) -> Result<$Ty, CollectionError> {
             if byte_offset + $bytes > self.len() {
                 return Err(CollectionError::OutOfBounds {
@@ -1109,7 +1145,7 @@ macro_rules! declare_encode_decode {
                 });
             }
 
-            let decoded: $Via = self.as_inner().$decode_fn(byte_offset as i64);
+            let decoded: $Via = self.as_inner().$decode_fn(to_i64(byte_offset));
             Ok(decoded as $Ty)
         }
     };
@@ -1212,6 +1248,7 @@ impl PackedByteArray {
     ///
     /// Sufficient space must be allocated, depending on the encoded variant's size. If `allow_objects` is false, [`VariantType::OBJECT`] values
     /// are not permitted and will instead be serialized as ID-only. You should set `allow_objects` to false by default.
+    #[track_caller]
     pub fn encode_var(
         &mut self,
         byte_offset: usize,
@@ -1222,12 +1259,12 @@ impl PackedByteArray {
 
         let bytes_written: i64 =
             self.as_inner()
-                .encode_var(byte_offset as i64, value, allow_objects);
+                .encode_var(to_i64(byte_offset), value, allow_objects);
 
         if bytes_written == -1 {
             Err(CollectionError::Encoding)
         } else {
-            Ok(bytes_written as usize)
+            Ok(to_usize(bytes_written))
         }
     }
 
@@ -1258,6 +1295,7 @@ impl PackedByteArray {
     /// can cause arbitrary code execution.
     #[doc(alias = "has_encoded_var", alias = "decode_var_size")]
     #[inline]
+    #[track_caller]
     pub fn decode_var(
         &self,
         byte_offset: usize,
@@ -1265,7 +1303,7 @@ impl PackedByteArray {
     ) -> Result<(Variant, usize), CollectionError> {
         let variant = self
             .as_inner()
-            .decode_var(byte_offset as i64, allow_objects);
+            .decode_var(to_i64(byte_offset), allow_objects);
 
         if variant.is_nil() {
             return Err(CollectionError::Encoding);
@@ -1278,10 +1316,10 @@ impl PackedByteArray {
         // So we combine the two calls for the sake of convenience and to avoid accidental usage.
         let size: i64 = self
             .as_inner()
-            .decode_var_size(byte_offset as i64, allow_objects);
+            .decode_var_size(to_i64(byte_offset), allow_objects);
         sys::strict_assert_ne!(size, -1); // must not happen if we just decoded variant.
 
-        Ok((variant, size as usize))
+        Ok((variant, to_usize(size)))
     }
 
     /// Unreliable `Variant` decoding, allowing `NIL`.
@@ -1304,28 +1342,29 @@ impl PackedByteArray {
     /// You should set `allow_objects` to `false` unless you have a good reason not to. Decoding objects (e.g. coming from remote sources)
     /// can cause arbitrary code execution.
     #[inline]
+    #[track_caller]
     pub fn decode_var_allow_nil(
         &self,
         byte_offset: usize,
         allow_objects: bool,
     ) -> (Variant, usize) {
-        let byte_offset = byte_offset as i64;
+        let byte_offset = to_i64(byte_offset);
 
         let variant = self.as_inner().decode_var(byte_offset, allow_objects);
         let decoded_size = self.as_inner().decode_var_size(byte_offset, allow_objects);
-        let decoded_size = decoded_size.try_into().unwrap_or_else(|_| {
-            panic!("unexpected value {decoded_size} returned from decode_var_size()")
-        });
 
-        (variant, decoded_size)
+        (variant, to_usize(decoded_size))
     }
 
     /// Returns a new `PackedByteArray`, with the data of this array compressed.
     ///
     /// On failure, Godot prints an error and this method returns `Err`. (Note that any empty results coming from Godot are mapped to `Err`
     /// in Rust.)
+    #[track_caller]
     pub fn compress(&self, compression_mode: CompressionMode) -> Result<PackedByteArray, CollectionError> {
-        let compressed: PackedByteArray = self.as_inner().compress(compression_mode.ord() as i64);
+        let compressed: PackedByteArray = self
+            .as_inner()
+            .compress(i64::from(compression_mode.ord()));
         populated_or_err(compressed)
     }
 
@@ -1338,14 +1377,16 @@ impl PackedByteArray {
     ///
     /// **Note:** Decompression is not guaranteed to work with data not compressed by Godot, for example if data compressed with the deflate
     /// compression mode lacks a checksum or header.
+    #[track_caller]
     pub fn decompress(
         &self,
         buffer_size: usize,
         compression_mode: CompressionMode,
     ) -> Result<PackedByteArray, CollectionError> {
-        let decompressed: PackedByteArray = self
-            .as_inner()
-            .decompress(buffer_size as i64, compression_mode.ord() as i64);
+        let decompressed: PackedByteArray = self.as_inner().decompress(
+            to_i64(buffer_size),
+            i64::from(compression_mode.ord()),
+        );
 
         populated_or_err(decompressed)
     }
@@ -1367,15 +1408,17 @@ impl PackedByteArray {
     ///
     /// **Note:** Decompression is not guaranteed to work with data not compressed by Godot, for example if data compressed with the deflate
     /// compression mode lacks a checksum or header.
+    #[track_caller]
     pub fn decompress_dynamic(
         &self,
         max_output_size: Option<usize>,
         compression_mode: CompressionMode,
     ) -> Result<PackedByteArray, CollectionError> {
-        let max_output_size = max_output_size.map(|i| i as i64).unwrap_or(-1);
-        let decompressed: PackedByteArray = self
-            .as_inner()
-            .decompress_dynamic(max_output_size, compression_mode.ord() as i64);
+        let max_output_size = max_output_size.map(to_i64).unwrap_or(-1);
+        let decompressed: PackedByteArray = self.as_inner().decompress_dynamic(
+            max_output_size,
+            i64::from(compression_mode.ord()),
+        );
 
         populated_or_err(decompressed)
     }

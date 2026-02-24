@@ -5,8 +5,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use std::cell::OnceCell;
 use std::marker::PhantomData;
+use std::sync::OnceLock;
 use std::{cmp, fmt};
 
 use godot_ffi as sys;
@@ -187,7 +187,7 @@ pub struct Array<T: ArrayElement> {
     _phantom: PhantomData<T>,
 
     /// Lazily computed and cached element type information.
-    pub(super) cached_element_type: OnceCell<ElementType>,
+    pub(super) cached_element_type: OnceLock<ElementType>,
 }
 
 /// Guard that can only call immutable methods on the array.
@@ -241,7 +241,7 @@ impl<T: ArrayElement> Array<T> {
         Self {
             opaque,
             _phantom: PhantomData,
-            cached_element_type: OnceCell::new(),
+            cached_element_type: OnceLock::new(),
         }
     }
 
@@ -258,44 +258,39 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     /// If `index` is out of bounds. To handle out-of-bounds access fallibly, use [`get()`](Self::get) instead.
     #[inline]
+    #[track_caller]
     pub fn at(&self, index: usize) -> T {
-        // Panics on out-of-bounds.
         let ptr = self.ptr(index);
-
-        // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
-        let variant = unsafe { Variant::borrow_var_sys(ptr) };
-        T::from_variant(variant)
+        self.get_and_convert(ptr)
     }
 
     /// Returns the value at the specified index, or `None` if the index is out-of-bounds.
     ///
     /// If you know the index is correct, use [`at()`](Self::at) instead.
     #[inline]
+    #[track_caller]
     pub fn get(&self, index: usize) -> Option<T> {
         let ptr = self.ptr_or_null(index);
-        if ptr.is_null() {
-            return None;
-        }
-
-        // SAFETY: `ptr` is a live pointer to a variant since `ptr.is_null()` just verified that the index is not out of bounds.
-        let variant = unsafe { Variant::borrow_var_sys(ptr) };
-        Some(T::from_variant(variant))
+        (!ptr.is_null()).then(|| self.get_and_convert(ptr))
     }
 
     /// ⚠️ Returns the element at the given index, converted to `U`, panicking if out of bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
         self.at(index).to_variant().to::<U>()
     }
 
     /// Returns the element at the given index, converted to `U`, or `None` if out of bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
         self.get(index).and_then(|v| v.to_variant().try_to::<U>().ok())
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
     #[inline]
+    #[track_caller]
     pub fn contains(&self, value: impl AsArg<T>) -> bool {
         meta::arg_into_ref!(value: T);
         self.as_inner().has(&value.to_variant())
@@ -303,6 +298,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the number of times a value is in the array.
     #[inline]
+    #[track_caller]
     pub fn count(&self, value: impl AsArg<T>) -> usize {
         meta::arg_into_ref!(value: T);
         to_usize(self.as_inner().count(&value.to_variant()))
@@ -311,6 +307,7 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the first element in the array, or `None` if the array is empty.
     #[doc(alias = "first")]
     #[inline]
+    #[track_caller]
     pub fn front(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().front();
@@ -320,6 +317,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
         self.pick_random()
             .and_then(|v| v.to_variant().try_to::<U>().ok())
@@ -327,6 +325,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn front_as<U: FromGodot>(&self) -> Option<U> {
         self.front().and_then(|v| v.to_variant().try_to::<U>().ok())
     }
@@ -334,6 +333,7 @@ impl<T: ArrayElement> Array<T> {
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
+    #[track_caller]
     pub fn back(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().back();
@@ -343,6 +343,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn back_as<U: FromGodot>(&self) -> Option<U> {
         self.back().and_then(|v| v.to_variant().try_to::<U>().ok())
     }
@@ -353,6 +354,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If `index` is out of bounds.
     #[inline]
+    #[track_caller]
     pub fn set(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
         self.check_bounds(index); // Explicitly check bounds for safety.
@@ -372,6 +374,7 @@ impl<T: ArrayElement> Array<T> {
     #[doc(alias = "append")]
     #[doc(alias = "push_back")]
     #[inline]
+    #[track_caller]
     pub fn push(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -386,6 +389,8 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// On large arrays, this method is much slower than [`push()`][Self::push], as it will move all the array's elements.
     /// The larger the array, the slower `push_front()` will be.
+    #[inline]
+    #[track_caller]
     pub fn push_front(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -401,6 +406,7 @@ impl<T: ArrayElement> Array<T> {
     /// _Godot equivalent: `pop_back`_
     #[doc(alias = "pop_back")]
     #[inline]
+    #[track_caller]
     pub fn pop(&mut self) -> Option<T> {
         self.balanced_ensure_mutable();
 
@@ -413,6 +419,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
         self.pop().and_then(|v| v.to_variant().try_to::<U>().ok())
     }
@@ -422,6 +429,7 @@ impl<T: ArrayElement> Array<T> {
     /// Note: On large arrays, this method is much slower than `pop()` as it will move all the
     /// array's elements. The larger the array, the slower `pop_front()` will be.
     #[inline]
+    #[track_caller]
     pub fn pop_front(&mut self) -> Option<T> {
         self.balanced_ensure_mutable();
 
@@ -434,6 +442,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
         self.pop_front()
             .and_then(|v| v.to_variant().try_to::<U>().ok())
@@ -447,6 +456,7 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     /// If `index > len()`.
     #[inline]
+    #[track_caller]
     pub fn insert(&mut self, index: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -472,6 +482,7 @@ impl<T: ArrayElement> Array<T> {
     /// If `index` is out of bounds.
     #[doc(alias = "pop_at")]
     #[inline]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> T {
         self.balanced_ensure_mutable();
         self.check_bounds(index);
@@ -481,6 +492,16 @@ impl<T: ArrayElement> Array<T> {
         T::from_variant(&variant)
     }
 
+    /// ⚠️ Removes and returns the element at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U {
+        self.remove(index).to_variant().to::<U>()
+    }
+
     /// Removes the first occurrence of a value from the array.
     ///
     /// If the value does not exist in the array, nothing happens. To remove an element by index, use [`remove()`][Self::remove] instead.
@@ -488,6 +509,7 @@ impl<T: ArrayElement> Array<T> {
     /// On large arrays, this method is much slower than [`pop()`][Self::pop], as it will move all the array's
     /// elements after the removed element.
     #[inline]
+    #[track_caller]
     pub fn erase(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -500,6 +522,7 @@ impl<T: ArrayElement> Array<T> {
     /// Assigns the given value to all elements in the array. This can be used together with
     /// `resize` to create an array with a given size and initialized elements.
     #[inline]
+    #[track_caller]
     pub fn fill(&mut self, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -516,6 +539,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If you know that the new size is smaller, then consider using [`shrink`][AnyArray::shrink] instead.
     #[inline]
+    #[track_caller]
     pub fn resize(&mut self, new_size: usize, value: impl AsArg<T>) {
         self.balanced_ensure_mutable();
 
@@ -554,6 +578,7 @@ impl<T: ArrayElement> Array<T> {
 
     /// Appends another array at the end of this array. Equivalent of `append_array` in GDScript.
     #[inline]
+    #[track_caller]
     pub fn extend_array(&mut self, other: &Array<T>) {
         self.balanced_ensure_mutable();
 
@@ -621,10 +646,10 @@ impl<T: ArrayElement> Array<T> {
 
         let step = step.unwrap_or(1);
         let (begin, end) = range.signed();
-        let end = end.unwrap_or(i32::MAX as i64);
+        let end = end.unwrap_or(i64::from(i32::MAX));
 
         // SAFETY: slice() returns a typed array with the same type as Self, and all values are taken from `self` so have the right type.
-        let subarray: Self = unsafe { self.as_inner().slice(begin, end, step as i64, deep) };
+        let subarray: Self = unsafe { self.as_inner().slice(begin, end, i64::from(step), deep) };
 
         subarray
     }
@@ -655,6 +680,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
     #[inline]
+    #[track_caller]
     pub fn min(&self) -> Option<T> {
         let min = self.as_inner().min();
         (!min.is_nil()).then(|| T::from_variant(&min))
@@ -664,13 +690,23 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
     #[inline]
+    #[track_caller]
     pub fn max(&self) -> Option<T> {
         let max = self.as_inner().max();
         (!max.is_nil()).then(|| T::from_variant(&max))
     }
 
+    #[inline]
+    #[track_caller]
+    fn get_and_convert(&self, ptr: sys::GDExtensionConstVariantPtr) -> T {
+        // SAFETY: `ptr` is a live pointer to a variant since caller checked bounds.
+        let variant = unsafe { Variant::borrow_var_sys(ptr) };
+        T::from_variant(variant)
+    }
+
     /// Returns a random element from the array, or `None` if it is empty.
     #[inline]
+    #[track_caller]
     pub fn pick_random(&self) -> Option<T> {
         (!self.is_empty()).then(|| {
             let variant = self.as_inner().pick_random();
@@ -683,13 +719,14 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
     #[inline]
+    #[track_caller]
     pub fn find(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
         meta::arg_into_ref!(value: T);
 
         let from = to_i64(from.unwrap_or(0));
         let index = self.as_inner().find(&value.to_variant(), from);
         if index >= 0 {
-            Some(index.try_into().unwrap())
+            Some(to_usize(index))
         } else {
             None
         }
@@ -700,6 +737,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
     #[inline]
+    #[track_caller]
     pub fn rfind(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
         meta::arg_into_ref!(value: T);
 
@@ -723,6 +761,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// See also: [`bsearch_by()`][Self::bsearch_by], [`functional_ops().bsearch_custom()`][ArrayFunctionalOps::bsearch_custom].
     #[inline]
+    #[track_caller]
     pub fn bsearch(&self, value: impl AsArg<T>) -> usize {
         meta::arg_into_ref!(value: T);
 
@@ -872,6 +911,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics (safeguards-balanced)
     /// If the array is marked as read-only.
+    #[track_caller]
     fn balanced_ensure_mutable(&self) {
         sys::balanced_assert!(
             !self.is_read_only(),
@@ -883,6 +923,7 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[track_caller]
     fn check_bounds(&self, index: usize) {
         // Safety-relevant; explicitly *don't* use safeguards-dependent validation.
         let len = self.len();
@@ -896,22 +937,25 @@ impl<T: ArrayElement> Array<T> {
     ///
     /// # Panics
     /// If `index` is out of bounds.
+    #[track_caller]
     fn ptr(&self, index: usize) -> sys::GDExtensionConstVariantPtr {
         let ptr = self.ptr_or_null(index);
         assert!(
             !ptr.is_null(),
-            "Array index {index} out of bounds (len {len})",
+            "{} index {index} out of bounds (len {len})",
+            std::any::type_name::<Self>(),
             len = self.len(),
         );
         ptr
     }
 
     /// Returns a pointer to the element at the given index, or null if out of bounds.
+    #[track_caller]
     fn ptr_or_null(&self, index: usize) -> sys::GDExtensionConstVariantPtr {
         // SAFETY: array_operator_index_const returns null for invalid indexes.
         let variant_ptr = unsafe {
-            let index = to_i64(index);
-            interface_fn!(array_operator_index_const)(self.sys(), index)
+            let index_i64 = to_i64(index);
+            interface_fn!(array_operator_index_const)(self.sys(), index_i64)
         };
 
         // Signature is wrong in GDExtension, semantically this is a const ptr
@@ -923,22 +967,25 @@ impl<T: ArrayElement> Array<T> {
     /// # Panics
     ///
     /// If `index` is out of bounds.
+    #[track_caller]
     fn ptr_mut(&mut self, index: usize) -> sys::GDExtensionVariantPtr {
         let ptr = self.ptr_mut_or_null(index);
         assert!(
             !ptr.is_null(),
-            "Array index {index} out of bounds (len {len})",
+            "{} index {index} out of bounds (len {len})",
+            std::any::type_name::<Self>(),
             len = self.len(),
         );
         ptr
     }
 
     /// Returns a pointer to the element at the given index, or null if out of bounds.
+    #[track_caller]
     fn ptr_mut_or_null(&mut self, index: usize) -> sys::GDExtensionVariantPtr {
         // SAFETY: array_operator_index returns null for invalid indexes.
         unsafe {
-            let index = to_i64(index);
-            interface_fn!(array_operator_index)(self.sys_mut(), index)
+            let index_i64 = to_i64(index);
+            interface_fn!(array_operator_index)(self.sys_mut(), index_i64)
         }
     }
 
@@ -1009,7 +1056,7 @@ impl<T: ArrayElement> Array<T> {
         let result = Array::<U> {
             opaque: self.opaque,
             _phantom: PhantomData,
-            cached_element_type: OnceCell::new(),
+            cached_element_type: OnceLock::new(),
         };
 
         // Transfer cached type to avoid redundant FFI calls.

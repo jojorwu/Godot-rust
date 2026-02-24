@@ -47,7 +47,7 @@ impl Object {
         flags: ConnectFlags,
     ) -> Error {
         self.raw_connect_ex(signal, callable)
-            .flags(flags.ord() as u32)
+            .flags(crate::builtin::to_u32(flags.ord()))
             .done()
     }
 }
@@ -63,7 +63,7 @@ impl SceneTree {
         method: impl AsArg<StringName>,
         varargs: &[Variant],
     ) {
-        self.raw_call_group_flags(flags.ord() as i64, group, method, varargs)
+        self.raw_call_group_flags(crate::builtin::to_i64_from_u64(flags.ord()), group, method, varargs)
     }
 
     pub fn set_group_flags(
@@ -73,7 +73,7 @@ impl SceneTree {
         property: impl AsArg<GString>,
         value: &Variant,
     ) {
-        self.raw_set_group_flags(call_flags.ord() as u32, group, property, value)
+        self.raw_set_group_flags(crate::builtin::to_u32(call_flags.ord()), group, property, value)
     }
 
     /// Assumes notifications of `Node`. To relay those of derived constants, use [`NodeNotification::Unknown`].
@@ -88,7 +88,7 @@ impl SceneTree {
         group: impl AsArg<StringName>,
         notification: NodeNotification,
     ) {
-        self.raw_notify_group_flags(call_flags.ord() as u32, group, notification.into())
+        self.raw_notify_group_flags(crate::builtin::to_u32(call_flags.ord()), group, notification.into())
     }
 }
 

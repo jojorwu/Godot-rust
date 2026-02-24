@@ -376,13 +376,15 @@ where
     ///
     /// # Panics
     /// If the class' dynamic type is not `Derived` or one of its subclasses. Use [`Self::try_cast()`] if you want to check the result.
+    #[track_caller]
     pub fn cast<Derived>(self) -> DynGd<Derived, D>
     where
         Derived: Inherits<T>,
     {
         self.try_cast().unwrap_or_else(|from_obj| {
             panic!(
-                "downcast from {from} to {to} failed; instance {from_obj:?}",
+                "{}::cast(): downcast from {from} to {to} failed; instance {from_obj:?}",
+                std::any::type_name::<Self>(),
                 from = T::class_id(),
                 to = Derived::class_id(),
             )

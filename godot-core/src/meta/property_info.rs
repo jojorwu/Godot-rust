@@ -121,12 +121,14 @@ impl Default for PropertyInfo {
 
 impl PropertyInfo {
     /// Create a `PropertyInfo` from a dictionary.
+    #[track_caller]
     pub fn from_dictionary(dict: &VarDictionary) -> Self {
+        use crate::builtin::{to_i32, to_u64};
         use crate::obj::EngineEnum;
 
         let variant_type = dict
             .get_as::<&str, i64>("type")
-            .map(|ty| VariantType::from_sys(ty as sys::GDExtensionVariantType))
+            .map(|ty| VariantType::from_sys(crate::builtin::to_i32(ty) as _))
             .unwrap_or(VariantType::NIL);
 
         let property_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();
@@ -138,7 +140,7 @@ impl PropertyInfo {
 
         let hint = dict
             .get_as::<&str, i64>("hint")
-            .map(|h| PropertyHint::from_ord(h as i32))
+            .map(|h| PropertyHint::from_ord(to_i32(h)))
             .unwrap_or(PropertyHint::NONE);
 
         let hint_string = dict
@@ -147,7 +149,7 @@ impl PropertyInfo {
 
         let usage = dict
             .get_as::<&str, i64>("usage")
-            .map(|u| PropertyUsageFlags::from_ord(u as u64))
+            .map(|u| PropertyUsageFlags::from_ord(to_u64(u)))
             .unwrap_or(PropertyUsageFlags::DEFAULT);
 
         Self {
@@ -160,17 +162,18 @@ impl PropertyInfo {
     }
 
     /// Convert `PropertyInfo` to a dictionary.
+    #[track_caller]
     pub fn to_dictionary(&self) -> VarDictionary {
-        use crate::builtin::vdict;
+        use crate::builtin::{to_i64_from_u64, vdict};
         use crate::obj::EngineEnum;
 
         vdict! {
-            "type": self.variant_type.ord() as i64,
+            "type": i64::from(self.variant_type.ord()),
             "name": self.property_name.clone(),
             "class_name": self.class_id.to_string_name(),
-            "hint": self.hint_info.hint.ord() as i64,
+            "hint": i64::from(self.hint_info.hint.ord()),
             "hint_string": self.hint_info.hint_string.clone(),
-            "usage": self.usage.ord() as i64,
+            "usage": to_i64_from_u64(self.usage.ord()),
         }
     }
 
@@ -403,29 +406,31 @@ impl PropertyInfo {
     /// Converts to the FFI type. Keep this object allocated while using that!
     #[doc(hidden)]
     pub fn property_sys(&self) -> sys::GDExtensionPropertyInfo {
+        use crate::builtin::{to_u32, to_u32_from_i32};
         use crate::obj::{EngineBitfield as _, EngineEnum as _};
 
         sys::GDExtensionPropertyInfo {
             type_: self.variant_type.sys(),
             name: sys::SysPtr::force_mut(self.property_name.string_sys()),
             class_name: sys::SysPtr::force_mut(self.class_id.string_sys()),
-            hint: u32::try_from(self.hint_info.hint.ord()).expect("hint.ord()"),
+            hint: to_u32_from_i32(self.hint_info.hint.ord()),
             hint_string: sys::SysPtr::force_mut(self.hint_info.hint_string.string_sys()),
-            usage: u32::try_from(self.usage.ord()).expect("usage.ord()"),
+            usage: to_u32(self.usage.ord()),
         }
     }
 
     #[doc(hidden)]
     pub fn empty_sys() -> sys::GDExtensionPropertyInfo {
+        use crate::builtin::{to_u32, to_u32_from_i32};
         use crate::obj::{EngineBitfield as _, EngineEnum as _};
 
         sys::GDExtensionPropertyInfo {
             type_: VariantType::NIL.sys(),
             name: std::ptr::null_mut(),
             class_name: std::ptr::null_mut(),
-            hint: PropertyHint::NONE.ord() as u32,
+            hint: to_u32_from_i32(PropertyHint::NONE.ord()),
             hint_string: std::ptr::null_mut(),
-            usage: PropertyUsageFlags::NONE.ord() as u32,
+            usage: to_u32(PropertyUsageFlags::NONE.ord()),
         }
     }
 
@@ -434,15 +439,16 @@ impl PropertyInfo {
     ///
     /// This will leak memory unless used together with `free_owned_property_sys`.
     pub(crate) fn into_owned_property_sys(self) -> sys::GDExtensionPropertyInfo {
+        use crate::builtin::{to_u32, to_u32_from_i32};
         use crate::obj::{EngineBitfield as _, EngineEnum as _};
 
         sys::GDExtensionPropertyInfo {
             type_: self.variant_type.sys(),
             name: self.property_name.into_owned_string_sys(),
             class_name: sys::SysPtr::force_mut(self.class_id.string_sys()),
-            hint: u32::try_from(self.hint_info.hint.ord()).expect("hint.ord()"),
+            hint: to_u32_from_i32(self.hint_info.hint.ord()),
             hint_string: self.hint_info.hint_string.into_owned_string_sys(),
-            usage: u32::try_from(self.usage.ord()).expect("usage.ord()"),
+            usage: to_u32(self.usage.ord()),
         }
     }
 
@@ -472,10 +478,12 @@ impl PropertyInfo {
         self,
         property_info_ptr: *mut sys::GDExtensionPropertyInfo,
     ) {
+        use crate::builtin::{to_u32, to_u32_from_i32};
+
         let ptr = &mut *property_info_ptr;
 
-        ptr.usage = u32::try_from(self.usage.ord()).expect("usage.ord()");
-        ptr.hint = u32::try_from(self.hint_info.hint.ord()).expect("hint.ord()");
+        ptr.usage = to_u32(self.usage.ord());
+        ptr.hint = to_u32_from_i32(self.hint_info.hint.ord());
         ptr.type_ = self.variant_type.sys();
 
         *StringName::borrow_string_sys_mut(ptr.name) = self.property_name;
@@ -494,6 +502,8 @@ impl PropertyInfo {
     pub(crate) unsafe fn new_from_sys(
         property_info_ptr: *mut sys::GDExtensionPropertyInfo,
     ) -> Self {
+        use crate::builtin::to_i32;
+
         let ptr = *property_info_ptr;
 
         Self {
@@ -501,10 +511,10 @@ impl PropertyInfo {
             class_id: ClassId::none(),
             property_name: StringName::new_from_string_sys(ptr.name),
             hint_info: PropertyHintInfo {
-                hint: PropertyHint::from_ord(ptr.hint.to_owned() as i32),
+                hint: PropertyHint::from_ord(to_i32(i64::from(ptr.hint))),
                 hint_string: GString::new_from_string_sys(ptr.hint_string),
             },
-            usage: PropertyUsageFlags::from_ord(ptr.usage as u64),
+            usage: PropertyUsageFlags::from_ord(u64::from(ptr.usage)),
         }
     }
 }

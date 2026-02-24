@@ -49,7 +49,7 @@ use crate::builtin::{inner, real, RAffine2, RVec2, Vector2i};
 /// # Godot docs
 ///
 /// [`Vector2` (stable)](https://docs.godotengine.org/en/stable/classes/class_vector2.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Vector2 {

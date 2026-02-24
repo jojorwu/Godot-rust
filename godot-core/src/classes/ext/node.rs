@@ -42,6 +42,7 @@ impl Node {
     /// # Panics
     /// If the node is not found, or if it does not have type `T` or inherited.
     #[inline]
+    #[track_caller]
     pub fn get_node_as<T>(&self, path: impl AsArg<NodePath>) -> Gd<T>
     where
         T: Inherits<Node>,
@@ -50,7 +51,10 @@ impl Node {
 
         match self.try_get_node_as::<T>(path) {
             Ok(node) => node,
-            Err(err) => panic!("Node::get_node_as(): {err} at path `{path}`"),
+            Err(err) => panic!(
+                "{}::get_node_as(): {err} at path `{path}`",
+                std::any::type_name::<Self>()
+            ),
         }
     }
 
@@ -97,12 +101,17 @@ impl Node {
     /// # Panics
     /// If the parent is not found, or if it does not have type `T` or inherited.
     #[inline]
+    #[track_caller]
     pub fn get_parent_as<T>(&self) -> Gd<T>
     where
         T: Inherits<Node>,
     {
-        self.try_get_parent_as::<T>()
-            .unwrap_or_else(|| panic!("Node::get_parent_as(): parent not found or bad type"))
+        self.try_get_parent_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_parent_as(): parent not found or bad type",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     /// Retrieves the parent node (fallible).
@@ -132,12 +141,17 @@ impl Node {
     /// # Panics
     /// If the owner is not found, or if it does not have type `T` or inherited.
     #[inline]
+    #[track_caller]
     pub fn get_owner_as<T>(&self) -> Gd<T>
     where
         T: Inherits<Node>,
     {
-        self.try_get_owner_as::<T>()
-            .unwrap_or_else(|| panic!("Node::get_owner_as(): owner not found or bad type"))
+        self.try_get_owner_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_owner_as(): owner not found or bad type",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     /// Retrieves the owner node (fallible).
@@ -167,12 +181,16 @@ impl Node {
     /// # Panics
     /// If `index` is out of bounds, or if the node does not have type `T` or inherited.
     #[inline]
+    #[track_caller]
     pub fn get_child_as<T>(&self, index: usize) -> Gd<T>
     where
         T: Inherits<Node>,
     {
         self.try_get_child_as::<T>(index).unwrap_or_else(|| {
-            panic!("Node::get_child_as(): index {index} out of bounds or bad type")
+            panic!(
+                "{}::get_child_as(): index {index} out of bounds or bad type",
+                std::any::type_name::<Self>()
+            )
         })
     }
 
@@ -185,7 +203,9 @@ impl Node {
     where
         T: Inherits<Node>,
     {
-        self.get_child(index as i32)
+        use crate::builtin::{to_i32, to_i64};
+
+        self.get_child(to_i32(to_i64(index)))
             .and_then(|node| node.try_cast::<T>().ok())
     }
 
@@ -201,6 +221,7 @@ impl Node {
     /// Retrieves all children, cast to type `T`.
     ///
     /// Children that cannot be cast to `T` are ignored.
+    #[inline]
     pub fn get_children_as<T>(&self) -> Vec<Gd<T>>
     where
         T: Inherits<Node>,
@@ -212,6 +233,7 @@ impl Node {
     }
 
     /// Alias for [`get_children_as()`][Self::get_children_as].
+    #[inline]
     pub fn get_children_typed<T>(&self) -> Vec<Gd<T>>
     where
         T: Inherits<Node>,
@@ -254,6 +276,7 @@ impl Node {
     }
 
     /// Returns an iterator over children of type `T`.
+    #[inline]
     pub fn iter_children_typed<T>(&self) -> impl Iterator<Item = Gd<T>> + '_
     where
         T: Inherits<Node>,
@@ -264,6 +287,7 @@ impl Node {
     }
 
     /// Returns the first child of type `T`.
+    #[inline]
     pub fn get_first_child_typed<T>(&self) -> Option<Gd<T>>
     where
         T: Inherits<Node>,
@@ -273,12 +297,17 @@ impl Node {
 
     /// ⚠️ Retrieves the scene tree, cast to type `T`, panicking if not found or bad type.
     #[inline]
+    #[track_caller]
     pub fn get_tree_as<T>(&self) -> Gd<T>
     where
         T: Inherits<SceneTree>,
     {
-        self.try_get_tree_as::<T>()
-            .expect("Node::get_tree_as(): scene tree not found or bad type")
+        self.try_get_tree_as::<T>().unwrap_or_else(|| {
+            panic!(
+                "{}::get_tree_as(): scene tree not found or bad type",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     /// Retrieves the scene tree, cast to type `T` (fallible).

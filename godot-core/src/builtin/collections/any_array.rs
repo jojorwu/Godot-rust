@@ -75,6 +75,7 @@ impl AnyArray {
     /// # Panics
     /// If `index` is out of bounds. To handle out-of-bounds access fallibly, use [`get()`](Self::get) instead.
     #[inline]
+    #[track_caller]
     pub fn at(&self, index: usize) -> Variant {
         self.array.at(index)
     }
@@ -83,6 +84,7 @@ impl AnyArray {
     ///
     /// If you know the index is correct, use [`at()`](Self::at) instead.
     #[inline]
+    #[track_caller]
     pub fn get(&self, index: usize) -> Option<Variant> {
         self.array.get(index)
     }
@@ -92,22 +94,26 @@ impl AnyArray {
     /// # Panics
     /// If `index` is out of bounds, or if the value cannot be converted to `U`.
     #[inline]
+    #[track_caller]
     pub fn at_as<U: FromGodot>(&self, index: usize) -> U {
         self.at(index).to::<U>()
     }
 
     /// Returns the value at the specified index, converted to `U`, or `None` if out-of-bounds or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn get_as<U: FromGodot>(&self, index: usize) -> Option<U> {
         self.get(index).and_then(|v| v.try_to::<U>().ok())
     }
 
     /// Returns `true` if the array contains the given value. Equivalent of `has` in GDScript.
+    #[track_caller]
     pub fn contains(&self, value: &Variant) -> bool {
         self.array.contains(value)
     }
 
     /// Returns the number of times a value is in the array.
+    #[track_caller]
     pub fn count(&self, value: &Variant) -> usize {
         self.array.count(value)
     }
@@ -118,6 +124,7 @@ impl AnyArray {
     /// it in a variable. For loops, prefer iterators.
     #[doc(alias = "size")]
     #[inline]
+    #[track_caller]
     pub fn len(&self) -> usize {
         to_usize(self.array.as_inner().size())
     }
@@ -141,12 +148,14 @@ impl AnyArray {
     /// Returns the first element in the array, or `None` if the array is empty.
     #[doc(alias = "first")]
     #[inline]
+    #[track_caller]
     pub fn front(&self) -> Option<Variant> {
         self.array.front()
     }
 
     /// Returns the first element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn front_as<U: FromGodot>(&self) -> Option<U> {
         self.front().and_then(|v| v.try_to::<U>().ok())
     }
@@ -154,12 +163,14 @@ impl AnyArray {
     /// Returns the last element in the array, or `None` if the array is empty.
     #[doc(alias = "last")]
     #[inline]
+    #[track_caller]
     pub fn back(&self) -> Option<Variant> {
         self.array.back()
     }
 
     /// Returns the last element in the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn back_as<U: FromGodot>(&self) -> Option<U> {
         self.back().and_then(|v| v.try_to::<U>().ok())
     }
@@ -176,12 +187,14 @@ impl AnyArray {
     ///
     /// _Godot equivalent: `pop_back`_
     #[doc(alias = "pop_back")]
+    #[track_caller]
     pub fn pop(&mut self) -> Option<Variant> {
         self.array.pop()
     }
 
     /// Removes and returns the last element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pop_as<U: FromGodot>(&mut self) -> Option<U> {
         self.pop().and_then(|v| v.try_to::<U>().ok())
     }
@@ -190,12 +203,14 @@ impl AnyArray {
     ///
     /// Note: On large arrays, this method is much slower than `pop()` as it will move all the
     /// array's elements. The larger the array, the slower `pop_front()` will be.
+    #[track_caller]
     pub fn pop_front(&mut self) -> Option<Variant> {
         self.array.pop_front()
     }
 
     /// Removes and returns the first element of the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pop_front_as<U: FromGodot>(&mut self) -> Option<U> {
         self.pop_front().and_then(|v| v.try_to::<U>().ok())
     }
@@ -209,8 +224,19 @@ impl AnyArray {
     ///
     /// If `index` is out of bounds.
     #[doc(alias = "pop_at")]
+    #[track_caller]
     pub fn remove(&mut self, index: usize) -> Variant {
         self.array.remove(index)
+    }
+
+    /// ⚠️ Removes and returns the element at the specified index, converted to `U`.
+    ///
+    /// # Panics
+    /// If `index` is out of bounds, or if the value cannot be converted to `U`.
+    #[inline]
+    #[track_caller]
+    pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U {
+        self.remove(index).to::<U>()
     }
 
     /// Reserves capacity for at least `capacity` elements.
@@ -219,11 +245,12 @@ impl AnyArray {
     ///
     /// _Godot equivalent: `reserve`_
     #[cfg(since_api = "4.3")]
+    #[track_caller]
     pub fn reserve(&mut self, capacity: usize) {
         self.balanced_ensure_mutable();
 
         let method = crate::static_sname!(c"reserve");
-        let arg = Variant::from(capacity as i64);
+        let arg = Variant::from(to_i64(capacity));
         let variant = self.ffi_to_variant();
         variant.call(method, &[arg]);
 
@@ -243,6 +270,7 @@ impl AnyArray {
     ///
     /// On large arrays, this method is much slower than [`pop()`][Self::pop], as it will move all the array's
     /// elements after the removed element.
+    #[track_caller]
     pub fn erase(&mut self, value: &Variant) {
         self.array.erase(value)
     }
@@ -327,6 +355,7 @@ impl AnyArray {
     /// Returns the minimum value contained in the array if all elements are of comparable types.
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
+    #[track_caller]
     pub fn min(&self) -> Option<Variant> {
         self.array.min()
     }
@@ -334,17 +363,20 @@ impl AnyArray {
     /// Returns the maximum value contained in the array if all elements are of comparable types.
     ///
     /// If the elements can't be compared or the array is empty, `None` is returned.
+    #[track_caller]
     pub fn max(&self) -> Option<Variant> {
         self.array.max()
     }
 
     /// Returns a random element from the array, or `None` if it is empty.
+    #[track_caller]
     pub fn pick_random(&self) -> Option<Variant> {
         self.array.pick_random()
     }
 
     /// Returns a random element from the array, converted to `U`, or `None` if empty or conversion fails.
     #[inline]
+    #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
         self.pick_random()
             .and_then(|v| v.try_to::<U>().ok())
@@ -352,12 +384,14 @@ impl AnyArray {
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if
     /// not found. Starts searching at index `from`; pass `None` to search the entire array.
+    #[track_caller]
     pub fn find(&self, value: &Variant, from: Option<usize>) -> Option<usize> {
         self.array.find(value, from)
     }
 
     /// Searches the array backwards for the last occurrence of a value and returns its index, or
     /// `None` if not found. Starts searching at index `from`; pass `None` to search the entire array.
+    #[track_caller]
     pub fn rfind(&self, value: &Variant, from: Option<usize>) -> Option<usize> {
         self.array.rfind(value, from)
     }
@@ -369,6 +403,7 @@ impl AnyArray {
     /// would maintain sorting order.
     ///
     /// Calling `bsearch` on an unsorted array results in unspecified behavior.
+    #[track_caller]
     pub fn bsearch(&self, value: &Variant) -> usize {
         self.array.bsearch(value)
     }
@@ -464,6 +499,7 @@ impl AnyArray {
     ///
     /// # Panics
     /// In debug builds, panics if the array is read-only.
+    #[track_caller]
     fn balanced_ensure_mutable(&self) {
         sys::balanced_assert!(
             !self.is_read_only(),

@@ -7,8 +7,8 @@
 
 use std::any::TypeId;
 use std::borrow::Cow;
-use std::cell::OnceCell;
 use std::collections::HashMap;
+use std::sync::OnceLock;
 use std::fmt;
 use std::hash::Hash;
 
@@ -178,7 +178,7 @@ impl ClassId {
     /// Returns an owned or borrowed `str` representing the class name.
     pub fn to_cow_str(&self) -> CowStr {
         let cache = CLASS_ID_CACHE.lock();
-        let entry = cache.get_entry(self.global_index as usize);
+        let entry = cache.get_entry(to_usize(i64::from(self.global_index)));
         entry.rust_str.clone()
     }
 
@@ -224,7 +224,7 @@ impl ClassId {
     // Takes a closure because the mutex guard protects the reference; so the &StringName cannot leave the scope.
     fn with_string_name<R>(&self, func: impl FnOnce(&StringName) -> R) -> R {
         let cache = CLASS_ID_CACHE.lock();
-        let entry = cache.get_entry(self.global_index as usize);
+        let entry = cache.get_entry(to_usize(i64::from(self.global_index)));
 
         let string_name = entry
             .godot_str
@@ -259,14 +259,14 @@ impl fmt::Debug for ClassId {
 /// `StringName` needs to be lazy-initialized because the Godot binding may not be initialized yet.
 struct ClassIdEntry {
     rust_str: CowStr,
-    godot_str: OnceCell<StringName>,
+    godot_str: OnceLock<StringName>,
 }
 
 impl ClassIdEntry {
     const fn new(rust_str: CowStr) -> Self {
         Self {
             rust_str,
-            godot_str: OnceCell::new(),
+            godot_str: OnceLock::new(),
         }
     }
 
@@ -371,7 +371,7 @@ impl ClassIdCache {
         // `.gdextension` reload, keep the backing entries (and thus the `string_to_index` map) but drop cached Godot `StringNames`
         // and the `TypeId` lookup so they can be rebuilt.
         for entry in &mut self.entries {
-            entry.godot_str = OnceCell::new();
+            entry.godot_str = OnceLock::new();
         }
 
         self.type_to_index.clear();

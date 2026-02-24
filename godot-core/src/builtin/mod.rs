@@ -128,8 +128,9 @@ pub mod inner {
 macro_rules! declare_hash_u32_method {
     ( $( $docs:tt )+ ) => {
         $( $docs )+
+        #[track_caller]
         pub fn hash_u32(&self) -> u32 {
-            self.as_inner().hash().try_into().expect("Godot hashes are uint32_t")
+            $crate::builtin::to_u32_from_i64(self.as_inner().hash())
         }
     }
 }
@@ -137,15 +138,66 @@ macro_rules! declare_hash_u32_method {
 // ----------------------------------------------------------------------------------------------------------------------------------------------
 // Conversion functions
 
+#[track_caller]
 pub(crate) fn to_i64(i: usize) -> i64 {
     i.try_into().unwrap_or_else(|_| {
         panic!("godot-rust: size {i} exceeds i64::MAX, which is not supported by Godot")
     })
 }
 
+#[track_caller]
+pub(crate) fn to_u32_from_i64(i: i64) -> u32 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} is negative or exceeds u32::MAX, which is not supported")
+    })
+}
+
+#[track_caller]
 pub(crate) fn to_usize(i: i64) -> usize {
     i.try_into().unwrap_or_else(|_| {
         panic!("godot-rust: value {i} is negative or exceeds usize::MAX, which is not supported")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_u32(i: u64) -> u32 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} exceeds u32::MAX, which is not supported by Godot")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_u32_from_usize(i: usize) -> u32 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} exceeds u32::MAX, which is not supported by Godot")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_u32_from_i32(i: i32) -> u32 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} is negative or exceeds u32::MAX, which is not supported")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_i32(i: i64) -> i32 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} exceeds i32::MAX or is too small, which is not supported")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_u64(i: i64) -> u64 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} is negative, which is not supported for u64")
+    })
+}
+
+#[track_caller]
+pub(crate) fn to_i64_from_u64(i: u64) -> i64 {
+    i.try_into().unwrap_or_else(|_| {
+        panic!("godot-rust: value {i} exceeds i64::MAX, which is not supported by Godot")
     })
 }
 

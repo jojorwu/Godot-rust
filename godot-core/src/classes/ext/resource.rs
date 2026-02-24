@@ -16,6 +16,7 @@ impl ResourceLoader {
     ///
     /// # Panics
     /// If the resource cannot be loaded, or is not of type `T` or inherited.
+    #[track_caller]
     pub fn load_as<T>(&self, path: impl AsArg<GString>) -> Gd<T>
     where
         T: Inherits<Resource>,
@@ -35,6 +36,7 @@ impl ResourceLoader {
     }
 
     /// Alias for [`load_as()`][Self::load_as].
+    #[inline]
     pub fn load_typed<T>(&self, path: impl AsArg<GString>) -> Gd<T>
     where
         T: Inherits<Resource>,
@@ -46,6 +48,7 @@ impl ResourceLoader {
 /// Manual extensions for the `Resource` class.
 impl Resource {
     /// ⚠️ Duplicates the resource, panicking if the duplicate is not of type `T` or inherited.
+    #[track_caller]
     pub fn duplicate_as<T>(&self, subresources: bool) -> Gd<T>
     where
         T: Inherits<Resource>,
@@ -53,11 +56,12 @@ impl Resource {
         self.duplicate_ex()
             .deep(subresources)
             .done()
-            .expect("Resource::duplicate() failed")
+            .unwrap_or_else(|| panic!("{}::duplicate() failed", std::any::type_name::<Self>()))
             .cast::<T>()
     }
 
     /// Alias for [`duplicate_as()`][Self::duplicate_as].
+    #[inline]
     pub fn duplicate_typed<T>(&self, subresources: bool) -> Gd<T>
     where
         T: Inherits<Resource>,
@@ -71,6 +75,7 @@ impl ResourceSaver {
     ///
     /// # Panics
     /// If the resource cannot be saved.
+    #[track_caller]
     pub fn save_as<T>(&self, obj: &Gd<T>, path: impl AsArg<GString>)
     where
         T: Inherits<Resource>,
@@ -91,6 +96,7 @@ impl ResourceSaver {
     }
 
     /// Alias for [`save_as()`][Self::save_as].
+    #[inline]
     pub fn save_typed<T>(&self, obj: &Gd<T>, path: impl AsArg<GString>)
     where
         T: Inherits<Resource>,

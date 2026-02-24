@@ -136,7 +136,7 @@ impl GString {
                         ctor(
                             string_ptr,
                             bytes.as_ptr() as *const std::ffi::c_char,
-                            bytes.len() as i64,
+                            crate::builtin::to_i64(bytes.len()),
                         );
                     })
                 };
@@ -157,7 +157,7 @@ impl GString {
     /// _Godot equivalent: `length`_
     #[doc(alias = "length")]
     pub fn len(&self) -> usize {
-        self.as_inner().length().try_into().unwrap()
+        crate::builtin::to_usize(self.as_inner().length())
     }
 
     crate::declare_hash_u32_method! {
@@ -192,7 +192,7 @@ impl GString {
             ptr = interface_fn!(string_operator_index_const)(s, 0);
         }
 
-        (ptr.cast(), len as usize)
+        (ptr.cast(), crate::builtin::to_usize(len))
     }
 
     ffi_methods! {
@@ -277,20 +277,36 @@ impl GString {
         inner::InnerString::from_outer(self)
     }
 
+    /// Converts this `GString` to a `StringName`.
+    #[inline]
+    pub fn to_string_name(&self) -> StringName {
+        StringName::from(self)
+    }
+
+    /// Converts this `GString` to a `NodePath`.
+    #[inline]
+    pub fn to_node_path(&self) -> NodePath {
+        NodePath::from(self)
+    }
 
     /// Sets the Unicode code point ("character") at position `index`.
     ///
     /// # Panics (safeguards-balanced)
     /// If `index` is out of bounds.
+    #[track_caller]
     pub fn set_unicode_at(&mut self, index: usize, character: char) {
         let len = self.len();
         sys::balanced_assert!(
             index < len,
-            "set_unicode_at: index {index} out of bounds (len {len})"
+            "{}::set_unicode_at: index {index} out of bounds (len {len})",
+            std::any::type_name::<Self>()
         );
 
         unsafe {
-            let ptr = interface_fn!(string_operator_index)(self.string_sys_mut(), index as i64);
+            let ptr = interface_fn!(string_operator_index)(
+                self.string_sys_mut(),
+                crate::builtin::to_i64(index),
+            );
             *ptr = character as u32;
         }
     }
@@ -419,35 +435,9 @@ impl fmt::Debug for GString {
 //   Can be added later if there are good use-cases.
 
 impl PartialEq<&str> for GString {
+    #[inline]
     fn eq(&self, other: &&str) -> bool {
-        let other_bytes = other.as_bytes();
-        let s = self.string_sys();
-        unsafe {
-            // Get length in UTF-8 bytes.
-            let len = interface_fn!(string_to_utf8_chars)(s, std::ptr::null_mut(), 0);
-            if len as usize != other_bytes.len() {
-                return false;
-            }
-            if len == 0 {
-                return true;
-            }
-
-            // We need a temporary buffer to hold the GString's UTF-8 representation.
-            // For short strings, we can use the stack.
-            const STACK_BUF_SIZE: usize = 128;
-            if len as usize <= STACK_BUF_SIZE {
-                let mut buf = [0u8; STACK_BUF_SIZE];
-                interface_fn!(string_to_utf8_chars)(
-                    s,
-                    buf.as_mut_ptr() as *mut std::ffi::c_char,
-                    len,
-                );
-                &buf[..len as usize] == other_bytes
-            } else {
-                // For long strings, character-by-character comparison is likely better than heap allocation.
-                self.chars().iter().copied().eq(other.chars())
-            }
-        }
+        super::compare_gstring_to_str(self.string_sys(), other)
     }
 }
 
@@ -504,7 +494,7 @@ impl From<&str> for GString {
                 ctor(
                     string_ptr,
                     bytes.as_ptr() as *const std::ffi::c_char,
-                    bytes.len() as i64,
+                    crate::builtin::to_i64(bytes.len()),
                 );
             })
         }
@@ -520,7 +510,7 @@ impl From<&[char]> for GString {
                 ctor(
                     string_ptr,
                     chars.as_ptr() as *const sys::char32_t,
-                    chars.len() as i64,
+                    crate::builtin::to_i64(chars.len()),
                 );
             })
         }

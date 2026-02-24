@@ -192,9 +192,14 @@ pub trait EngineEnum: Copy {
     /// This is not necessarily unique.
     fn ord(self) -> i32;
 
+    #[track_caller]
     fn from_ord(ord: i32) -> Self {
-        Self::try_from_ord(ord)
-            .unwrap_or_else(|| panic!("ordinal {ord} does not map to any enumerator"))
+        Self::try_from_ord(ord).unwrap_or_else(|| {
+            panic!(
+                "{}::from_ord(): ordinal {ord} does not map to any enumerator",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     /// The name of the enumerator, as it appears in Rust.
@@ -251,9 +256,14 @@ pub trait EngineBitfield: Copy {
     /// Ordinal value of the bit flag, as specified in Godot.
     fn ord(self) -> u64;
 
+    #[track_caller]
     fn from_ord(ord: u64) -> Self {
-        Self::try_from_ord(ord)
-            .unwrap_or_else(|| panic!("ordinal {ord} does not map to any valid bit flag"))
+        Self::try_from_ord(ord).unwrap_or_else(|| {
+            panic!(
+                "{}::from_ord(): ordinal {ord} does not map to any valid bit flag",
+                std::any::type_name::<Self>()
+            )
+        })
     }
 
     /// Returns whether the given `flag` is set.
@@ -321,7 +331,7 @@ pub trait IndexEnum: EngineEnum {
     ///
     /// Note that two enumerators may have the same index, if they have the same ordinal.
     fn to_index(self) -> usize {
-        self.ord() as usize
+        crate::builtin::to_usize(self.ord().into())
     }
 }
 

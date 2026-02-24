@@ -72,9 +72,17 @@ macro_rules! impl_variant_to_relaxed {
         $(
             #[doc = concat!("⚠️ Returns the variant as a `", stringify!($ty), "`, using relaxed conversion rules, panicking if it fails.")]
             #[inline]
+            #[track_caller]
             pub fn $name(&self) -> $ty {
                 self.try_to_relaxed::<$ty>()
-                    .unwrap_or_else(|err| panic!("Variant::{}(): {err}", stringify!($name)))
+                    .unwrap_or_else(|err| {
+                        panic!(
+                            "{}::{}(): failed to convert to {}: {err}",
+                            std::any::type_name::<Self>(),
+                            stringify!($name),
+                            std::any::type_name::<$ty>()
+                        )
+                    })
             }
         )*
     };
@@ -83,11 +91,41 @@ macro_rules! impl_variant_to_relaxed {
 impl Variant {
     #[cold]
     #[inline(never)]
+    #[track_caller]
     fn panic_op(op: &str, lhs: VariantType, rhs: Option<VariantType>) -> ! {
         match rhs {
-            Some(rhs) => panic!("Variant operator {op} failed between {lhs:?} and {rhs:?}"),
-            None => panic!("Variant operator {op} failed for {lhs:?}"),
+            Some(rhs) => panic!(
+                "{} operator {op} failed between {lhs:?} and {rhs:?}",
+                std::any::type_name::<Self>()
+            ),
+            None => panic!(
+                "{} operator {op} failed for {lhs:?}",
+                std::any::type_name::<Self>()
+            ),
         }
+    }
+
+    #[cold]
+    #[inline(never)]
+    #[track_caller]
+    fn panic_invalid_access(&self, op: &str) -> ! {
+        panic!(
+            "{}::{}(): operation invalid for type {:?}",
+            std::any::type_name::<Self>(),
+            op,
+            self.get_type()
+        );
+    }
+
+    #[cold]
+    #[inline(never)]
+    #[track_caller]
+    fn panic_to<T>(err: ConvertError) -> ! {
+        panic!(
+            "{}::to<{}>() failed: {err}",
+            std::any::type_name::<Self>(),
+            std::any::type_name::<T>()
+        )
     }
 
     /// Create an empty variant (`null` value in GDScript).
@@ -113,8 +151,9 @@ impl Variant {
     ///
     /// # Panics
     /// When this variant holds a different type.
+    #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
-        T::from_variant(self)
+        self.try_to::<T>().unwrap_or_else(|err| Self::panic_to::<T>(err))
     }
 
     /// Convert to type `T`, returning `Err` on failure.
@@ -220,6 +259,27 @@ impl Variant {
         is_float, FLOAT, "Returns true if the variant holds a float.";
         is_bool, BOOL, "Returns true if the variant holds a boolean.";
         is_string, STRING, "Returns true if the variant holds a string.";
+        is_vector2, VECTOR2, "Returns true if the variant holds a `Vector2`.";
+        is_vector2i, VECTOR2I, "Returns true if the variant holds a `Vector2i`.";
+        is_rect2, RECT2, "Returns true if the variant holds a `Rect2`.";
+        is_rect2i, RECT2I, "Returns true if the variant holds a `Rect2i`.";
+        is_vector3, VECTOR3, "Returns true if the variant holds a `Vector3`.";
+        is_vector3i, VECTOR3I, "Returns true if the variant holds a `Vector3i`.";
+        is_transform2d, TRANSFORM2D, "Returns true if the variant holds a `Transform2D`.";
+        is_vector4, VECTOR4, "Returns true if the variant holds a `Vector4`.";
+        is_vector4i, VECTOR4I, "Returns true if the variant holds a `Vector4i`.";
+        is_plane, PLANE, "Returns true if the variant holds a `Plane`.";
+        is_quaternion, QUATERNION, "Returns true if the variant holds a `Quaternion`.";
+        is_aabb, AABB, "Returns true if the variant holds an `Aabb`.";
+        is_basis, BASIS, "Returns true if the variant holds a `Basis`.";
+        is_transform3d, TRANSFORM3D, "Returns true if the variant holds a `Transform3D`.";
+        is_projection, PROJECTION, "Returns true if the variant holds a `Projection`.";
+        is_color, COLOR, "Returns true if the variant holds a `Color`.";
+        is_string_name, STRING_NAME, "Returns true if the variant holds a `StringName`.";
+        is_node_path, NODE_PATH, "Returns true if the variant holds a `NodePath`.";
+        is_rid, RID, "Returns true if the variant holds an `Rid`.";
+        is_callable, CALLABLE, "Returns true if the variant holds a `Callable`.";
+        is_signal, SIGNAL, "Returns true if the variant holds a `Signal`.";
         is_array, ARRAY, "Returns true if the variant holds an array.\n\nAlias for `self.is_type(VariantType::ARRAY)`.";
         is_dictionary, DICTIONARY, "Returns true if the variant holds a dictionary.\n\nAlias for `self.is_type(VariantType::DICTIONARY)`.";
     }
@@ -231,6 +291,7 @@ impl Variant {
     }
 
     /// Returns true if the variant holds a typed container.
+    #[inline]
     pub fn is_typed_container(&self) -> bool {
         match self.get_type() {
             VariantType::ARRAY => {
@@ -262,12 +323,55 @@ impl Variant {
         )
     }
 
+    /// Returns true if the variant holds a packed array type.
+    #[inline]
+    pub fn is_packed_array(&self) -> bool {
+        matches!(
+            self.get_type(),
+            VariantType::PACKED_BYTE_ARRAY
+                | VariantType::PACKED_INT32_ARRAY
+                | VariantType::PACKED_INT64_ARRAY
+                | VariantType::PACKED_FLOAT32_ARRAY
+                | VariantType::PACKED_FLOAT64_ARRAY
+                | VariantType::PACKED_STRING_ARRAY
+                | VariantType::PACKED_VECTOR2_ARRAY
+                | VariantType::PACKED_VECTOR3_ARRAY
+                | VariantType::PACKED_COLOR_ARRAY
+        )
+            || (cfg!(since_api = "4.3") && self.get_type() == VariantType::PACKED_VECTOR4_ARRAY)
+    }
+
     /// Returns the Godot type name of the variant as a `GString`.
+    #[inline]
     pub fn get_type_name(&self) -> GString {
         format!("{:?}", self.get_type()).into()
     }
 
     impl_variant_try_to! {
+        try_to_int, i64, "integer";
+        try_to_float, f64, "float";
+        try_to_bool, bool, "boolean";
+        try_to_vector2, Vector2, "Vector2";
+        try_to_vector2i, Vector2i, "Vector2i";
+        try_to_rect2, Rect2, "Rect2";
+        try_to_rect2i, Rect2i, "Rect2i";
+        try_to_vector3, Vector3, "Vector3";
+        try_to_vector3i, Vector3i, "Vector3i";
+        try_to_transform2d, Transform2D, "Transform2D";
+        try_to_vector4, Vector4, "Vector4";
+        try_to_vector4i, Vector4i, "Vector4i";
+        try_to_plane, Plane, "Plane";
+        try_to_quaternion, Quaternion, "Quaternion";
+        try_to_aabb, Aabb, "Aabb";
+        try_to_basis, Basis, "Basis";
+        try_to_transform3d, Transform3D, "Transform3D";
+        try_to_projection, Projection, "Projection";
+        try_to_color, Color, "Color";
+        try_to_string_name, StringName, "StringName";
+        try_to_node_path, NodePath, "NodePath";
+        try_to_rid, Rid, "Rid";
+        try_to_callable, crate::builtin::Callable, "Callable";
+        try_to_signal, crate::builtin::Signal, "Signal";
         try_to_array, crate::builtin::Array<Variant>, "array";
         try_to_dictionary, crate::builtin::VarDictionary, "dictionary";
         try_to_gstring, GString, "string";
@@ -287,7 +391,30 @@ impl Variant {
         to_int, i64;
         to_float, f64;
         to_bool, bool;
+        to_vector2, Vector2;
+        to_vector2i, Vector2i;
+        to_rect2, Rect2;
+        to_rect2i, Rect2i;
+        to_vector3, Vector3;
+        to_vector3i, Vector3i;
+        to_transform2d, Transform2D;
+        to_vector4, Vector4;
+        to_vector4i, Vector4i;
+        to_plane, Plane;
+        to_quaternion, Quaternion;
+        to_aabb, Aabb;
+        to_basis, Basis;
+        to_transform3d, Transform3D;
+        to_projection, Projection;
+        to_color, Color;
         to_gstring, GString;
+        to_string_name, StringName;
+        to_node_path, NodePath;
+        to_rid, Rid;
+        to_callable, crate::builtin::Callable;
+        to_signal, crate::builtin::Signal;
+        to_array, crate::builtin::Array<Variant>;
+        to_dictionary, crate::builtin::VarDictionary;
     }
 
     /// Returns the type that is currently held by this variant.
@@ -328,13 +455,13 @@ impl Variant {
     /// freed object for whatever reason, use [`object_id_unchecked()`][Self::object_id_unchecked]. This method is only available from
     /// Godot 4.4 onwards.
     #[inline]
+    #[track_caller]
     pub fn object_id(&self) -> Option<crate::obj::InstanceId> {
         #[cfg(since_api = "4.4")]
         {
-            assert!(
-                self.get_type() != VariantType::OBJECT || self.is_object_alive(),
-                "Variant::object_id(): object has been freed"
-            );
+            if self.get_type() == VariantType::OBJECT && !self.is_object_alive() {
+                panic!("{}::object_id(): object has been freed", std::any::type_name::<Self>());
+            }
             self.object_id_unchecked()
         }
 
@@ -349,7 +476,7 @@ impl Variant {
                         ErrorKind::FromVariant(FromVariantError::DeadObject)
                     ) =>
                 {
-                    panic!("Variant::object_id(): object has been freed")
+                    panic!("{}::object_id(): object has been freed", std::any::type_name::<Self>())
                 }
                 _ => None, // other conversion errors
             }
@@ -379,11 +506,13 @@ impl Variant {
     /// * If the method does not exist or the signature is not compatible with the passed arguments.
     /// * If the call causes an error.
     #[inline]
+    #[track_caller]
     pub fn call(&self, method: impl AsArg<StringName>, args: &[Variant]) -> Variant {
         arg_into_ref!(method);
         self.call_inner(method, args)
     }
 
+    #[track_caller]
     fn call_inner(&self, method: &StringName, args: &[Variant]) -> Variant {
         let mut error = sys::default_call_error();
 
@@ -405,7 +534,7 @@ impl Variant {
                     sys::SysPtr::force_mut(self.var_sys()),
                     method.string_sys(),
                     args_ptr,
-                    args.len() as i64,
+                    crate::builtin::to_i64(args.len()),
                     variant_ptr,
                     ptr::addr_of_mut!(error),
                 )
@@ -414,7 +543,11 @@ impl Variant {
 
         if error.error != sys::GDEXTENSION_CALL_OK {
             let arg_types: Vec<_> = args.iter().map(Variant::get_type).collect();
-            sys::panic_call_error(&error, "call", &arg_types);
+
+            let type_name = self.get_type_name();
+            let context = format!("{type_name}::{method}");
+
+            sys::panic_call_error(&error, &context, &arg_types);
         }
         result
     }
@@ -425,11 +558,12 @@ impl Variant {
     ///
     /// Recommended to be used with fully-qualified call syntax.
     /// For example, `Variant::evaluate(&a, &b, VariantOperator::Add)` is equivalent to `a + b` in GDScript.
+    #[inline]
     pub fn evaluate(&self, rhs: &Variant, op: VariantOperator) -> Option<Variant> {
         use crate::obj::EngineEnum;
 
-        let op_sys = op.ord() as sys::GDExtensionVariantOperator;
-        let mut is_valid = false as u8;
+        let op_sys = crate::builtin::to_i32(i64::from(op.ord())) as sys::GDExtensionVariantOperator;
+        let mut is_valid = sys::conv::SYS_FALSE;
 
         let result = unsafe {
             Self::new_with_var_uninit(|variant_ptr| {
@@ -443,7 +577,7 @@ impl Variant {
             })
         };
 
-        if is_valid == 1 {
+        if sys::conv::bool_from_sys(is_valid) {
             Some(result)
         } else {
             None
@@ -462,8 +596,9 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn get_keyed(&self, key: &Variant) -> Variant {
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_keyed)(
@@ -473,10 +608,9 @@ impl Variant {
                 ptr::addr_of_mut!(valid),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "Variant::get_keyed(): operation invalid"
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("get_keyed");
+        }
         ret
     }
 
@@ -484,8 +618,9 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn set_keyed(&mut self, key: &Variant, value: &Variant) {
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         unsafe {
             interface_fn!(variant_set_keyed)(
                 self.var_sys_mut(),
@@ -494,18 +629,18 @@ impl Variant {
                 ptr::addr_of_mut!(valid),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "Variant::set_keyed(): operation invalid"
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("set_keyed");
+        }
     }
 
     /// Gets the value of a named key from this variant.
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn get_named(&self, name: &StringName) -> Variant {
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_named)(
@@ -515,10 +650,9 @@ impl Variant {
                 ptr::addr_of_mut!(valid),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "Variant::get_named(): operation invalid"
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("get_named");
+        }
         ret
     }
 
@@ -526,8 +660,9 @@ impl Variant {
     ///
     /// # Panics
     /// If the operation is invalid for this variant type.
+    #[track_caller]
     pub fn set_named(&mut self, name: &StringName, value: &Variant) {
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         unsafe {
             interface_fn!(variant_set_named)(
                 self.var_sys_mut(),
@@ -536,10 +671,9 @@ impl Variant {
                 ptr::addr_of_mut!(valid),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "Variant::set_named(): operation invalid"
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("set_named");
+        }
     }
 
     /// Gets the value at the specified index from this variant.
@@ -547,9 +681,10 @@ impl Variant {
     /// # Panics
     /// * If the operation is invalid for this variant type.
     /// * If the index is out of bounds.
+    #[track_caller]
     pub fn get_indexed(&self, index: i64) -> Variant {
-        let mut valid = false as sys::GDExtensionBool;
-        let mut oob = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
+        let mut oob = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_indexed)(
@@ -560,14 +695,15 @@ impl Variant {
                 ptr::addr_of_mut!(oob),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "Variant::get_indexed(): operation invalid"
-        );
-        assert!(
-            !sys::conv::bool_from_sys(oob),
-            "Variant::get_indexed(): index {index} out of bounds"
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("get_indexed");
+        }
+        if sys::conv::bool_from_sys(oob) {
+            panic!(
+                "{}::get_indexed(): index {index} out of bounds",
+                std::any::type_name::<Self>()
+            );
+        }
         ret
     }
 
@@ -576,9 +712,10 @@ impl Variant {
     /// # Panics
     /// * If the operation is invalid for this variant type.
     /// * If the index is out of bounds.
+    #[track_caller]
     pub fn set_indexed(&mut self, index: i64, value: &Variant) {
-        let mut valid = false as sys::GDExtensionBool;
-        let mut oob = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
+        let mut oob = sys::conv::SYS_FALSE;
         unsafe {
             interface_fn!(variant_set_indexed)(
                 self.var_sys_mut(),
@@ -588,18 +725,20 @@ impl Variant {
                 ptr::addr_of_mut!(oob),
             );
         }
-        assert!(
-            sys::conv::bool_from_sys(valid),
-            "Variant::set_indexed(): operation invalid"
-        );
-        assert!(
-            !sys::conv::bool_from_sys(oob),
-            "Variant::set_indexed(): index {index} out of bounds"
-        );
+        if !sys::conv::bool_from_sys(valid) {
+            self.panic_invalid_access("set_indexed");
+        }
+        if sys::conv::bool_from_sys(oob) {
+            panic!(
+                "{}::set_indexed(): index {index} out of bounds",
+                std::any::type_name::<Self>()
+            );
+        }
     }
 
     /// ⚠️ Gets the value at the specified index and converts it to `T`, panicking on failure.
     #[inline]
+    #[track_caller]
     pub fn index_as<T: FromGodot>(&self, index: i64) -> T {
         self.get_indexed(index).to::<T>()
     }
@@ -607,8 +746,8 @@ impl Variant {
     /// Gets the value at the specified index and converts it to `T` (fallible).
     #[inline]
     pub fn get_index_as<T: FromGodot>(&self, index: i64) -> Option<T> {
-        let mut valid = false as sys::GDExtensionBool;
-        let mut oob = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
+        let mut oob = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_indexed)(
@@ -627,14 +766,17 @@ impl Variant {
     }
 
     /// ⚠️ Gets the value of a key and converts it to `T`, panicking on failure.
+    #[inline]
+    #[track_caller]
     pub fn at_as<K: ToGodot, T: FromGodot>(&self, key: K) -> T {
         self.get_keyed(&key.to_variant()).to::<T>()
     }
 
     /// Gets the value of a key and converts it to `T` (fallible).
+    #[inline]
     pub fn get_as<K: ToGodot, T: FromGodot>(&self, key: K) -> Option<T> {
         let key = key.to_variant();
-        let mut valid = false as sys::GDExtensionBool;
+        let mut valid = sys::conv::SYS_FALSE;
         let mut ret = Variant::nil();
         unsafe {
             interface_fn!(variant_get_keyed)(
@@ -654,6 +796,7 @@ impl Variant {
     /// Return Godot's string representation of the variant.
     ///
     /// See also `Display` impl.
+    #[inline]
     #[allow(unused_mut)] // result
     pub fn stringify(&self) -> GString {
         let mut result = GString::new();
@@ -666,13 +809,14 @@ impl Variant {
     /// Return Godot's hash value for the variant.
     ///
     /// _Godot equivalent : `@GlobalScope.hash()`_
+    #[inline]
+    #[track_caller]
     pub fn hash_u32(&self) -> u32 {
         // @GlobalScope.hash() actually calls the VariantUtilityFunctions::hash(&Variant) function (C++).
         // This function calls the passed reference's `hash` method, which returns a uint32_t.
         // Therefore, casting this function to u32 is always fine.
-        unsafe { interface_fn!(variant_hash)(self.var_sys()) }
-            .try_into()
-            .expect("Godot hashes are uint32_t")
+        let hash = unsafe { interface_fn!(variant_hash)(self.var_sys()) };
+        crate::builtin::to_u32_from_i64(hash)
     }
 
     /// Interpret the `Variant` as `bool`.
@@ -687,8 +831,8 @@ impl Variant {
     #[inline]
     pub fn booleanize(&self) -> bool {
         // See Variant::is_zero(), roughly https://github.com/godotengine/godot/blob/master/core/variant/variant.cpp#L859.
-
-        unsafe { interface_fn!(variant_booleanize)(self.var_sys()) != 0 }
+        let booleanized = unsafe { interface_fn!(variant_booleanize)(self.var_sys()) };
+        sys::conv::bool_from_sys(booleanized)
     }
 
     /// Assuming that this is of type `OBJECT`, checks whether the object is dead.
@@ -932,6 +1076,7 @@ macro_rules! impl_variant_partial_eq {
         $(
             impl PartialEq<$ty> for Variant {
                 #[inline]
+                #[allow(clippy::unnecessary_cast)]
                 fn eq(&self, other: &$ty) -> bool {
                     let $lhs = self;
                     let $rhs = other;
@@ -1081,6 +1226,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self, rhs: Self) -> Self::Output {
                 self.evaluate(&rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1091,6 +1237,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait<&Variant> for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self, rhs: &Variant) -> Self::Output {
                 self.evaluate(rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1102,6 +1249,7 @@ macro_rules! impl_variant_op {
     (assign $trait:ident, $method:ident, $op:expr, $op_str:expr) => {
         impl std::ops::$trait for Variant {
             #[inline]
+            #[track_caller]
             fn $method(&mut self, rhs: Self) {
                 *self = self.evaluate(&rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1111,6 +1259,7 @@ macro_rules! impl_variant_op {
 
         impl std::ops::$trait<&Variant> for Variant {
             #[inline]
+            #[track_caller]
             fn $method(&mut self, rhs: &Variant) {
                 *self = self.evaluate(rhs, $op).unwrap_or_else(|| {
                     Variant::panic_op($op_str, self.get_type(), Some(rhs.get_type()))
@@ -1123,6 +1272,7 @@ macro_rules! impl_variant_op {
         impl std::ops::$trait for Variant {
             type Output = Self;
             #[inline]
+            #[track_caller]
             fn $method(self) -> Self::Output {
                 let from_type = self.get_type();
                 self.evaluate(&Variant::nil(), $op)
@@ -1149,6 +1299,7 @@ impl_variant_op!(unary Neg, neg, VariantOperator::NEGATE, "-");
 impl std::ops::Not for Variant {
     type Output = Self;
     #[inline]
+    #[track_caller]
     fn not(self) -> Self::Output {
         let from_type = self.get_type();
         let op = if from_type == VariantType::BOOL {

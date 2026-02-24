@@ -314,7 +314,7 @@ macro_rules! impl_packed_array_element {
 
             fn op_slice(inner: Self::Inner<'_>, range: impl $crate::meta::signed_range::SignedRange) -> PackedArray<Self> {
                 let (begin, end) = range.signed();
-                inner.slice(begin, end.unwrap_or(i32::MAX as i64))
+                inner.slice(begin, end.unwrap_or(i64::from(i32::MAX)))
             }
 
             fn op_find(inner: Self::Inner<'_>, value: CowArg<'_, Self>, from: i64) -> i64 {

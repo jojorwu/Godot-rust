@@ -27,12 +27,18 @@ use crate::obj::{Gd, Inherits, Singleton};
 /// # Panics
 /// If the resource cannot be loaded, or is not of type `T` or inherited.
 #[inline]
+#[track_caller]
 pub fn load<T>(path: impl AsArg<GString>) -> Gd<T>
 where
     T: Inherits<Resource>,
 {
     arg_into_ref!(path);
-    load_impl(path).unwrap_or_else(|err| panic!("failed to load resource at '{path}': {err}"))
+    load_impl::<T>(path).unwrap_or_else(|err| {
+        panic!(
+            "failed to load resource of type {} at '{path}': {err}",
+            std::any::type_name::<T>()
+        )
+    })
 }
 
 /// Loads a resource from the filesystem located at `path`.
@@ -65,6 +71,7 @@ where
 /// }
 /// ```
 #[inline]
+#[track_caller]
 pub fn try_load<T>(path: impl AsArg<GString>) -> Result<Gd<T>, IoError>
 where
     T: Inherits<Resource>,
@@ -89,14 +96,21 @@ where
 /// ```
 /// use godot::
 #[inline]
+#[track_caller]
 pub fn save<T>(obj: &Gd<T>, path: impl AsArg<GString>)
 where
     T: Inherits<Resource>,
 {
     arg_into_ref!(path);
 
-    save_impl(obj, path)
-        .unwrap_or_else(|err| panic!("failed to save resource at path '{}': {}", &path, err));
+    save_impl(obj, path).unwrap_or_else(|err| {
+        panic!(
+            "failed to save resource of type {} at path '{}': {}",
+            std::any::type_name::<T>(),
+            &path,
+            err
+        )
+    });
 }
 
 /// Saves a [`Resource`]-inheriting object into the file located at `path`.
@@ -126,6 +140,7 @@ where
 /// assert!(res.is_ok());
 /// ```
 #[inline]
+#[track_caller]
 pub fn try_save<T>(obj: &Gd<T>, path: impl AsArg<GString>) -> Result<(), IoError>
 where
     T: Inherits<Resource>,
@@ -140,6 +155,7 @@ where
 
 // Separate function, to avoid constructing string twice
 // Note that more optimizations than that likely make no sense, as loading is quite expensive
+#[track_caller]
 fn load_impl<T>(path: &GString) -> Result<Gd<T>, IoError>
 where
     T: Inherits<Resource>,
@@ -164,6 +180,7 @@ where
     }
 }
 
+#[track_caller]
 fn save_impl<T>(obj: &Gd<T>, path: &GString) -> Result<(), IoError>
 where
     T: Inherits<Resource>,

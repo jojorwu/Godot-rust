@@ -155,7 +155,7 @@ impl Color {
     /// format where the three color components have 9 bits of precision and all three share a
     /// single 5-bit exponent.
     pub fn from_rgbe9995(rgbe: u32) -> Self {
-        InnerColor::from_rgbe9995(rgbe as i64)
+        InnerColor::from_rgbe9995(i64::from(rgbe))
     }
 
     /// Returns a copy of this color with the given alpha value. Useful for chaining with
@@ -312,8 +312,12 @@ impl Color {
     ///
     /// Method will panic if the RGBA values are outside the valid range `0.0..=1.0`. You can use [`Color::normalized`] to ensure that
     /// they are in range, or use [`Color::try_to_hsv`].
+    #[inline]
+    #[track_caller]
     pub fn to_hsv(self) -> ColorHsv {
-        self.try_to_hsv().unwrap_or_else(|e| panic!("{e}"))
+        self.assert_normalized();
+        let (h, s, v, a) = rgba_to_hsva(self.r, self.g, self.b, self.a);
+        ColorHsv { h, s, v, a }
     }
 
     /// Fallible `Color` conversion into [`ColorHsv`]. See also [`Color::to_hsv`].
@@ -351,8 +355,25 @@ impl Color {
             && self.a <= 1.0
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_normalized(&self) {
+        assert!(
+            self.is_normalized(),
+            "{}: RGBA values need to be in range `0.0..=1.0` before conversion, but were {:?}. See: `Color::normalized()` method.",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     fn as_inner(&self) -> InnerColor<'_> {
         InnerColor::from_outer(self)
+    }
+
+    /// Returns `true` if this color and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(self, other: Self) -> bool {
+        self.approx_eq(&other)
     }
 }
 

@@ -62,17 +62,20 @@ impl NodePath {
     ///
     /// # Panics (safeguards-balanced)
     /// If `index` is out of bounds. In safeguards-disengaged level, a Godot error is generated and the result is unspecified (but safe).
+    #[track_caller]
     pub fn get_name(&self, index: usize) -> StringName {
         let inner = self.as_inner();
-        let index = index as i64;
+        let index_i64 = crate::builtin::to_i64(index);
 
         // Not safety-critical, Godot will do another check. But better error message.
-        sys::balanced_assert!(
-            index < inner.get_name_count(),
-            "NodePath '{self}': name at index {index} is out of bounds"
+        assert!(
+            index_i64 < inner.get_name_count(),
+            "{} '{self}': name at index {index} is out of bounds (len {})",
+            std::any::type_name::<Self>(),
+            inner.get_name_count()
         );
 
-        inner.get_name(index)
+        inner.get_name(index_i64)
     }
 
     /// Returns the node subname (property) at position `index`.
@@ -89,32 +92,29 @@ impl NodePath {
     ///
     /// # Panics (safeguards-balanced)
     /// If `index` is out of bounds. In safeguards-disengaged level, a Godot error is generated and the result is unspecified (but safe).
+    #[track_caller]
     pub fn get_subname(&self, index: usize) -> StringName {
         let inner = self.as_inner();
-        let index = index as i64;
+        let index_i64 = crate::builtin::to_i64(index);
 
-        sys::balanced_assert!(
-            index < inner.get_subname_count(),
-            "NodePath '{self}': subname at index {index} is out of bounds"
+        assert!(
+            index_i64 < inner.get_subname_count(),
+            "{} '{self}': subname at index {index} is out of bounds (len {})",
+            std::any::type_name::<Self>(),
+            inner.get_subname_count()
         );
 
-        inner.get_subname(index)
+        inner.get_subname(index_i64)
     }
 
     /// Returns the number of node names in the path. Property subnames are not included.
     pub fn get_name_count(&self) -> usize {
-        self.as_inner()
-            .get_name_count()
-            .try_into()
-            .expect("Godot name counts are non-negative ints")
+        crate::builtin::to_usize(self.as_inner().get_name_count())
     }
 
     /// Returns the number of property names ("subnames") in the path. Each subname in the node path is listed after a colon character (`:`).
     pub fn get_subname_count(&self) -> usize {
-        self.as_inner()
-            .get_subname_count()
-            .try_into()
-            .expect("Godot subname counts are non-negative ints")
+        crate::builtin::to_usize(self.as_inner().get_subname_count())
     }
 
     /// Returns the total number of names + subnames.
@@ -172,8 +172,8 @@ impl NodePath {
         let begin = if GdextBuild::since_api("4.4") {
             from
         } else {
-            let name_count = self.get_name_count() as i64;
-            let subname_count = self.get_subname_count() as i64;
+            let name_count = crate::builtin::to_i64(self.get_name_count());
+            let subname_count = crate::builtin::to_i64(self.get_subname_count());
             let total_count = name_count + subname_count;
 
             let mut begin = from.clamp(-total_count, total_count);
@@ -187,7 +187,7 @@ impl NodePath {
         };
 
         self.as_inner()
-            .slice(begin, exclusive_end.unwrap_or(i32::MAX as i64))
+            .slice(begin, exclusive_end.unwrap_or(i64::from(i32::MAX)))
     }
 
     crate::meta::declare_arg_method! {

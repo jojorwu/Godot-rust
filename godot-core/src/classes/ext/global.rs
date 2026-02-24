@@ -18,6 +18,7 @@ use crate::obj::{Gd, Inherits};
 #[cfg(feature = "codegen-full")]
 impl crate::classes::ClassDb {
     /// ⚠️ Instantiates a class by name, panicking if it cannot be created or bad type.
+    #[track_caller]
     pub fn instantiate_as<T>(&self, class: impl AsArg<StringName>) -> Gd<T>
     where
         T: Inherits<crate::classes::Object>,
@@ -26,17 +27,23 @@ impl crate::classes::ClassDb {
         let variant = self.instantiate(class);
         if variant.is_nil() {
             panic!(
-                "ClassDB::instantiate_as(): failed to instantiate class '{class}' (returned Nil)"
+                "{}::instantiate_as(): failed to instantiate class '{class}' (returned Nil)",
+                std::any::type_name::<Self>()
             );
         }
         let obj = variant.try_to::<Gd<Object>>().unwrap_or_else(|err| {
-            panic!("ClassDB::instantiate_as(): failed to convert instance of '{class}' to Gd<Object>: {err}");
+            panic!(
+                "{}::instantiate_as(): failed to convert instance of '{class}' to Gd<Object>: {err}",
+                std::any::type_name::<Self>()
+            );
         });
 
         obj.try_cast::<T>().unwrap_or_else(|obj| {
             panic!(
-                "ClassDB::instantiate_as(): class '{class}' (instance {obj:?}) is not of type {to}",
-                to = T::class_id()
+                "{}::instantiate_as(): class '{class}' (instance {obj:?}) is not of type {to} ({rust_to})",
+                std::any::type_name::<Self>(),
+                to = T::class_id(),
+                rust_to = std::any::type_name::<T>()
             );
         })
     }
@@ -69,12 +76,13 @@ impl crate::classes::ClassDb {
 #[cfg(feature = "codegen-full")]
 impl crate::classes::EditorInterface {
     /// Retrieves the editor main screen control, cast to type `T`.
+    #[track_caller]
     pub fn get_editor_main_screen_as<T>(&self) -> Gd<T>
     where
         T: Inherits<crate::classes::Control>,
     {
         self.get_editor_main_screen()
-            .expect("Editor main screen not found")
+            .unwrap_or_else(|| panic!("Editor main screen not found"))
             .upcast::<crate::classes::Control>()
             .cast::<T>()
     }
@@ -88,12 +96,13 @@ impl crate::classes::EditorInterface {
     }
 
     /// Retrieves the editor base control, cast to type `T`.
+    #[track_caller]
     pub fn get_base_control_as<T>(&self) -> Gd<T>
     where
         T: Inherits<crate::classes::Control>,
     {
         self.get_base_control()
-            .expect("Editor base control not found")
+            .unwrap_or_else(|| panic!("Editor base control not found"))
             .upcast::<crate::classes::Control>()
             .cast::<T>()
     }
@@ -114,14 +123,22 @@ impl crate::classes::ProjectSettings {
     ///
     /// # Panics
     /// If the setting is not found, or if its value cannot be converted to `T`.
+    #[track_caller]
     pub fn get_setting_as<T: FromGodot>(&self, name: impl AsArg<GString>) -> T {
         arg_into_ref!(name);
         let variant = self.get_setting(name);
         if variant.is_nil() {
-            panic!("ProjectSettings::get_setting_as(): setting '{name}' not found (returned Nil)");
+            panic!(
+                "{}::get_setting_as(): setting '{name}' not found (returned Nil)",
+                std::any::type_name::<Self>()
+            );
         }
         variant.try_to::<T>().unwrap_or_else(|err| {
-            panic!("ProjectSettings::get_setting_as(): setting '{name}' conversion failed: {err}");
+            panic!(
+                "{}::get_setting_as(): setting '{name}' conversion to {to} failed: {err}",
+                std::any::type_name::<Self>(),
+                to = std::any::type_name::<T>()
+            );
         })
     }
 
@@ -148,19 +165,25 @@ impl crate::classes::Engine {
     ///
     /// # Panics
     /// If the singleton is not found, or if it does not have type `T` or inherited.
+    #[track_caller]
     pub fn get_singleton_as<T>(&self, name: impl AsArg<StringName>) -> Gd<T>
     where
         T: Inherits<crate::classes::Object>,
     {
         arg_into_ref!(name);
         let obj = self.get_singleton(name).unwrap_or_else(|| {
-            panic!("Engine::get_singleton_as(): singleton '{name}' not found");
+            panic!(
+                "{}::get_singleton_as(): singleton '{name}' not found",
+                std::any::type_name::<Self>()
+            );
         });
 
         obj.try_cast::<T>().unwrap_or_else(|obj| {
             panic!(
-                "Engine::get_singleton_as(): singleton '{name}' (instance {obj:?}) is not of type {to}",
-                to = T::class_id()
+                "{}::get_singleton_as(): singleton '{name}' (instance {obj:?}) is not of type {to} ({rust_to})",
+                std::any::type_name::<Self>(),
+                to = T::class_id(),
+                rust_to = std::any::type_name::<T>()
             );
         })
     }

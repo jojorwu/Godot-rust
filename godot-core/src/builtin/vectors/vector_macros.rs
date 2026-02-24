@@ -244,6 +244,8 @@ macro_rules! impl_vector_index {
     ) => {
         impl std::ops::Index<$AxisEnum> for $Vector {
             type Output = $Scalar;
+            #[inline]
+            #[track_caller]
             fn index(&self, axis: $AxisEnum) -> &$Scalar {
                 match axis {
                     $(<$AxisEnum>::$axis_variants => &self.$components),*
@@ -252,10 +254,49 @@ macro_rules! impl_vector_index {
         }
 
         impl std::ops::IndexMut<$AxisEnum> for $Vector {
+            #[inline]
+            #[track_caller]
             fn index_mut(&mut self, axis: $AxisEnum) -> &mut $Scalar {
                 match axis {
                     $(<$AxisEnum>::$axis_variants => &mut self.$components),*
                 }
+            }
+        }
+
+        impl std::ops::Index<usize> for $Vector {
+            type Output = $Scalar;
+            #[inline]
+            #[track_caller]
+            fn index(&self, index: usize) -> &$Scalar {
+                let mut i = 0usize;
+                $(
+                    if i == index {
+                        return &self.$components;
+                    }
+                    i += 1;
+                )*
+                panic!(
+                    "{}::index(): index {index} out of bounds (len {i})",
+                    std::any::type_name::<Self>()
+                );
+            }
+        }
+
+        impl std::ops::IndexMut<usize> for $Vector {
+            #[inline]
+            #[track_caller]
+            fn index_mut(&mut self, index: usize) -> &mut $Scalar {
+                let mut i = 0usize;
+                $(
+                    if i == index {
+                        return &mut self.$components;
+                    }
+                    i += 1;
+                )*
+                panic!(
+                    "{}::index_mut(): index {index} out of bounds (len {i})",
+                    std::any::type_name::<Self>()
+                );
             }
         }
     }
@@ -445,6 +486,7 @@ macro_rules! impl_vector_fns {
             /// Returns a new vector with all components in absolute values (i.e. positive or
             /// zero).
             #[inline]
+            #[track_caller]
             pub fn abs(self) -> Self {
                 Self::from_glam(self.to_glam().abs())
             }
@@ -454,12 +496,14 @@ macro_rules! impl_vector_fns {
             /// # Panics
             /// If `min` > `max`, `min` is NaN, or `max` is NaN.
             #[inline]
+            #[track_caller]
             pub fn clamp(self, min: Self, max: Self) -> Self {
                 Self::from_glam(self.to_glam().clamp(min.to_glam(), max.to_glam()))
             }
 
             /// Returns the length (magnitude) of this vector.
             #[inline]
+            #[track_caller]
             pub fn length(self) -> real {
                 // does the same as glam's length() but also works for integer vectors
                 (self.length_squared() as real).sqrt()
@@ -470,6 +514,7 @@ macro_rules! impl_vector_fns {
             /// Runs faster than [`length()`][Self::length], so prefer it if you need to compare vectors or need the
             /// squared distance for some formula.
             #[inline]
+            #[track_caller]
             pub fn length_squared(self) -> $Scalar {
                 self.to_glam().length_squared()
             }
@@ -478,6 +523,7 @@ macro_rules! impl_vector_fns {
             ///
             #[doc = concat!("You may consider using the fully-qualified syntax `", stringify!($Vector), "::coord_min(a, b)` for symmetry.")]
             #[inline]
+            #[track_caller]
             pub fn coord_min(self, other: Self) -> Self {
                 self.glam2(&other, |a, b| a.min(b))
             }
@@ -486,20 +532,22 @@ macro_rules! impl_vector_fns {
             ///
             #[doc = concat!("You may consider using the fully-qualified syntax `", stringify!($Vector), "::coord_max(a, b)` for symmetry.")]
             #[inline]
+            #[track_caller]
             pub fn coord_max(self, other: Self) -> Self {
                 self.glam2(&other, |a, b| a.max(b))
             }
 
             /// Returns a new vector with each component set to 1 if the component is positive, -1 if negative, and 0 if zero.
             #[inline]
+            #[track_caller]
             pub fn sign(self) -> Self {
                 #[inline]
                 fn f(c: $Scalar) -> $Scalar {
-                    let r = c.partial_cmp(&(0 as $Scalar)).unwrap_or_else(|| panic!("Vector component {c} isn't signed!"));
-                    match r {
-                        Ordering::Equal => 0 as $Scalar,
-                        Ordering::Greater => 1 as $Scalar,
-                        Ordering::Less => -1 as $Scalar,
+                    match c.partial_cmp(&(0 as $Scalar)) {
+                        Some(Ordering::Equal) => 0 as $Scalar,
+                        Some(Ordering::Greater) => 1 as $Scalar,
+                        Some(Ordering::Less) => -1 as $Scalar,
+                        None => c, // NaN cases: return the component itself.
                     }
                 }
 
@@ -511,6 +559,7 @@ macro_rules! impl_vector_fns {
     }
 }
 
+#[track_caller]
 pub(super) fn snap_one(mut value: i32, step: i32) -> i32 {
     assert!(
         value != i32::MIN || step != -1,
@@ -519,9 +568,11 @@ pub(super) fn snap_one(mut value: i32, step: i32) -> i32 {
 
     if step != 0 {
         // Can overflow if step / 2 + value is not in range of i32.
-        let a = (step / 2).checked_add(value).expect(
-            "snapped() overflowed, this happened because step / 2 + component is not in range of i32",
-        );
+        let a = (step / 2).checked_add(value).unwrap_or_else(|| {
+            panic!(
+                "snapped() overflowed, this happened because step / 2 + component is not in range of i32"
+            )
+        });
 
         // Manually implement `a.div_floor(step)` since Rust's native method is still unstable, as of 1.79.0.
 
@@ -562,7 +613,7 @@ macro_rules! inline_impl_integer_vector_fns {
         /// in a formula.
         #[inline]
         pub fn distance_squared_to(self, to: Self) -> i32 {
-            (to - self).length_squared() as i32
+            (to - self).length_squared()
         }
 
         /// Returns `self` with each component limited to a range defined by `min` and `max`.
@@ -570,6 +621,7 @@ macro_rules! inline_impl_integer_vector_fns {
         /// # Panics
         /// If `min > max` on any axis.
         #[inline]
+        #[track_caller]
         pub fn clampi(self, min: i32, max: i32) -> Self {
             Self::new(
                 $(
@@ -580,6 +632,7 @@ macro_rules! inline_impl_integer_vector_fns {
 
         /// Returns a new vector with each component set to the minimum of `self` and `with`.
         #[inline]
+        #[track_caller]
         pub fn mini(self, with: i32) -> Self {
             Self::new(
                 $(
@@ -590,6 +643,7 @@ macro_rules! inline_impl_integer_vector_fns {
 
         /// Returns a new vector with each component set to the maximum of `self` and `with`.
         #[inline]
+        #[track_caller]
         pub fn maxi(self, with: i32) -> Self {
             Self::new(
                 $(
@@ -717,8 +771,16 @@ macro_rules! impl_float_vector_fns {
             /// # Panics
             /// If `self` and `to` are equal.
             #[inline]
+            #[track_caller]
             pub fn direction_to(self, to: Self) -> Self {
-                self.try_direction_to(to).expect("direction_to() called on equal vectors")
+                self.try_direction_to(to).unwrap_or_else(|| {
+                    panic!(
+                        "{}::direction_to(): called on equal vectors (self={:?}, to={:?})",
+                        std::any::type_name::<Self>(),
+                        self,
+                        to
+                    )
+                })
             }
 
             /// Returns the squared distance between this vector and `to`.
@@ -748,6 +810,17 @@ macro_rules! impl_float_vector_fns {
             #[inline]
             pub fn is_finite(self) -> bool {
                 self.to_glam().is_finite()
+            }
+
+            #[inline]
+            #[track_caller]
+            pub fn assert_finite(self) {
+                assert!(
+                    self.is_finite(),
+                    "{} {:?} is not finite",
+                    std::any::type_name::<Self>(),
+                    self
+                );
             }
 
             /// Returns `true` if the vector is normalized, i.e. its length is approximately equal to 1.
@@ -794,8 +867,14 @@ macro_rules! impl_float_vector_fns {
             /// # Panics
             /// If called on a zero vector.
             #[inline]
+            #[track_caller]
             pub fn normalized(self) -> Self {
-                self.try_normalized().expect("normalized() called on zero vector")
+                self.try_normalized().unwrap_or_else(|| {
+                    panic!(
+                        "{}::normalized(): called on zero vector",
+                        std::any::type_name::<Self>()
+                    )
+                })
             }
 
             /// Returns the vector scaled to unit length or [`Self::ZERO`], if called on a zero vector.
@@ -837,6 +916,12 @@ macro_rules! impl_float_vector_fns {
                         self.$comp.snapped(step.$comp)
                     ),*
                 )
+            }
+
+            /// Returns `true` if this vector and `other` are approximately equal.
+            #[inline]
+            pub fn is_equal_approx(self, other: Self) -> bool {
+                $crate::builtin::math::ApproxEq::approx_eq(&self, &other)
             }
         }
 
@@ -1098,8 +1183,14 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn bounce(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                assert!(
+                    n.is_normalized(),
+                    "{}::bounce(): n is not normalized (n={:?})",
+                    std::any::type_name::<Self>(),
+                    n
+                );
                 -self.reflect(n)
             }
 
@@ -1129,8 +1220,14 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn reflect(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                assert!(
+                    n.is_normalized(),
+                    "{}::reflect(): n is not normalized (n={:?})",
+                    std::any::type_name::<Self>(),
+                    n
+                );
                 2.0 * n * self.dot(n) - self
             }
 
@@ -1139,8 +1236,14 @@ macro_rules! impl_vector2_vector3_fns {
             /// # Panics
             /// If `n` is not normalized.
             #[inline]
+            #[track_caller]
             pub fn slide(self, n: Self) -> Self {
-                assert!(n.is_normalized(), "n is not normalized!");
+                assert!(
+                    n.is_normalized(),
+                    "{}::slide(): n is not normalized (n={:?})",
+                    std::any::type_name::<Self>(),
+                    n
+                );
                 self - n * self.dot(n)
             }
         }

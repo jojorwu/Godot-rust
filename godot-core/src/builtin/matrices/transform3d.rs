@@ -49,7 +49,7 @@ use crate::builtin::{real, Aabb, Basis, Plane, Projection, RAffine3, Vector3};
 /// # Godot docs
 ///
 /// [`Transform3D` (stable)](https://docs.godotengine.org/en/stable/classes/class_transform3d.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Transform3D {
@@ -172,6 +172,17 @@ impl Transform3D {
         self.basis.is_finite() && self.origin.is_finite()
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(&self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// Returns the transform with the basis orthogonal (90 degrees), and
     /// normalized axis vectors (scale of 1 or -1).
     ///
@@ -273,6 +284,12 @@ impl Transform3D {
             basis: self.basis,
             origin: self.origin + (self.basis * offset),
         }
+    }
+
+    /// Returns `true` if this transform and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
     }
 }
 
@@ -466,6 +483,38 @@ impl GlamType for RAffine3 {
 
 impl GlamConv for Transform3D {
     type Glam = RAffine3;
+}
+
+impl std::ops::Index<usize> for Transform3D {
+    type Output = Vector3;
+
+    #[inline]
+    #[track_caller]
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0..=2 => &self.basis.rows[index],
+            3 => &self.origin,
+            _ => panic!(
+                "{}::index(): index {index} out of bounds (len 4)",
+                std::any::type_name::<Self>()
+            ),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Transform3D {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0..=2 => &mut self.basis.rows[index],
+            3 => &mut self.origin,
+            _ => panic!(
+                "{}::index_mut(): index {index} out of bounds (len 4)",
+                std::any::type_name::<Self>()
+            ),
+        }
+    }
 }
 
 // SAFETY:

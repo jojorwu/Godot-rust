@@ -49,7 +49,7 @@ use crate::builtin::{real, RAffine2, RMat2, Rect2, Vector2};
 /// # Godot docs
 ///
 /// [`Transform2D` (stable)](https://docs.godotengine.org/en/stable/classes/class_transform2d.html)
-#[derive(Default, Copy, Clone, PartialEq, Debug)]
+#[derive(Default, Copy, Clone, PartialEq, PartialOrd, Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[repr(C)]
 pub struct Transform2D {
@@ -232,6 +232,17 @@ impl Transform2D {
         self.a.is_finite() && self.b.is_finite() && self.origin.is_finite()
     }
 
+    #[inline]
+    #[track_caller]
+    pub fn assert_finite(&self) {
+        assert!(
+            self.is_finite(),
+            "{} {:?} is not finite",
+            std::any::type_name::<Self>(),
+            self
+        );
+    }
+
     /// Returns the transform with the basis orthogonal (90 degrees), and
     /// normalized axis vectors (scale of 1 or -1).
     ///
@@ -324,6 +335,12 @@ impl Transform2D {
     /// _Godot equivalent: `Transform2D.basis_xform_inv()`_
     pub fn basis_xform_inv(&self, v: Vector2) -> Vector2 {
         self.basis().inverse() * v
+    }
+
+    /// Returns `true` if this transform and `other` are approximately equal.
+    #[inline]
+    pub fn is_equal_approx(&self, other: &Self) -> bool {
+        self.approx_eq(other)
     }
 }
 
@@ -457,6 +474,40 @@ impl GlamType for RAffine2 {
 
 impl GlamConv for Transform2D {
     type Glam = RAffine2;
+}
+
+impl std::ops::Index<usize> for Transform2D {
+    type Output = Vector2;
+
+    #[inline]
+    #[track_caller]
+    fn index(&self, index: usize) -> &Self::Output {
+        match index {
+            0 => &self.a,
+            1 => &self.b,
+            2 => &self.origin,
+            _ => panic!(
+                "{}::index(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            ),
+        }
+    }
+}
+
+impl std::ops::IndexMut<usize> for Transform2D {
+    #[inline]
+    #[track_caller]
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        match index {
+            0 => &mut self.a,
+            1 => &mut self.b,
+            2 => &mut self.origin,
+            _ => panic!(
+                "{}::index_mut(): index {index} out of bounds (len 3)",
+                std::any::type_name::<Self>()
+            ),
+        }
+    }
 }
 
 // SAFETY:
@@ -598,7 +649,7 @@ impl Default for Basis2D {
 impl Display for Basis2D {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let [a, b] = self.cols;
-        write!(f, "[a: {a}, b: {b})]")
+        write!(f, "[a: {a}, b: {b}]")
     }
 }
 
