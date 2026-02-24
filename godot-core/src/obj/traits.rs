@@ -371,6 +371,7 @@ pub trait WithBaseField: GodotClass + Bounds<Declarer = bounds::DeclUser> {
     ///
     /// # Panics
     /// If called during initialization (the `init()` function or `Gd::from_init_fn()`). Use [`Base::to_init_gd()`] instead.
+    #[track_caller]
     fn to_gd(&self) -> Gd<Self>;
 
     /// Returns a reference to the `Base` stored by this object.
@@ -430,6 +431,7 @@ pub trait WithBaseField: GodotClass + Bounds<Declarer = bounds::DeclUser> {
     /// ```
     ///
     /// For this, use [`base_mut()`](WithBaseField::base_mut()) instead.
+    #[track_caller]
     fn base(&self) -> BaseRef<'_, Self> {
         // SAFETY: lifetime is bound to self through BaseRef, ensuring the object remains valid.
         let passive_gd = unsafe { self.base_field().constructed_passive() };
@@ -513,6 +515,7 @@ pub trait WithBaseField: GodotClass + Bounds<Declarer = bounds::DeclUser> {
     /// # }
     /// ```
     #[allow(clippy::let_unit_value)]
+    #[track_caller]
     fn base_mut(&mut self) -> BaseMut<'_, Self> {
         // We need to construct this first, as the mut-borrow below will block all other access.
         // SAFETY: lifetime is re-established at the bottom BaseMut construction, since return type of this fn has lifetime bound to instance.
@@ -531,9 +534,12 @@ pub trait WithBaseField: GodotClass + Bounds<Declarer = bounds::DeclUser> {
         //   since we have a reference to the base object derived from that Rust object, then that Rust
         //   object must outlive `'a`. And so the storage cannot be destroyed during the lifetime `'a`.
         let storage = unsafe {
-            gd.raw
-                .storage_unbounded()
-                .expect("we have Gd<Self>; its RawGd should not be null")
+            gd.raw.storage_unbounded().unwrap_or_else(|| {
+                panic!(
+                    "{}::base_mut(): we have Gd<Self>; its RawGd should not be null",
+                    std::any::type_name::<Self>()
+                )
+            })
         };
 
         let guard = storage.get_inaccessible(self);

@@ -23,4 +23,3 @@ impl OwnedJoint2D {
         unsafe { Self::from_rid(rid) }
     }
 }
-

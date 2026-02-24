@@ -114,10 +114,7 @@ impl MethodInfo {
 
         let method_name = dict.get_as::<&str, StringName>("name").unwrap_or_default();
 
-        let id = dict
-            .get_as::<&str, i64>("id")
-            .map(to_i32)
-            .unwrap_or(0);
+        let id = dict.get_as::<&str, i64>("id").map(to_i32).unwrap_or(0);
 
         let return_type = dict
             .get_as::<&str, VarDictionary>("return")

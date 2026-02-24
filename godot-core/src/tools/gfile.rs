@@ -839,7 +839,8 @@ impl Write for GFile {
         if self.write_buffer.len() == buf.len() {
             self.fa.store_buffer(&self.write_buffer);
         } else {
-            self.fa.store_buffer(&self.write_buffer.subarray(0..buf.len()));
+            self.fa
+                .store_buffer(&self.write_buffer.subarray(0..buf.len()));
         }
 
         self.clear_file_length();
@@ -868,10 +869,7 @@ impl Seek for GFile {
             SeekFrom::End(offset) => {
                 let length = self.check_file_length();
                 let new_pos = (length as i64).checked_add(offset).ok_or_else(|| {
-                    std::io::Error::new(
-                        ErrorKind::InvalidInput,
-                        "seek position overflowed",
-                    )
+                    std::io::Error::new(ErrorKind::InvalidInput, "seek position overflowed")
                 })?;
 
                 if new_pos < 0 {
@@ -887,10 +885,7 @@ impl Seek for GFile {
             SeekFrom::Current(offset) => {
                 let current_pos = self.fa.get_position();
                 let new_pos = (current_pos as i64).checked_add(offset).ok_or_else(|| {
-                    std::io::Error::new(
-                        ErrorKind::InvalidInput,
-                        "seek position overflowed",
-                    )
+                    std::io::Error::new(ErrorKind::InvalidInput, "seek position overflowed")
                 })?;
 
                 if new_pos < 0 {
@@ -940,6 +935,7 @@ impl BufRead for GFile {
         let offset = (self.last_buffer_size as i64) - (amt as i64);
         let pos = SeekFrom::Current(-offset);
 
-        self.seek(pos).unwrap_or_else(|err| panic!("GFile::consume(): failed to seek: {err}"));
+        self.seek(pos)
+            .unwrap_or_else(|err| panic!("GFile::consume(): failed to seek: {err}"));
     }
 }

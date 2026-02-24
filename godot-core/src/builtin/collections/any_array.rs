@@ -378,8 +378,7 @@ impl AnyArray {
     #[inline]
     #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
-        self.pick_random()
-            .and_then(|v| v.try_to::<U>().ok())
+        self.pick_random().and_then(|v| v.try_to::<U>().ok())
     }
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if

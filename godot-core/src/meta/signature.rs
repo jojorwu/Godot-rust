@@ -342,12 +342,7 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
                 use crate::builtin::to_i32;
 
                 // Important: this calls from_sys_init_default().
-                builtin_fn(
-                    type_ptr,
-                    type_ptrs,
-                    return_ptr,
-                    to_i32(total_count as i64),
-                );
+                builtin_fn(type_ptr, type_ptrs, return_ptr, to_i32(total_count as i64));
             })
         }
     }

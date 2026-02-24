@@ -153,7 +153,8 @@ impl Variant {
     /// When this variant holds a different type.
     #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
-        self.try_to::<T>().unwrap_or_else(|err| Self::panic_to::<T>(err))
+        self.try_to::<T>()
+            .unwrap_or_else(|err| Self::panic_to::<T>(err))
     }
 
     /// Convert to type `T`, returning `Err` on failure.
@@ -287,7 +288,10 @@ impl Variant {
     /// Returns true if the variant holds a container type (`ARRAY` or `DICTIONARY`).
     #[inline]
     pub fn is_container(&self) -> bool {
-        matches!(self.get_type(), VariantType::ARRAY | VariantType::DICTIONARY)
+        matches!(
+            self.get_type(),
+            VariantType::ARRAY | VariantType::DICTIONARY
+        )
     }
 
     /// Returns true if the variant holds a typed container.
@@ -337,8 +341,7 @@ impl Variant {
                 | VariantType::PACKED_VECTOR2_ARRAY
                 | VariantType::PACKED_VECTOR3_ARRAY
                 | VariantType::PACKED_COLOR_ARRAY
-        )
-            || (cfg!(since_api = "4.3") && self.get_type() == VariantType::PACKED_VECTOR4_ARRAY)
+        ) || (cfg!(since_api = "4.3") && self.get_type() == VariantType::PACKED_VECTOR4_ARRAY)
     }
 
     /// Returns the Godot type name of the variant as a `GString`.
@@ -460,7 +463,10 @@ impl Variant {
         #[cfg(since_api = "4.4")]
         {
             if self.get_type() == VariantType::OBJECT && !self.is_object_alive() {
-                panic!("{}::object_id(): object has been freed", std::any::type_name::<Self>());
+                panic!(
+                    "{}::object_id(): object has been freed",
+                    std::any::type_name::<Self>()
+                );
             }
             self.object_id_unchecked()
         }
@@ -476,7 +482,10 @@ impl Variant {
                         ErrorKind::FromVariant(FromVariantError::DeadObject)
                     ) =>
                 {
-                    panic!("{}::object_id(): object has been freed", std::any::type_name::<Self>())
+                    panic!(
+                        "{}::object_id(): object has been freed",
+                        std::any::type_name::<Self>()
+                    )
                 }
                 _ => None, // other conversion errors
             }

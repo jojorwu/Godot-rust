@@ -685,10 +685,19 @@ impl<T: GodotClass> Gd<T> {
     pub(crate) unsafe fn from_obj_sys(ptr: sys::GDExtensionObjectPtr) -> Self {
         sys::strict_assert!(
             !ptr.is_null(),
-            "Gd::from_obj_sys() called with null pointer"
+            "{}::from_obj_sys() called with null pointer",
+            std::any::type_name::<Self>()
         );
 
-        Self::from_obj_sys_or_none(ptr).unwrap()
+        Self::from_obj_sys_or_none(ptr).unwrap_or_else(|err| {
+            panic!(
+                "{}::from_obj_sys() failed to create {} from pointer {:?}: {}",
+                std::any::type_name::<Self>(),
+                std::any::type_name::<Self>(),
+                ptr,
+                err
+            )
+        })
     }
 
     #[inline]
@@ -702,7 +711,15 @@ impl<T: GodotClass> Gd<T> {
     #[inline]
     #[track_caller]
     pub(crate) unsafe fn from_obj_sys_weak(ptr: sys::GDExtensionObjectPtr) -> Self {
-        Self::from_obj_sys_weak_or_none(ptr).unwrap()
+        Self::from_obj_sys_weak_or_none(ptr).unwrap_or_else(|err| {
+            panic!(
+                "{}::from_obj_sys_weak() failed to create {} from pointer {:?}: {}",
+                std::any::type_name::<Self>(),
+                std::any::type_name::<Self>(),
+                ptr,
+                err
+            )
+        })
     }
 
     #[cfg(feature = "trace")] // itest only.
@@ -781,6 +798,7 @@ impl<T: GodotClass> Gd<T> {
     ///
     /// # Panics
     /// If called outside the main thread.
+    #[track_caller]
     pub fn run_deferred_gd<F>(&mut self, gd_function: F)
     where
         F: FnOnce(Gd<T>) + 'static,
@@ -788,7 +806,8 @@ impl<T: GodotClass> Gd<T> {
         let obj = self.clone();
         assert!(
             is_main_thread(),
-            "`run_deferred` must be called on the main thread"
+            "{}::run_deferred_gd() must be called on the main thread",
+            std::any::type_name::<Self>()
         );
 
         let callable = Callable::from_once_fn("run_deferred", move |_| {

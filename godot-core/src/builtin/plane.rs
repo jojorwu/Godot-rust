@@ -116,7 +116,7 @@ impl Plane {
         let normal = normal.normalized();
         Self {
             normal,
-            d: normal.dot(a)
+            d: normal.dot(a),
         }
     }
 

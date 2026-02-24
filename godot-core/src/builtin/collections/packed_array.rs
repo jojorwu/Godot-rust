@@ -12,10 +12,10 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi, SysPtr};
 
 use crate::builtin::collections::extend_buffer::ExtendBufferTrait;
-use crate::meta::error::CollectionError;
 use crate::builtin::*;
 use crate::classes::file_access::CompressionMode;
 use crate::meta;
+use crate::meta::error::CollectionError;
 use crate::meta::signed_range::SignedRange;
 use crate::meta::{AsArg, FromGodot, GodotConvert, PackedArrayElement, ToGodot};
 use crate::obj::EngineEnum;
@@ -1361,10 +1361,12 @@ impl PackedByteArray {
     /// On failure, Godot prints an error and this method returns `Err`. (Note that any empty results coming from Godot are mapped to `Err`
     /// in Rust.)
     #[track_caller]
-    pub fn compress(&self, compression_mode: CompressionMode) -> Result<PackedByteArray, CollectionError> {
-        let compressed: PackedByteArray = self
-            .as_inner()
-            .compress(i64::from(compression_mode.ord()));
+    pub fn compress(
+        &self,
+        compression_mode: CompressionMode,
+    ) -> Result<PackedByteArray, CollectionError> {
+        let compressed: PackedByteArray =
+            self.as_inner().compress(i64::from(compression_mode.ord()));
         populated_or_err(compressed)
     }
 
@@ -1383,10 +1385,9 @@ impl PackedByteArray {
         buffer_size: usize,
         compression_mode: CompressionMode,
     ) -> Result<PackedByteArray, CollectionError> {
-        let decompressed: PackedByteArray = self.as_inner().decompress(
-            to_i64(buffer_size),
-            i64::from(compression_mode.ord()),
-        );
+        let decompressed: PackedByteArray = self
+            .as_inner()
+            .decompress(to_i64(buffer_size), i64::from(compression_mode.ord()));
 
         populated_or_err(decompressed)
     }
@@ -1415,10 +1416,9 @@ impl PackedByteArray {
         compression_mode: CompressionMode,
     ) -> Result<PackedByteArray, CollectionError> {
         let max_output_size = max_output_size.map(to_i64).unwrap_or(-1);
-        let decompressed: PackedByteArray = self.as_inner().decompress_dynamic(
-            max_output_size,
-            i64::from(compression_mode.ord()),
-        );
+        let decompressed: PackedByteArray = self
+            .as_inner()
+            .decompress_dynamic(max_output_size, i64::from(compression_mode.ord()));
 
         populated_or_err(decompressed)
     }

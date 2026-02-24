@@ -25,7 +25,10 @@ impl fmt::Display for CollectionError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::OutOfBounds { index, len } => {
-                write!(f, "collection index {index} is out of bounds (length {len})")
+                write!(
+                    f,
+                    "collection index {index} is out of bounds (length {len})"
+                )
             }
             Self::Capacity => write!(f, "collection capacity overflow or allocation failure"),
             Self::Encoding => write!(f, "collection encoding or decoding failure"),
