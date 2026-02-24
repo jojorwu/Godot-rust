@@ -1,6 +1,4 @@
-use crate::builtin::{
-    Array, PackedVector2Array, PackedVector3Array, Rid, VarDictionary, VariantType,
-};
+use crate::builtin::{Array, Rid, VarDictionary};
 use crate::classes::rendering_server::PrimitiveType;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
@@ -45,24 +43,14 @@ impl OwnedMesh {
     /// Returns the number of vertices in a surface.
     ///
     /// See `RenderingServer.mesh_surface_get_arrays()`.
+    #[track_caller]
     pub fn surface_get_array_len(&self, surface_idx: i32) -> i32 {
         let arrays = RenderingServer::singleton().mesh_surface_get_arrays(self.rid, surface_idx);
         if arrays.is_empty() {
             return 0;
         }
         let vertex_array = arrays.at(0);
-        match vertex_array.get_type() {
-            VariantType::PACKED_VECTOR3_ARRAY => {
-                crate::builtin::to_i32(vertex_array.to::<PackedVector3Array>().len() as i64)
-            }
-            VariantType::PACKED_VECTOR2_ARRAY => {
-                crate::builtin::to_i32(vertex_array.to::<PackedVector2Array>().len() as i64)
-            }
-            VariantType::ARRAY => {
-                crate::builtin::to_i32(vertex_array.to::<crate::builtin::AnyArray>().len() as i64)
-            }
-            _ => 0,
-        }
+        crate::builtin::to_i32(vertex_array.len() as i64)
     }
 
     /// Returns the material of a surface.

@@ -24,6 +24,7 @@ impl OwnedInstance {
     /// Sets the base of the instance.
     ///
     /// See `RenderingServer.instance_set_base()`.
+    #[track_caller]
     pub fn set_base(&mut self, base: Rid) {
         RenderingServer::singleton().instance_set_base(self.rid, base);
     }
@@ -31,6 +32,7 @@ impl OwnedInstance {
     /// Sets the scenario of the instance.
     ///
     /// See `RenderingServer.instance_set_scenario()`.
+    #[track_caller]
     pub fn set_scenario(&mut self, scenario: Rid) {
         RenderingServer::singleton().instance_set_scenario(self.rid, scenario);
     }
@@ -38,6 +40,7 @@ impl OwnedInstance {
     /// Sets the transform of the instance.
     ///
     /// See `RenderingServer.instance_set_transform()`.
+    #[track_caller]
     pub fn set_transform(&mut self, transform: &crate::builtin::Transform3D) {
         RenderingServer::singleton().instance_set_transform(self.rid, *transform);
     }
@@ -45,6 +48,7 @@ impl OwnedInstance {
     /// Sets whether the instance is visible.
     ///
     /// See `RenderingServer.instance_set_visible()`.
+    #[track_caller]
     pub fn set_visible(&mut self, visible: bool) {
         RenderingServer::singleton().instance_set_visible(self.rid, visible);
     }

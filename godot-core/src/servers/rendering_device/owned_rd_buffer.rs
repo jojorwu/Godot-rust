@@ -14,6 +14,10 @@ crate::obj::impl_owned_rid!(
 
 impl OwnedRdBuffer {
     /// Updates the buffer with the given data at the specified offset.
+    ///
+    /// This method copies the data into a new Godot `PackedByteArray`. If you already have a `PackedByteArray`,
+    /// use [`update_data_packed()`][Self::update_data_packed] instead to avoid the copy.
+    #[track_caller]
     pub fn update_data(&mut self, data: &[u8], offset: u32) {
         let mut rd = self.server.clone();
         let packed = crate::builtin::PackedByteArray::from(data);
@@ -25,7 +29,22 @@ impl OwnedRdBuffer {
         );
     }
 
+    /// Updates the buffer from a Godot `PackedByteArray` at the specified offset.
+    ///
+    /// Use this method to avoid redundant copies if the data is already in Godot memory.
+    #[track_caller]
+    pub fn update_data_packed(&mut self, data: &crate::builtin::PackedByteArray, offset: u32) {
+        let mut rd = self.server.clone();
+        rd.buffer_update(
+            self.rid,
+            offset,
+            crate::builtin::to_u32(data.len() as u64),
+            data,
+        );
+    }
+
     /// Returns the buffer data.
+    #[track_caller]
     pub fn get_data(&self) -> crate::builtin::PackedByteArray {
         let mut rd = self.server.clone();
         rd.buffer_get_data(self.rid)

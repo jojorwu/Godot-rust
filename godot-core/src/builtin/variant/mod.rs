@@ -350,6 +350,51 @@ impl Variant {
         format!("{:?}", self.get_type()).into()
     }
 
+    /// Returns `true` if the collection held by this variant is empty.
+    ///
+    /// This method is supported for the same types as [`len()`][Self::len].
+    #[inline]
+    #[track_caller]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Returns the number of elements in the collection held by this variant, or 0 if not a collection.
+    ///
+    /// This method is supported for `GString`, `Array`, `Dictionary`, and all `PackedArray` types.
+    ///
+    /// _Godot equivalent: `size()`_
+    #[doc(alias = "size")]
+    #[inline]
+    #[track_caller]
+    pub fn len(&self) -> usize {
+        match self.get_type() {
+            VariantType::STRING
+            | VariantType::ARRAY
+            | VariantType::DICTIONARY
+            | VariantType::PACKED_BYTE_ARRAY
+            | VariantType::PACKED_INT32_ARRAY
+            | VariantType::PACKED_INT64_ARRAY
+            | VariantType::PACKED_FLOAT32_ARRAY
+            | VariantType::PACKED_FLOAT64_ARRAY
+            | VariantType::PACKED_STRING_ARRAY
+            | VariantType::PACKED_VECTOR2_ARRAY
+            | VariantType::PACKED_VECTOR3_ARRAY
+            | VariantType::PACKED_COLOR_ARRAY => {
+                let method = crate::static_sname!(c"size");
+                let result = self.call(method, &[]);
+                crate::builtin::to_usize(result.to_int())
+            }
+            #[cfg(since_api = "4.3")]
+            VariantType::PACKED_VECTOR4_ARRAY => {
+                let method = crate::static_sname!(c"size");
+                let result = self.call(method, &[]);
+                crate::builtin::to_usize(result.to_int())
+            }
+            _ => 0,
+        }
+    }
+
     impl_variant_try_to! {
         try_to_int, i64, "integer";
         try_to_float, f64, "float";
