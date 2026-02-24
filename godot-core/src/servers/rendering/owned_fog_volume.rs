@@ -7,6 +7,7 @@ impl OwnedFogVolume {
     /// Creates a new fog volume and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.fog_volume_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().fog_volume_create();
         Self { rid }

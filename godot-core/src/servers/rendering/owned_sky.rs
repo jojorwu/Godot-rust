@@ -7,6 +7,7 @@ impl OwnedSky {
     /// Creates a new sky and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.sky_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().sky_create();
         Self { rid }

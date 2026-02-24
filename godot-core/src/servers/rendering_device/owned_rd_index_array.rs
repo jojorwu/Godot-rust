@@ -17,6 +17,7 @@ crate::obj::impl_owned_rid!(
 
 impl OwnedRdIndexArray {
     /// Creates a new index array.
+    #[track_caller]
     pub fn new(
         server: &crate::obj::Gd<RenderingDevice>,
         index_buffer: Rid,

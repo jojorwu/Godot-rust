@@ -8,6 +8,7 @@ impl OwnedCanvas {
     /// Creates a new canvas and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.canvas_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().canvas_create();
         Self { rid }
@@ -16,6 +17,7 @@ impl OwnedCanvas {
     /// Sets the mirroring of a canvas item.
     ///
     /// See `RenderingServer.canvas_set_item_mirroring()`.
+    #[track_caller]
     pub fn set_item_mirroring(&mut self, item: Rid, mirroring: Vector2) {
         RenderingServer::singleton().canvas_set_item_mirroring(self.rid, item, mirroring);
     }

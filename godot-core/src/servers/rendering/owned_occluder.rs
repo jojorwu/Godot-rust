@@ -7,6 +7,7 @@ impl OwnedOccluder {
     /// Creates a new occluder and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.occluder_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().occluder_create();
         Self { rid }
