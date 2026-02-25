@@ -837,6 +837,18 @@ macro_rules! impl_float_vector_fns {
                 $( self.$comp.is_zero_approx() )&&*
             }
 
+            /// Returns a new vector moved toward `to` by the fixed `delta` amount. Will not go past the final value.
+            #[inline]
+            pub fn move_toward(self, to: Self, delta: real) -> Self {
+                let vd = to - self;
+                let len = vd.length();
+                if len <= delta || len < real::CMP_EPSILON {
+                    to
+                } else {
+                    self + vd / len * delta
+                }
+            }
+
             /// Returns the result of the linear interpolation between this vector and `to` by amount `weight`.
             ///
             /// `weight` is on the range of `0.0` to `1.0`, representing the amount of interpolation.
@@ -1267,12 +1279,6 @@ macro_rules! impl_vector2_vector3_fns {
 
                 Self::from_glam(self.to_glam().clamp_length_max(length))
 
-            }
-
-            /// Returns a new vector moved toward `to` by the fixed `delta` amount. Will not go past the final value.
-            #[inline]
-            pub fn move_toward(self, to: Self, delta: real) -> Self {
-                Self::from_glam(self.to_glam().move_towards(to.to_glam(), delta))
             }
 
             /// Returns the result of projecting the vector onto the given vector `b`.

@@ -6,7 +6,6 @@
  */
 
 use super::ApproxEq;
-use crate::builtin::{real, RealConv, Vector2};
 
 mod private {
     pub trait Sealed {}
@@ -86,6 +85,36 @@ pub trait FloatExt: private::Sealed + Copy {
     /// _Godot equivalent: @GlobalScope.lerp_angle()_
     fn lerp_angle(self, to: Self, weight: Self) -> Self;
 
+    /// Returns the result of the inverse linear interpolation between `self` and `to` by the given `value`.
+    ///
+    /// _Godot equivalent: @GlobalScope.inverse_lerp()_
+    fn inverse_lerp(self, to: Self, value: Self) -> Self;
+
+    /// Maps a `value` from range `[istart, istop]` to `[ostart, ostop]`.
+    ///
+    /// _Godot equivalent: @GlobalScope.remap()_
+    fn remap(self, istart: Self, istop: Self, ostart: Self, ostop: Self) -> Self;
+
+    /// Returns a value smoothed between `self` and `to` based on `x`.
+    ///
+    /// _Godot equivalent: @GlobalScope.smoothstep()_
+    fn smoothstep(self, to: Self, x: Self) -> Self;
+
+    /// Returns a new value moved toward `to` by the fixed `delta` amount. Will not go past the final value.
+    ///
+    /// _Godot equivalent: @GlobalScope.move_toward()_
+    fn move_toward(self, to: Self, delta: Self) -> Self;
+
+    /// Returns a value that oscillates between `0.0` and `length`.
+    ///
+    /// _Godot equivalent: @GlobalScope.pingpong()_
+    fn pingpong(self, length: Self) -> Self;
+
+    /// Returns an eased value based on the `curve` value.
+    ///
+    /// _Godot equivalent: @GlobalScope.ease()_
+    fn ease(self, curve: Self) -> Self;
+
     /// Wraps `self` between `min` and `max`.
     ///
     /// _Godot equivalent: @GlobalScope.wrapf()_
@@ -102,13 +131,11 @@ macro_rules! impl_float_ext {
             }
 
             fn is_angle_equal_approx(self, other: Self) -> bool {
-                let (x1, y1) = self.sin_cos();
-                let (x2, y2) = other.sin_cos();
+                use $consts;
 
-                let point_1 = Vector2::new(real::$to_real(x1), real::$to_real(y1));
-                let point_2 = Vector2::new(real::$to_real(x2), real::$to_real(y2));
-
-                point_1.distance_to(point_2).is_zero_approx()
+                let difference = (other - self) % consts::TAU;
+                let distance = (2.0 * difference) % consts::TAU - difference;
+                distance.is_zero_approx()
             }
 
             fn is_zero_approx(self) -> bool {
@@ -238,6 +265,62 @@ macro_rules! impl_float_ext {
                 self + distance * weight
             }
 
+            fn inverse_lerp(self, to: Self, value: Self) -> Self {
+                if self == to {
+                    0.0
+                } else {
+                    (value - self) / (to - self)
+                }
+            }
+
+            fn remap(self, istart: Self, istop: Self, ostart: Self, ostop: Self) -> Self {
+                ostart.lerp(ostop, istart.inverse_lerp(istop, self))
+            }
+
+            fn smoothstep(self, to: Self, x: Self) -> Self {
+                if self == to {
+                    0.0
+                } else {
+                    let t = ((x - self) / (to - self)).clamp(0.0, 1.0);
+                    t * t * (3.0 - 2.0 * t)
+                }
+            }
+
+            fn move_toward(self, to: Self, delta: Self) -> Self {
+                if (to - self).abs() <= delta {
+                    to
+                } else {
+                    self + (to - self).signum() * delta
+                }
+            }
+
+            fn pingpong(self, length: Self) -> Self {
+                if length != 0.0 {
+                    ((self - length).fposmod(length * 2.0) - length).abs()
+                } else {
+                    0.0
+                }
+            }
+
+            fn ease(self, c: Self) -> Self {
+                let x = self.clamp(0.0, 1.0);
+                if c > 0.0 {
+                    if c < 1.0 {
+                        1.0 - (1.0 - x).powf(1.0 / c)
+                    } else {
+                        x.powf(c)
+                    }
+                } else if c < 0.0 {
+                    if x < 0.5 {
+                        (x * 2.0).powf(-c) * 0.5
+                    } else {
+                        (1.0 - ((1.0 - x) * 2.0).powf(-c)) * 0.5 + 0.5
+                    }
+                } else {
+                    0.0
+                }
+            }
+
             fn wrap(self, min: Self, max: Self) -> Self {
                 let range = max - min;
                 if range == 0.0 {
@@ -351,5 +434,52 @@ mod test {
             (angle / 2.0),
             fn = is_angle_equal_approx_f64
         );
+    }
+
+    #[test]
+    fn inverse_lerp() {
+        assert_eq_approx!(f32::inverse_lerp(0.0, 10.0, 5.0), 0.5);
+        assert_eq_approx!(f32::inverse_lerp(10.0, 0.0, 5.0), 0.5);
+        assert_eq_approx!(f64::inverse_lerp(0.0, 10.0, 5.0), 0.5);
+        assert_eq_approx!(f32::inverse_lerp(1.0, 1.0, 1.0), 0.0);
+    }
+
+    #[test]
+    fn remap() {
+        assert_eq_approx!(f32::remap(5.0, 0.0, 10.0, 0.0, 100.0), 50.0);
+        assert_eq_approx!(f64::remap(5.0, 0.0, 10.0, 0.0, 100.0), 50.0);
+        assert_eq_approx!(f32::remap(1.0, 1.0, 1.0, 0.0, 1.0), 0.0);
+    }
+
+    #[test]
+    fn smoothstep() {
+        assert_eq_approx!(f32::smoothstep(0.0, 2.0, -1.0), 0.0);
+        assert_eq_approx!(f32::smoothstep(0.0, 2.0, 1.0), 0.5);
+        assert_eq_approx!(f32::smoothstep(0.0, 2.0, 3.0), 1.0);
+        assert_eq_approx!(f32::smoothstep(1.0, 1.0, 0.5), 0.0);
+        assert_eq_approx!(f32::smoothstep(1.0, 1.0, 1.5), 0.0);
+    }
+
+    #[test]
+    fn move_toward() {
+        assert_eq_approx!(f32::move_toward(0.0, 10.0, 4.0), 4.0);
+        assert_eq_approx!(f32::move_toward(10.0, 0.0, 4.0), 6.0);
+        assert_eq_approx!(f32::move_toward(5.0, 10.0, 10.0), 10.0);
+    }
+
+    #[test]
+    fn pingpong() {
+        assert_eq_approx!(f32::pingpong(1.5, 1.0), 0.5);
+        assert_eq_approx!(f32::pingpong(2.5, 1.0), 0.5);
+        assert_eq_approx!(f32::pingpong(-0.5, 1.0), 0.5);
+    }
+
+    #[test]
+    fn ease() {
+        assert_eq_approx!(f32::ease(0.5, 1.0), 0.5);
+        assert_eq_approx!(f32::ease(0.5, 2.0), 0.25);
+        assert_eq_approx!(f32::ease(0.5, -2.0), 0.5);
+        assert_eq_approx!(f32::ease(0.25, -2.0), 0.125);
+        assert_eq_approx!(f32::ease(0.75, -2.0), 0.875);
     }
 }
