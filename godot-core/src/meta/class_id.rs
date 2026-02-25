@@ -8,9 +8,9 @@
 use std::any::TypeId;
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::sync::OnceLock;
 use std::fmt;
 use std::hash::Hash;
+use std::sync::OnceLock;
 
 use godot_ffi as sys;
 use sys::Global;

@@ -18,6 +18,7 @@ crate::obj::impl_owned_rid!(
 
 impl OwnedRdVertexArray {
     /// Creates a new vertex array.
+    #[track_caller]
     pub fn new(
         server: &crate::obj::Gd<RenderingDevice>,
         vertex_count: u32,
@@ -30,6 +31,7 @@ impl OwnedRdVertexArray {
     }
 
     /// Creates a new vertex array with offsets.
+    #[track_caller]
     pub fn new_with_offsets(
         server: &crate::obj::Gd<RenderingDevice>,
         vertex_count: u32,

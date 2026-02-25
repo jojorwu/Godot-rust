@@ -12,6 +12,22 @@ mod xform;
 
 pub use approx_eq::ApproxEq;
 pub use float::FloatExt;
+
+/// Wraps `value` between `min` and `max`.
+///
+/// _Godot equivalent: @GlobalScope.wrapi()_
+pub fn wrapi(value: i64, min: i64, max: i64) -> i64 {
+    let range = max - min;
+    if range == 0 {
+        return min;
+    }
+    let mut result = (value - min) % range;
+    if result < 0 {
+        result += range;
+    }
+    result + min
+}
+
 // Internal glam re-exports
 pub(crate) use glam_helpers::*;
 pub use xform::XformInv;

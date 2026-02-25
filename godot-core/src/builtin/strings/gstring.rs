@@ -15,7 +15,6 @@ use sys::{ffi_methods, interface_fn, ExtVariantType, GodotFfi};
 use crate::builtin::strings::{pad_if_needed, Encoding};
 use crate::builtin::{inner, NodePath, StringName, Variant};
 use crate::meta::error::StringError;
-use crate::meta::AsArg;
 use crate::{impl_shared_string_api, meta};
 
 /// Godot's reference counted string type.
@@ -277,6 +276,16 @@ impl GString {
         inner::InnerString::from_outer(self)
     }
 
+    /// # Safety
+    /// - Variant must have type `VariantType::STRING`.
+    /// - Subsequent operations on this string must not rely on the type of the string.
+    pub(crate) unsafe fn from_variant_unchecked(variant: &Variant) -> Self {
+        Self::new_with_uninit(|self_ptr| {
+            let string_from_variant = sys::builtin_fn!(string_from_variant);
+            string_from_variant(self_ptr, sys::SysPtr::force_mut(variant.var_sys()));
+        })
+    }
+
     /// Converts this `GString` to a `StringName`.
     #[inline]
     pub fn to_string_name(&self) -> StringName {
@@ -437,7 +446,7 @@ impl fmt::Debug for GString {
 impl PartialEq<&str> for GString {
     #[inline]
     fn eq(&self, other: &&str) -> bool {
-        super::compare_gstring_to_str(self.string_sys(), other)
+        self.chars().iter().copied().eq(other.chars())
     }
 }
 

@@ -126,7 +126,7 @@ impl AnyArray {
     #[inline]
     #[track_caller]
     pub fn len(&self) -> usize {
-        to_usize(self.array.as_inner().size())
+        to_usize(self.as_inner().size())
     }
 
     /// Returns `true` if the array is empty.
@@ -236,7 +236,16 @@ impl AnyArray {
     #[inline]
     #[track_caller]
     pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U {
-        self.remove(index).to::<U>()
+        self.balanced_ensure_mutable();
+        assert!(
+            index < self.len(),
+            "AnyArray index {index} out of bounds: length is {}",
+            self.len()
+        );
+
+        // SAFETY: We do not write any values to the array, we just remove one.
+        let variant = unsafe { self.as_inner_mut() }.pop_at(to_i64(index));
+        U::from_variant(&variant)
     }
 
     /// Reserves capacity for at least `capacity` elements.
@@ -378,8 +387,7 @@ impl AnyArray {
     #[inline]
     #[track_caller]
     pub fn pick_random_as<U: FromGodot>(&self) -> Option<U> {
-        self.pick_random()
-            .and_then(|v| v.try_to::<U>().ok())
+        self.pick_random().and_then(|v| v.try_to::<U>().ok())
     }
 
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if

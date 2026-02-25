@@ -960,7 +960,14 @@ macro_rules! impl_vector2x_fns {
             ///
             #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".max_axis_index`*")]
             #[inline]
-            #[doc(alias = "max_axis_index")]
+            pub fn max_axis_index(self) -> usize {
+                if self.x < self.y { 1 } else { 0 }
+            }
+
+            /// Returns the axis of the vector's highest value. See [`Vector2Axis`] enum. If all components are equal, this method returns [`None`].
+            ///
+            /// To mimic Godot's behavior, use [`max_axis_index()`][Self::max_axis_index].
+            #[inline]
             pub fn max_axis(self) -> Option<Vector2Axis> {
                 match self.x.partial_cmp(&self.y) {
                     Some(Ordering::Less) => Some(Vector2Axis::Y),
@@ -970,13 +977,16 @@ macro_rules! impl_vector2x_fns {
                 }
             }
 
-            /// Returns the axis of the vector's lowest value. See [`Vector2Axis`] enum. If all components are equal, this method returns [`None`].
-            ///
-            /// To mimic Godot's behavior, unwrap this function's result with `unwrap_or(Vector2Axis::Y)`.
-            ///
             #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".min_axis_index`*")]
             #[inline]
-            #[doc(alias = "min_axis_index")]
+            pub fn min_axis_index(self) -> usize {
+                if self.x < self.y { 0 } else { 1 }
+            }
+
+            /// Returns the axis of the vector's lowest value. See [`Vector2Axis`] enum. If all components are equal, this method returns [`None`].
+            ///
+            /// To mimic Godot's behavior, use [`min_axis_index()`][Self::min_axis_index].
+            #[inline]
             pub fn min_axis(self) -> Option<Vector2Axis> {
                 match self.x.partial_cmp(&self.y) {
                     Some(Ordering::Less) => Some(Vector2Axis::X),
@@ -1008,11 +1018,20 @@ macro_rules! impl_vector3x_fns {
         /// # 3D functions
         /// The following methods are only available on 3D vectors (for both float and int).
         impl $Vector {
+            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".max_axis_index`*")]
+            #[inline]
+            pub fn max_axis_index(self) -> usize {
+                if self.x < self.y {
+                    if self.y < self.z { 2 } else { 1 }
+                } else {
+                    if self.x < self.z { 2 } else { 0 }
+                }
+            }
+
             /// Returns the axis of the vector's highest value. See [`Vector3Axis`] enum. If all components are equal, this method returns [`None`].
             ///
-            /// To mimic Godot's behavior, unwrap this function's result with `unwrap_or(Vector3Axis::X)`.
+            /// To mimic Godot's behavior, use [`max_axis_index()`][Self::max_axis_index].
             #[inline]
-            #[doc(alias = "max_axis_index")]
             pub fn max_axis(self) -> Option<Vector3Axis> {
                 match self.x.partial_cmp(&self.y) {
                     Some(Ordering::Less) => match self.y.partial_cmp(&self.z) {
@@ -1035,11 +1054,20 @@ macro_rules! impl_vector3x_fns {
                 }
             }
 
+            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".min_axis_index`*")]
+            #[inline]
+            pub fn min_axis_index(self) -> usize {
+                if self.x < self.y {
+                    if self.x < self.z { 0 } else { 2 }
+                } else {
+                    if self.y < self.z { 1 } else { 2 }
+                }
+            }
+
             /// Returns the axis of the vector's lowest value. See [`Vector3Axis`] enum. If all components are equal, this method returns [`None`].
             ///
-            /// To mimic Godot's behavior, unwrap this function's result with `unwrap_or(Vector3Axis::Z)`.
+            /// To mimic Godot's behavior, use [`min_axis_index()`][Self::min_axis_index].
             #[inline]
-            #[doc(alias = "min_axis_index")]
             pub fn min_axis(self) -> Option<Vector3Axis> {
                 match self.x.partial_cmp(&self.y) {
                     Some(Ordering::Less) => match self.x.partial_cmp(&self.z) {
@@ -1082,11 +1110,30 @@ macro_rules! impl_vector4x_fns {
         /// # 4D functions
         /// The following methods are only available on 4D vectors (for both float and int).
         impl $Vector {
+            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".max_axis_index`*")]
+            #[inline]
+            pub fn max_axis_index(self) -> usize {
+                let mut max_index = 0;
+                let mut max_value = self.x;
+
+                if self.y > max_value {
+                    max_index = 1;
+                    max_value = self.y;
+                }
+                if self.z > max_value {
+                    max_index = 2;
+                    max_value = self.z;
+                }
+                if self.w > max_value {
+                    max_index = 3;
+                }
+                max_index
+            }
+
             /// Returns the axis of the vector's highest value. See [`Vector4Axis`] enum. If all components are equal, this method returns [`None`].
             ///
-            /// To mimic Godot's behavior, unwrap this function's result with `unwrap_or(Vector4Axis::X)`.
+            /// To mimic Godot's behavior, use [`max_axis_index()`][Self::max_axis_index].
             #[inline]
-            #[doc(alias = "max_axis_index")]
             pub fn max_axis(self) -> Option<Vector4Axis> {
                 let mut max_axis = Vector4Axis::X;
                 let mut previous = None;
@@ -1109,11 +1156,30 @@ macro_rules! impl_vector4x_fns {
                 (Some(max_value) != previous).then_some(max_axis)
             }
 
+            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".min_axis_index`*")]
+            #[inline]
+            pub fn min_axis_index(self) -> usize {
+                let mut min_index = 0;
+                let mut min_value = self.x;
+
+                if self.y < min_value {
+                    min_index = 1;
+                    min_value = self.y;
+                }
+                if self.z < min_value {
+                    min_index = 2;
+                    min_value = self.z;
+                }
+                if self.w < min_value {
+                    min_index = 3;
+                }
+                min_index
+            }
+
             /// Returns the axis of the vector's lowest value. See [`Vector4Axis`] enum. If all components are equal, this method returns [`None`].
             ///
-            /// To mimic Godot's behavior, unwrap this function's result with `unwrap_or(Vector4Axis::W)`.
+            /// To mimic Godot's behavior, use [`min_axis_index()`][Self::min_axis_index].
             #[inline]
-            #[doc(alias = "min_axis_index")]
             pub fn min_axis(self) -> Option<Vector4Axis> {
                 let mut min_axis = Vector4Axis::X;
                 let mut previous = None;

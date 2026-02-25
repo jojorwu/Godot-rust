@@ -16,6 +16,7 @@ impl OwnedMaterial {
     /// Sets a parameter on the material.
     ///
     /// See `RenderingServer.material_set_param()`.
+    #[track_caller]
     pub fn set_param(&mut self, param: &str, value: &Variant) {
         RenderingServer::singleton().material_set_param(self.rid, param, value);
     }

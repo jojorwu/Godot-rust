@@ -7,6 +7,7 @@ impl OwnedVoxelGI {
     /// Creates a new voxel GI and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.voxel_gi_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().voxel_gi_create();
         Self { rid }

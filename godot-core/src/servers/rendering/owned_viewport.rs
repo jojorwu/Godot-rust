@@ -7,6 +7,7 @@ impl OwnedViewport {
     /// Creates a new viewport and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.viewport_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().viewport_create();
         Self { rid }
@@ -15,6 +16,7 @@ impl OwnedViewport {
     /// Sets the size of the viewport.
     ///
     /// See `RenderingServer.viewport_set_size()`.
+    #[track_caller]
     pub fn set_size(&mut self, width: i32, height: i32) {
         RenderingServer::singleton().viewport_set_size(self.rid, width, height);
     }

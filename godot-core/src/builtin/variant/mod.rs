@@ -11,10 +11,15 @@ use godot_ffi as sys;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
 use crate::builtin::{
-    Aabb, Basis, Color, GString, NodePath, Plane, Projection, Quaternion, Rect2, Rect2i, Rid,
-    StringName, Transform2D, Transform3D, VarArray, VarDictionary, VariantDispatch,
-    VariantOperator, VariantType, Vector2, Vector2i, Vector3, Vector3i, Vector4, Vector4i,
+    Aabb, Basis, Color, GString, NodePath, PackedByteArray, PackedColorArray, PackedFloat32Array,
+    PackedFloat64Array, PackedInt32Array, PackedInt64Array, PackedStringArray, PackedVector2Array,
+    PackedVector3Array, Plane, Projection, Quaternion, Rect2, Rect2i, Rid, StringName, Transform2D,
+    Transform3D, VarArray, VarDictionary, VariantDispatch, VariantOperator, VariantType, Vector2,
+    Vector2i, Vector3, Vector3i, Vector4, Vector4i,
 };
+
+#[cfg(since_api = "4.3")]
+use crate::builtin::PackedVector4Array;
 use crate::classes;
 use crate::meta::error::{ConvertError, FromVariantError};
 use crate::meta::{
@@ -153,7 +158,8 @@ impl Variant {
     /// When this variant holds a different type.
     #[track_caller]
     pub fn to<T: FromGodot>(&self) -> T {
-        self.try_to::<T>().unwrap_or_else(|err| Self::panic_to::<T>(err))
+        self.try_to::<T>()
+            .unwrap_or_else(|err| Self::panic_to::<T>(err))
     }
 
     /// Convert to type `T`, returning `Err` on failure.
@@ -287,7 +293,10 @@ impl Variant {
     /// Returns true if the variant holds a container type (`ARRAY` or `DICTIONARY`).
     #[inline]
     pub fn is_container(&self) -> bool {
-        matches!(self.get_type(), VariantType::ARRAY | VariantType::DICTIONARY)
+        matches!(
+            self.get_type(),
+            VariantType::ARRAY | VariantType::DICTIONARY
+        )
     }
 
     /// Returns true if the variant holds a typed container.
@@ -337,14 +346,89 @@ impl Variant {
                 | VariantType::PACKED_VECTOR2_ARRAY
                 | VariantType::PACKED_VECTOR3_ARRAY
                 | VariantType::PACKED_COLOR_ARRAY
-        )
-            || (cfg!(since_api = "4.3") && self.get_type() == VariantType::PACKED_VECTOR4_ARRAY)
+        ) || (cfg!(since_api = "4.3") && self.get_type() == VariantType::PACKED_VECTOR4_ARRAY)
     }
 
     /// Returns the Godot type name of the variant as a `GString`.
     #[inline]
     pub fn get_type_name(&self) -> GString {
         format!("{:?}", self.get_type()).into()
+    }
+
+    /// Returns `true` if the collection held by this variant is empty.
+    ///
+    /// This method is supported for the same types as [`len()`][Self::len].
+    #[inline]
+    #[track_caller]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// Returns the number of elements in the collection held by this variant, or 0 if not a collection.
+    ///
+    /// This method is supported for `GString`, `Array`, `Dictionary`, and all `PackedArray` types.
+    ///
+    /// _Godot equivalent: `size()`_
+    #[doc(alias = "size")]
+    #[inline]
+    #[track_caller]
+    pub fn len(&self) -> usize {
+        match self.get_type() {
+            VariantType::STRING => {
+                let s = unsafe { GString::from_variant_unchecked(self) };
+                s.len()
+            }
+            VariantType::ARRAY => {
+                let a = unsafe { VarArray::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::DICTIONARY => {
+                let d = unsafe { VarDictionary::from_variant_unchecked(self) };
+                d.len()
+            }
+            VariantType::PACKED_BYTE_ARRAY => {
+                let a = unsafe { PackedByteArray::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_INT32_ARRAY => {
+                let a = unsafe { PackedInt32Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_INT64_ARRAY => {
+                let a = unsafe { PackedInt64Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_FLOAT32_ARRAY => {
+                let a = unsafe { PackedFloat32Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_FLOAT64_ARRAY => {
+                let a = unsafe { PackedFloat64Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_STRING_ARRAY => {
+                let a = unsafe { PackedStringArray::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_VECTOR2_ARRAY => {
+                let a = unsafe { PackedVector2Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_VECTOR3_ARRAY => {
+                let a = unsafe { PackedVector3Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_COLOR_ARRAY => {
+                let a = unsafe { PackedColorArray::from_variant_unchecked(self) };
+                a.len()
+            }
+            #[cfg(since_api = "4.3")]
+            VariantType::PACKED_VECTOR4_ARRAY => {
+                let a = unsafe { PackedVector4Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            _ => 0,
+        }
     }
 
     impl_variant_try_to! {
@@ -460,7 +544,10 @@ impl Variant {
         #[cfg(since_api = "4.4")]
         {
             if self.get_type() == VariantType::OBJECT && !self.is_object_alive() {
-                panic!("{}::object_id(): object has been freed", std::any::type_name::<Self>());
+                panic!(
+                    "{}::object_id(): object has been freed",
+                    std::any::type_name::<Self>()
+                );
             }
             self.object_id_unchecked()
         }
@@ -476,7 +563,10 @@ impl Variant {
                         ErrorKind::FromVariant(FromVariantError::DeadObject)
                     ) =>
                 {
-                    panic!("{}::object_id(): object has been freed", std::any::type_name::<Self>())
+                    panic!(
+                        "{}::object_id(): object has been freed",
+                        std::any::type_name::<Self>()
+                    )
                 }
                 _ => None, // other conversion errors
             }
@@ -1065,9 +1155,48 @@ impl Drop for Variant {
 // Variant is not Eq because it can contain floats and other types composed of floats.
 impl PartialEq for Variant {
     fn eq(&self, other: &Self) -> bool {
-        Self::evaluate(self, other, VariantOperator::EQUAL) //.
+        let self_type = self.get_type();
+        let other_type = other.get_type();
+
+        if self_type == other_type {
+            match self_type {
+                VariantType::NIL => return true,
+                VariantType::BOOL => return self.to_bool() == other.to_bool(),
+                VariantType::INT => return self.to_int() == other.to_int(),
+                VariantType::FLOAT => return self.to_float() == other.to_float(),
+                VariantType::STRING => {
+                    // SAFETY: we checked the type.
+                    let s1 = unsafe { GString::from_variant_unchecked(self) };
+                    let s2 = unsafe { GString::from_variant_unchecked(other) };
+                    return s1 == s2;
+                }
+                VariantType::STRING_NAME => {
+                    // SAFETY: we checked the type.
+                    let s1 = unsafe { StringName::from_variant_unchecked(self) };
+                    let s2 = unsafe { StringName::from_variant_unchecked(other) };
+                    return s1 == s2;
+                }
+                VariantType::NODE_PATH => {
+                    // SAFETY: we checked the type.
+                    let s1 = unsafe { NodePath::from_variant_unchecked(self) };
+                    let s2 = unsafe { NodePath::from_variant_unchecked(other) };
+                    return s1 == s2;
+                }
+                VariantType::RID => {
+                    // SAFETY: we checked the type.
+                    let r1 = unsafe { Rid::from_variant_unchecked(self) };
+                    let r2 = unsafe { Rid::from_variant_unchecked(other) };
+                    return r1 == r2;
+                }
+                VariantType::OBJECT => {
+                    return self.object_id_unchecked() == other.object_id_unchecked();
+                }
+                _ => {}
+            }
+        }
+
+        Self::evaluate(self, other, VariantOperator::EQUAL)
             .is_some_and(|v| v.to::<bool>())
-        // If there is no defined conversion (-> None), then they are non-equal.
     }
 }
 

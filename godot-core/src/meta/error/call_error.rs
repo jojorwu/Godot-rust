@@ -273,7 +273,9 @@ impl CallError {
 
                 // Index calculation relies on patterns like call("...", varargs), might not always work...
                 let from = arg_types[vararg_offset + to_usize(i64::from(argument))];
-                let to = VariantType::from_sys(to_i32(i64::from(expected)) as sys::GDExtensionVariantType);
+                let to = VariantType::from_sys(
+                    to_i32(i64::from(expected)) as sys::GDExtensionVariantType
+                );
                 let i = argument + 1;
 
                 Self::failed_param_conversion_engine(call_ctx, i, from, to)

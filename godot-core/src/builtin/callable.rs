@@ -14,7 +14,9 @@ use sys::{ffi_methods, ExtVariantType, GodotFfi};
 use crate::builtin::{inner, AnyArray, CowStr, StringName, Variant};
 use crate::meta::{GodotType, ToGodot};
 use crate::obj::bounds::DynMemory;
-use crate::obj::{Bounds, Gd, GodotClass, InstanceId, Singleton};
+use crate::obj::{Bounds, Gd, GodotClass, InstanceId};
+#[cfg(since_api = "4.4")]
+use crate::obj::Singleton;
 use crate::{classes, meta};
 
 #[cfg(before_api = "4.3")]
@@ -211,16 +213,6 @@ impl Callable {
         Self::from_once_fn(name, rust_function)
     }
 
-    pub(crate) fn with_scoped_fn<S, F, Fc, R>(name: S, rust_function: F, callable_usage: Fc) -> R
-    where
-        S: Into<CowStr>,
-        F: FnMut(&[&Variant]) -> Variant,
-        Fc: FnOnce(&Callable) -> R,
-    {
-        let callable = Self::from_fn_wrapper(name, rust_function, None);
-
-        callable_usage(&callable)
-    }
 
     /// Create callable from **thread-safe** Rust function or closure.
     ///
@@ -773,7 +765,9 @@ mod custom_callable {
         let s = GString::from(name.as_ref());
 
         s.move_into_string_ptr(r_out);
-        *r_is_valid = sys::conv::SYS_TRUE;
+        unsafe {
+            *r_is_valid = sys::conv::SYS_TRUE;
+        }
     }
 
     pub unsafe extern "C" fn rust_callable_to_string_named<F>(
@@ -786,7 +780,9 @@ mod custom_callable {
         // Use cached GString if available, otherwise create and cache it (rare cold path).
         let gstring = w.name_cached.get_or_init(|| GString::from(w.name.as_ref()));
         gstring.clone().move_into_string_ptr(r_out);
-        *r_is_valid = sys::conv::SYS_TRUE;
+        unsafe {
+            *r_is_valid = sys::conv::SYS_TRUE;
+        }
     }
 
     // Necessary to avoid false invalidity for custom callables with default callback.

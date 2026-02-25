@@ -99,6 +99,15 @@ impl Rid {
     pub const fn is_invalid(&self) -> bool {
         matches!(self, Rid::Invalid)
     }
+
+    /// # Safety
+    /// - Variant must have type `VariantType::RID`.
+    pub(crate) unsafe fn from_variant_unchecked(variant: &crate::builtin::Variant) -> Self {
+        Self::new_with_uninit(|self_ptr| {
+            let rid_from_variant = sys::builtin_fn!(rid_from_variant);
+            rid_from_variant(self_ptr, sys::SysPtr::force_mut(variant.var_sys()));
+        })
+    }
 }
 
 impl std::fmt::Display for Rid {

@@ -19,16 +19,20 @@ impl SceneTree {
         T: Inherits<Node>,
     {
         arg_into_ref!(group);
-        self.try_get_first_node_in_group_as::<T>(group).unwrap_or_else(|| {
-            panic!(
+        self.try_get_first_node_in_group_as::<T>(group)
+            .unwrap_or_else(|| {
+                panic!(
                 "{}::get_first_node_in_group_as(): node in group '{group}' not found or bad type",
                 std::any::type_name::<Self>()
             )
-        })
+            })
     }
 
     /// Retrieves the first node in a group, cast to type `T` (fallible).
-    pub fn try_get_first_node_in_group_as<T>(&mut self, group: impl AsArg<StringName>) -> Option<Gd<T>>
+    pub fn try_get_first_node_in_group_as<T>(
+        &mut self,
+        group: impl AsArg<StringName>,
+    ) -> Option<Gd<T>>
     where
         T: Inherits<Node>,
     {

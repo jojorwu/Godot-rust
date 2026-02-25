@@ -12,6 +12,7 @@ impl OwnedLight {
     /// Creates a new light of the given type and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.light_create()`.
+    #[track_caller]
     pub fn new(light_type: LightType) -> Self {
         let mut server = RenderingServer::singleton();
         let rid = match light_type {
@@ -26,6 +27,7 @@ impl OwnedLight {
     /// Sets the color of the light.
     ///
     /// See `RenderingServer.light_set_color()`.
+    #[track_caller]
     pub fn set_color(&mut self, color: Color) {
         RenderingServer::singleton().light_set_color(self.rid, color);
     }

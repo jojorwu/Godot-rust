@@ -591,14 +591,14 @@ impl ApproxEq for Aabb {
 }
 
 impl_geometric_interop!(Aabb, (real, real, real, real, real, real),
-    [real; 6], from_components, [x, y, z, w, h, d], self => [
-        self.position.x,
-        self.position.y,
-        self.position.z,
-        self.size.x,
-        self.size.y,
-        self.size.z
-    ]);
+[real; 6], from_components, [x, y, z, w, h, d], self => [
+    self.position.x,
+    self.position.y,
+    self.position.z,
+    self.size.x,
+    self.size.y,
+    self.size.z
+]);
 
 impl_geometric_interop!(Aabb, (Vector3, Vector3),
     [Vector3; 2], new, [position, size], self => [self.position, self.size]);

@@ -7,6 +7,7 @@ impl OwnedLightmap {
     /// Creates a new lightmap and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.lightmap_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().lightmap_create();
         Self { rid }

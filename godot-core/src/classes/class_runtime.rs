@@ -183,6 +183,7 @@ pub(crate) fn construct_engine_object<T>() -> Gd<T>
 where
     T: GodotClass + Bounds<Declarer = bounds::DeclEngine>,
 {
+    #[allow(unused_mut)]
     let mut obj = unsafe {
         let object_ptr = sys::classdb_construct_object(T::class_id().string_sys());
         Gd::<T>::from_obj_sys(object_ptr)

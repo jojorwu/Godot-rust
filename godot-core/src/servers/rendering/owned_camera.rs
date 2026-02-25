@@ -7,6 +7,7 @@ impl OwnedCamera {
     /// Creates a new camera and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.camera_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().camera_create();
         Self { rid }

@@ -57,8 +57,13 @@ impl<T: GodotClass> RawGd<T> {
 
             // This happened originally during Variant -> RawGd conversion, but at this point it's too late to detect, and UB has already
             // occurred (the Variant holds the object pointer as bytes in an array, which becomes dangling the moment the actual object dies).
-            let instance_id = InstanceId::try_from_u64(raw_id)
-                .expect("null instance ID when constructing object; this very likely causes UB");
+            let instance_id = InstanceId::try_from_u64(raw_id).unwrap_or_else(|| {
+                panic!(
+                    "{}::from_obj_sys_weak(): null instance ID when constructing object from pointer {:?}; this very likely causes UB",
+                    std::any::type_name::<Self>(),
+                    obj
+                )
+            });
 
             #[cfg(safeguards_strict)]
             let rtti = Some(ObjectRtti::from_obj_sys(obj, instance_id));

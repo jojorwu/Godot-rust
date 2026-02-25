@@ -1,6 +1,4 @@
-use crate::builtin::{
-    Array, PackedVector2Array, PackedVector3Array, Rid, VarDictionary, VariantType,
-};
+use crate::builtin::{Array, Rid, VarDictionary};
 use crate::classes::rendering_server::PrimitiveType;
 use crate::classes::RenderingServer;
 use crate::obj::Singleton;
@@ -27,6 +25,7 @@ impl OwnedMesh {
     /// Adds a surface to the mesh.
     ///
     /// See `RenderingServer.mesh_add_surface_from_arrays()`.
+    #[track_caller]
     pub fn add_surface(
         &mut self,
         primitive: PrimitiveType,
@@ -35,9 +34,23 @@ impl OwnedMesh {
         RenderingServer::singleton().mesh_add_surface_from_arrays(self.rid, primitive, arrays);
     }
 
+    /// Adds a surface to the mesh and sets its material.
+    #[track_caller]
+    pub fn add_surface_with_material(
+        &mut self,
+        primitive: PrimitiveType,
+        arrays: &Array<crate::builtin::Variant>,
+        material: Rid,
+    ) {
+        self.add_surface(primitive, arrays);
+        let surface_idx = self.get_surface_count() - 1;
+        self.surface_set_material(surface_idx, material);
+    }
+
     /// Returns the number of surfaces in the mesh.
     ///
     /// See `RenderingServer.mesh_get_surface_count()`.
+    #[track_caller]
     pub fn get_surface_count(&self) -> i32 {
         RenderingServer::singleton().mesh_get_surface_count(self.rid)
     }
@@ -45,29 +58,20 @@ impl OwnedMesh {
     /// Returns the number of vertices in a surface.
     ///
     /// See `RenderingServer.mesh_surface_get_arrays()`.
+    #[track_caller]
     pub fn surface_get_array_len(&self, surface_idx: i32) -> i32 {
         let arrays = RenderingServer::singleton().mesh_surface_get_arrays(self.rid, surface_idx);
         if arrays.is_empty() {
             return 0;
         }
         let vertex_array = arrays.at(0);
-        match vertex_array.get_type() {
-            VariantType::PACKED_VECTOR3_ARRAY => {
-                crate::builtin::to_i32(vertex_array.to::<PackedVector3Array>().len() as i64)
-            }
-            VariantType::PACKED_VECTOR2_ARRAY => {
-                crate::builtin::to_i32(vertex_array.to::<PackedVector2Array>().len() as i64)
-            }
-            VariantType::ARRAY => {
-                crate::builtin::to_i32(vertex_array.to::<crate::builtin::AnyArray>().len() as i64)
-            }
-            _ => 0,
-        }
+        crate::builtin::to_i32(vertex_array.len() as i64)
     }
 
     /// Returns the material of a surface.
     ///
     /// See `RenderingServer.mesh_surface_get_material()`.
+    #[track_caller]
     pub fn surface_get_material(&self, surface_idx: i32) -> Rid {
         RenderingServer::singleton().mesh_surface_get_material(self.rid, surface_idx)
     }
@@ -75,6 +79,7 @@ impl OwnedMesh {
     /// Sets the material of a surface.
     ///
     /// See `RenderingServer.mesh_surface_set_material()`.
+    #[track_caller]
     pub fn surface_set_material(&mut self, surface_idx: i32, material: Rid) {
         RenderingServer::singleton().mesh_surface_set_material(self.rid, surface_idx, material);
     }
@@ -82,6 +87,7 @@ impl OwnedMesh {
     /// Removes all surfaces from the mesh.
     ///
     /// See `RenderingServer.mesh_clear()`.
+    #[track_caller]
     pub fn clear(&mut self) {
         RenderingServer::singleton().mesh_clear(self.rid);
     }

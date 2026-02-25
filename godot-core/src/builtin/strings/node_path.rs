@@ -210,6 +210,16 @@ impl NodePath {
     pub fn as_inner(&self) -> inner::InnerNodePath<'_> {
         inner::InnerNodePath::from_outer(self)
     }
+
+    /// # Safety
+    /// - Variant must have type `VariantType::NODE_PATH`.
+    /// - Subsequent operations on this node path must not rely on the type of the node path.
+    pub(crate) unsafe fn from_variant_unchecked(variant: &crate::builtin::Variant) -> Self {
+        Self::new_with_uninit(|self_ptr| {
+            let node_path_from_variant = sys::builtin_fn!(node_path_from_variant);
+            node_path_from_variant(self_ptr, sys::SysPtr::force_mut(variant.var_sys()));
+        })
+    }
 }
 
 // SAFETY:

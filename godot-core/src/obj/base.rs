@@ -217,10 +217,12 @@ impl<T: GodotClass> Base<T> {
     ///
     /// # Panics (Debug)
     /// If called outside an initialization function, or for ref-counted objects on a non-main thread.
+    #[track_caller]
     pub fn to_init_gd(&self) -> Gd<T> {
         sys::balanced_assert!(
             self.is_initializing(),
-            "Base::to_init_gd() can only be called during object initialization, inside I*::init() or Gd::from_init_fn()"
+            "{}::to_init_gd() can only be called during object initialization, inside I*::init() or Gd::from_init_fn()",
+            std::any::type_name::<Self>()
         );
 
         // For manually-managed objects, regular clone is fine.
@@ -231,7 +233,8 @@ impl<T: GodotClass> Base<T> {
 
         sys::balanced_assert!(
             sys::is_main_thread(),
-            "Base::to_init_gd() can only be called on the main thread for ref-counted objects (for now)"
+            "{}::to_init_gd() can only be called on the main thread for ref-counted objects (for now)",
+            std::any::type_name::<Self>()
         );
 
         // First time handing out a Gd<T>, we need to take measures to temporarily upgrade the Base's weak pointer to a strong one.
@@ -288,13 +291,15 @@ impl<T: GodotClass> Base<T> {
     }
 
     /// Finalizes the initialization of this `Base<T>` and returns whether
+    #[track_caller]
     pub(crate) fn mark_initialized(&mut self) {
         #[cfg(safeguards_balanced)]
         {
             assert_eq!(
                 self.init_state.get(),
                 InitState::ObjectConstructing,
-                "Base<T> is already initialized, or holds a script instance"
+                "{} is already initialized, or holds a script instance",
+                std::any::type_name::<Self>()
             );
 
             self.init_state.set(InitState::ObjectInitialized);
@@ -324,12 +329,14 @@ impl<T: GodotClass> Base<T> {
     }
 
     /// Returns a passive reference to the base object, for use in script contexts only.
+    #[track_caller]
     pub(crate) fn to_script_passive(&self) -> PassiveGd<T> {
         #[cfg(safeguards_balanced)]
         assert_eq!(
             self.init_state.get(),
             InitState::Script,
-            "to_script_passive() can only be called on script-context Base objects"
+            "{}::to_script_passive() can only be called on script-context Base objects",
+            std::any::type_name::<Self>()
         );
 
         // SAFETY: the object remains valid for script contexts as per the assertion above.
@@ -344,10 +351,12 @@ impl<T: GodotClass> Base<T> {
 
     /// Returns a [`Gd`] referencing the base object, assuming the derived object is fully constructed.
     #[doc(hidden)]
+    #[track_caller]
     pub fn __constructed_gd(&self) -> Gd<T> {
         sys::balanced_assert!(
             !self.is_initializing(),
-            "WithBaseField::to_gd(), base(), base_mut() can only be called on fully-constructed objects, after I*::init() or Gd::from_init_fn()"
+            "{}::to_gd(), base(), base_mut() can only be called on fully-constructed objects, after I*::init() or Gd::from_init_fn()",
+            std::any::type_name::<Self>()
         );
 
         (*self.obj).clone()
@@ -360,10 +369,12 @@ impl<T: GodotClass> Base<T> {
     ///
     /// # Safety
     /// Caller must ensure that the underlying object remains valid for the entire lifetime of the returned `PassiveGd`.
+    #[track_caller]
     pub(crate) unsafe fn constructed_passive(&self) -> PassiveGd<T> {
         sys::balanced_assert!(
             !self.is_initializing(),
-            "WithBaseField::base(), base_mut() can only be called on fully-constructed objects, after I*::init() or Gd::from_init_fn()"
+            "{}::base(), base_mut() can only be called on fully-constructed objects, after I*::init() or Gd::from_init_fn()",
+            std::any::type_name::<Self>()
         );
 
         // SAFETY: object pointer is valid and remains valid as long as self is alive (per safety precondition of this fn).

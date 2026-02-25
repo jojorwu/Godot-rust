@@ -7,6 +7,7 @@ impl OwnedCameraAttributes {
     /// Creates a new camera attributes and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.camera_attributes_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().camera_attributes_create();
         Self { rid }

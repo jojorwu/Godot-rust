@@ -85,6 +85,11 @@ pub trait FloatExt: private::Sealed + Copy {
     ///
     /// _Godot equivalent: @GlobalScope.lerp_angle()_
     fn lerp_angle(self, to: Self, weight: Self) -> Self;
+
+    /// Wraps `self` between `min` and `max`.
+    ///
+    /// _Godot equivalent: @GlobalScope.wrapf()_
+    fn wrap(self, min: Self, max: Self) -> Self;
 }
 
 macro_rules! impl_float_ext {
@@ -231,6 +236,18 @@ macro_rules! impl_float_ext {
                 let difference = (to - self) % consts::TAU;
                 let distance = (2.0 * difference) % consts::TAU - difference;
                 self + distance * weight
+            }
+
+            fn wrap(self, min: Self, max: Self) -> Self {
+                let range = max - min;
+                if range == 0.0 {
+                    return min;
+                }
+                let mut result = self - (range * ((self - min) / range).floor());
+                if result == max {
+                    result = min;
+                }
+                result
             }
         }
 

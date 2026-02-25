@@ -7,6 +7,7 @@ impl OwnedShader {
     /// Creates a new shader and returns a wrapper that will free it on drop.
     ///
     /// See `RenderingServer.shader_create()`.
+    #[track_caller]
     pub fn new() -> Self {
         let rid = RenderingServer::singleton().shader_create();
         Self { rid }
@@ -15,6 +16,7 @@ impl OwnedShader {
     /// Sets the code for the shader.
     ///
     /// See `RenderingServer.shader_set_code()`.
+    #[track_caller]
     pub fn set_code(&mut self, code: &str) {
         RenderingServer::singleton().shader_set_code(self.rid, code);
     }

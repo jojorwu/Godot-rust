@@ -92,7 +92,7 @@ pub unsafe extern "C" fn recreate_null<T>(
 
 pub(crate) fn create_custom<T, F>(
     make_user_instance: F,
-    notify_postinitialize: bool,
+    _notify_postinitialize: bool,
 ) -> Result<sys::GDExtensionObjectPtr, PanicPayload>
 where
     T: GodotClass,
@@ -101,11 +101,11 @@ where
     let base_class_name = T::Base::class_id();
     let base_ptr = unsafe { sys::classdb_construct_object(base_class_name.string_sys()) };
 
-    let postinit = |base_ptr| {
+    let postinit = |_base_ptr| {
         #[cfg(since_api = "4.4")]
-        if notify_postinitialize {
+        if _notify_postinitialize {
             // Should notify it with a weak pointer, during `NOTIFICATION_POSTINITIALIZE`, ref-counted object is not yet fully-initialized.
-            let mut obj = unsafe { Gd::<Object>::from_obj_sys_weak(base_ptr) };
+            let mut obj = unsafe { Gd::<Object>::from_obj_sys_weak(_base_ptr) };
             obj.notify(crate::classes::notify::ObjectNotification::POSTINITIALIZE);
             obj.drop_weak();
         }

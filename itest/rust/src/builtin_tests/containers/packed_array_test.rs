@@ -638,8 +638,8 @@ fn packed_byte_array_encode_decode() {
     assert_eq!(a.decode_u8(0), Ok(0xAB));
     assert_eq!(a.decode_u8(2), Ok(0x12));
     assert_eq!(a.decode_u16(1), Ok(0x12CD)); // Currently little endian, but this may change.
-    assert_eq!(a.decode_u16(2), Err(()));
-    assert_eq!(a.decode_u32(0), Err(()));
+    assert!(a.decode_u16(2).is_err());
+    assert!(a.decode_u32(0).is_err());
 
     let mut a = a;
     a.encode_u16(1, 0xEF34).unwrap();
@@ -664,7 +664,7 @@ fn packed_byte_array_encode_decode_variant() {
     assert_eq!(nil, Ok(4));
 
     let bytes = a.encode_var(3, &variant, false);
-    assert_eq!(bytes, Err(()));
+    assert!(bytes.is_err());
 
     a.resize(80);
     let bytes = a.encode_var(3, &variant, false);
@@ -676,7 +676,7 @@ fn packed_byte_array_encode_decode_variant() {
     assert_eq!(decoded.1, 60);
 
     let decoded = a.decode_var(4, false);
-    assert_eq!(decoded, Err(()));
+    assert!(decoded.is_err());
 
     // Decoding with NILs.
     let decoded = a.decode_var_allow_nil(3, false);

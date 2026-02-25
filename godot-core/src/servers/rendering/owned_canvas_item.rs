@@ -16,6 +16,7 @@ impl OwnedCanvasItem {
     /// Sets the parent of the canvas item.
     ///
     /// See `RenderingServer.canvas_item_set_parent()`.
+    #[track_caller]
     pub fn set_parent(&mut self, parent: Rid) {
         RenderingServer::singleton().canvas_item_set_parent(self.rid, parent);
     }
@@ -23,6 +24,7 @@ impl OwnedCanvasItem {
     /// Draws a circle on the canvas item.
     ///
     /// See `RenderingServer.canvas_item_add_circle()`.
+    #[track_caller]
     pub fn add_circle(&mut self, position: Vector2, radius: f32, color: Color) {
         RenderingServer::singleton().canvas_item_add_circle(self.rid, position, radius, color);
     }
@@ -30,6 +32,7 @@ impl OwnedCanvasItem {
     /// Sets the color modulation of the canvas item.
     ///
     /// See `RenderingServer.canvas_item_set_modulate()`.
+    #[track_caller]
     pub fn set_modulate(&mut self, color: Color) {
         RenderingServer::singleton().canvas_item_set_modulate(self.rid, color);
     }
@@ -37,6 +40,7 @@ impl OwnedCanvasItem {
     /// Sets the transform of the canvas item.
     ///
     /// See `RenderingServer.canvas_item_set_transform()`.
+    #[track_caller]
     pub fn set_transform(&mut self, transform: &Transform2D) {
         RenderingServer::singleton().canvas_item_set_transform(self.rid, *transform);
     }
@@ -44,6 +48,7 @@ impl OwnedCanvasItem {
     /// Draws a line on the canvas item.
     ///
     /// See `RenderingServer.canvas_item_add_line()`.
+    #[track_caller]
     pub fn add_line(&mut self, from: Vector2, to: Vector2, color: Color, width: f32) {
         RenderingServer::singleton()
             .canvas_item_add_line_ex(self.rid, from, to, color)
@@ -51,9 +56,40 @@ impl OwnedCanvasItem {
             .done();
     }
 
+    /// Draws a polyline on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_polyline()`.
+    #[track_caller]
+    pub fn add_polyline(
+        &mut self,
+        points: &crate::builtin::PackedVector2Array,
+        colors: &crate::builtin::PackedColorArray,
+        width: f32,
+        antialiased: bool,
+    ) {
+        RenderingServer::singleton()
+            .canvas_item_add_polyline_ex(self.rid, points, colors)
+            .width(width)
+            .antialiased(antialiased)
+            .done();
+    }
+
+    /// Draws a polygon on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_polygon()`.
+    #[track_caller]
+    pub fn add_polygon(
+        &mut self,
+        points: &crate::builtin::PackedVector2Array,
+        colors: &crate::builtin::PackedColorArray,
+    ) {
+        RenderingServer::singleton().canvas_item_add_polygon(self.rid, points, colors);
+    }
+
     /// Draws a rectangle on the canvas item.
     ///
     /// See `RenderingServer.canvas_item_add_rect()`.
+    #[track_caller]
     pub fn add_rect(&mut self, rect: Rect2, color: Color) {
         RenderingServer::singleton().canvas_item_add_rect(self.rid, rect, color);
     }
@@ -61,6 +97,7 @@ impl OwnedCanvasItem {
     /// Draws a texture on the canvas item.
     ///
     /// See `RenderingServer.canvas_item_add_texture_rect()`.
+    #[track_caller]
     pub fn add_texture_rect(&mut self, rect: Rect2, texture: Rid) {
         RenderingServer::singleton().canvas_item_add_texture_rect(self.rid, rect, texture);
     }
@@ -68,6 +105,7 @@ impl OwnedCanvasItem {
     /// Draws a texture region on the canvas item.
     ///
     /// See `RenderingServer.canvas_item_add_texture_rect_region()`.
+    #[track_caller]
     pub fn add_texture_rect_region(&mut self, rect: Rect2, texture: Rid, src_rect: Rect2) {
         RenderingServer::singleton()
             .canvas_item_add_texture_rect_region(self.rid, rect, texture, src_rect);
@@ -76,8 +114,33 @@ impl OwnedCanvasItem {
     /// Draws a MSDF texture region on the canvas item.
     ///
     /// See `RenderingServer.canvas_item_add_msdf_texture_rect_region()`.
+    #[track_caller]
     pub fn add_msdf_texture_rect_region(&mut self, rect: Rect2, texture: Rid, src_rect: Rect2) {
         RenderingServer::singleton()
             .canvas_item_add_msdf_texture_rect_region(self.rid, rect, texture, src_rect);
+    }
+
+    /// Draws a mesh on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_mesh()`.
+    #[track_caller]
+    pub fn add_mesh(&mut self, mesh: Rid, transform: Transform2D, modulate: Color, texture: Rid) {
+        RenderingServer::singleton()
+            .canvas_item_add_mesh_ex(self.rid, mesh)
+            .transform(transform)
+            .modulate(modulate)
+            .texture(texture)
+            .done();
+    }
+
+    /// Draws a multimesh on the canvas item.
+    ///
+    /// See `RenderingServer.canvas_item_add_multimesh()`.
+    #[track_caller]
+    pub fn add_multimesh(&mut self, multimesh: Rid, texture: Rid) {
+        RenderingServer::singleton()
+            .canvas_item_add_multimesh_ex(self.rid, multimesh)
+            .texture(texture)
+            .done();
     }
 }
