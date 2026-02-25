@@ -231,7 +231,13 @@ impl Color {
     /// interpolation factor `weight` should be between 0.0 and 1.0 (inclusive).
     #[must_use]
     pub fn lerp(self, to: Color, weight: f64) -> Self {
-        self.as_inner().lerp(to, weight)
+        let weight = weight as f32;
+        Self {
+            r: self.r + (to.r - self.r) * weight,
+            g: self.g + (to.g - self.g) * weight,
+            b: self.b + (to.b - self.b) * weight,
+            a: self.a + (to.a - self.a) * weight,
+        }
     }
 
     /// Returns a new color with all components clamped between the components of `min` and `max`.

@@ -213,16 +213,6 @@ impl Callable {
         Self::from_once_fn(name, rust_function)
     }
 
-    pub(crate) fn with_scoped_fn<S, F, Fc, R>(name: S, rust_function: F, callable_usage: Fc) -> R
-    where
-        S: Into<CowStr>,
-        F: FnMut(&[&Variant]) -> Variant,
-        Fc: FnOnce(&Callable) -> R,
-    {
-        let callable = Self::from_fn_wrapper(name, rust_function, None);
-
-        callable_usage(&callable)
-    }
 
     /// Create callable from **thread-safe** Rust function or closure.
     ///

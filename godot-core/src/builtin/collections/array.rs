@@ -790,37 +790,27 @@ impl<T: ArrayElement> Array<T> {
     /// See also: [`bsearch()`][Self::bsearch], [`functional_ops().bsearch_custom()`][ArrayFunctionalOps::bsearch_custom].
     pub fn bsearch_by<F>(&self, mut func: F) -> Result<usize, usize>
     where
-        F: FnMut(&T) -> cmp::Ordering + 'static,
+        F: FnMut(&T) -> cmp::Ordering,
     {
-        // Early exit; later code relies on index 0 being present.
-        if self.is_empty() {
-            return Err(0);
-        }
+        let mut low = 0;
+        let mut high = self.len();
 
-        // We need one dummy element of type T, because Godot's bsearch_custom() checks types (so Variant::nil() can't be passed).
-        // Optimization: roundtrip Variant -> T -> Variant could be avoided, but anyone needing speed would use Rust binary search...
-        let ignored_value = self.at(0);
-        let ignored_value = meta::owned_into_arg(ignored_value);
-
-        let godot_comparator = |args: &[&Variant]| {
-            let value = T::from_variant(args[0]);
-            let is_less = matches!(func(&value), cmp::Ordering::Less);
-
-            is_less.to_variant()
-        };
-
-        let debug_name = std::any::type_name::<F>();
-        let index = Callable::with_scoped_fn(debug_name, godot_comparator, |pred| {
-            self.functional_ops().bsearch_custom(ignored_value, pred)
-        });
-
-        if let Some(value_at_index) = self.get(index) {
-            if func(&value_at_index) == cmp::Ordering::Equal {
-                return Ok(index);
+        while low < high {
+            let mid = low + (high - low) / 2;
+            let val = self.at(mid);
+            match func(&val) {
+                cmp::Ordering::Equal => return Ok(mid),
+                cmp::Ordering::Less => {
+                    // target is greater than mid
+                    low = mid + 1;
+                }
+                cmp::Ordering::Greater => {
+                    // target is less than mid
+                    high = mid;
+                }
             }
         }
-
-        Err(index)
+        Err(low)
     }
 
     /// Sorts the array, using a type-safe comparator.
@@ -832,25 +822,26 @@ impl<T: ArrayElement> Array<T> {
     /// This means that values considered equal may have their order changed when using `sort_unstable_by()`. For most variant types,
     /// this distinction should not matter though.
     ///
+    /// # Performance
+    /// This method is currently implemented by copying all elements to a Rust `Vec`, sorting them there, and copying them back.
+    /// This is significantly faster than using Godot's `sort_custom()` which would require a callback to Rust for every comparison.
+    ///
     /// See also: [`sort_unstable()`][Self::sort_unstable], [`sort_unstable_custom()`][Self::sort_unstable_custom].
-    pub fn sort_unstable_by<F>(&mut self, mut func: F)
+    pub fn sort_unstable_by<F>(&mut self, func: F)
     where
         F: FnMut(&T, &T) -> cmp::Ordering,
     {
         self.balanced_ensure_mutable();
 
-        let godot_comparator = |args: &[&Variant]| {
-            let lhs = T::from_variant(args[0]);
-            let rhs = T::from_variant(args[1]);
-            let is_less = matches!(func(&lhs, &rhs), cmp::Ordering::Less);
+        if self.len() <= 1 {
+            return;
+        }
 
-            is_less.to_variant()
-        };
+        let mut vec = Vec::from(&*self);
+        vec.sort_unstable_by(func);
 
-        let debug_name = std::any::type_name::<F>();
-        Callable::with_scoped_fn(debug_name, godot_comparator, |pred| {
-            self.sort_unstable_custom(pred)
-        });
+        self.clear();
+        self.extend(vec);
     }
 
     /// Access to Godot's functional-programming APIs based on callables.

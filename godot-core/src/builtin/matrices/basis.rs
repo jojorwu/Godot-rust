@@ -87,7 +87,13 @@ impl Basis {
     /// Create a new basis from 3 column vectors.
     #[inline]
     pub const fn from_cols(a: Vector3, b: Vector3, c: Vector3) -> Self {
-        Self::from_rows_array(&[a.x, b.x, c.x, a.y, b.y, c.y, a.z, b.z, c.z])
+        Self {
+            rows: [
+                Vector3::new(a.x, b.x, c.x),
+                Vector3::new(a.y, b.y, c.y),
+                Vector3::new(a.z, b.z, c.z),
+            ],
+        }
     }
 
     /// Create a `Basis` from an axis and angle.
