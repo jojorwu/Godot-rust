@@ -262,6 +262,16 @@ impl StringName {
         inner::InnerStringName::from_outer(self)
     }
 
+    /// # Safety
+    /// - Variant must have type `VariantType::STRING_NAME`.
+    /// - Subsequent operations on this string must not rely on the type of the string.
+    pub(crate) unsafe fn from_variant_unchecked(variant: &crate::builtin::Variant) -> Self {
+        Self::new_with_uninit(|self_ptr| {
+            let string_name_from_variant = sys::builtin_fn!(string_name_from_variant);
+            string_name_from_variant(self_ptr, sys::SysPtr::force_mut(variant.var_sys()));
+        })
+    }
+
     /// Converts this `StringName` to a `GString`.
     #[inline]
     pub fn to_gstring(&self) -> GString {

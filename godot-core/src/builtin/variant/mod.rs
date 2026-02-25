@@ -1155,9 +1155,48 @@ impl Drop for Variant {
 // Variant is not Eq because it can contain floats and other types composed of floats.
 impl PartialEq for Variant {
     fn eq(&self, other: &Self) -> bool {
-        Self::evaluate(self, other, VariantOperator::EQUAL) //.
+        let self_type = self.get_type();
+        let other_type = other.get_type();
+
+        if self_type == other_type {
+            match self_type {
+                VariantType::NIL => return true,
+                VariantType::BOOL => return self.to_bool() == other.to_bool(),
+                VariantType::INT => return self.to_int() == other.to_int(),
+                VariantType::FLOAT => return self.to_float() == other.to_float(),
+                VariantType::STRING => {
+                    // SAFETY: we checked the type.
+                    let s1 = unsafe { GString::from_variant_unchecked(self) };
+                    let s2 = unsafe { GString::from_variant_unchecked(other) };
+                    return s1 == s2;
+                }
+                VariantType::STRING_NAME => {
+                    // SAFETY: we checked the type.
+                    let s1 = unsafe { StringName::from_variant_unchecked(self) };
+                    let s2 = unsafe { StringName::from_variant_unchecked(other) };
+                    return s1 == s2;
+                }
+                VariantType::NODE_PATH => {
+                    // SAFETY: we checked the type.
+                    let s1 = unsafe { NodePath::from_variant_unchecked(self) };
+                    let s2 = unsafe { NodePath::from_variant_unchecked(other) };
+                    return s1 == s2;
+                }
+                VariantType::RID => {
+                    // SAFETY: we checked the type.
+                    let r1 = unsafe { Rid::from_variant_unchecked(self) };
+                    let r2 = unsafe { Rid::from_variant_unchecked(other) };
+                    return r1 == r2;
+                }
+                VariantType::OBJECT => {
+                    return self.object_id_unchecked() == other.object_id_unchecked();
+                }
+                _ => {}
+            }
+        }
+
+        Self::evaluate(self, other, VariantOperator::EQUAL)
             .is_some_and(|v| v.to::<bool>())
-        // If there is no defined conversion (-> None), then they are non-equal.
     }
 }
 
