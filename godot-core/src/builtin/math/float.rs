@@ -53,10 +53,27 @@ pub trait FloatExt: private::Sealed + Copy {
     /// Cubic interpolates between two values by the factor defined in `weight` with `pre` and `post` values.
     fn cubic_interpolate(self, to: Self, pre: Self, post: Self, weight: Self) -> Self;
 
+    /// Cubic interpolates between two angles (in radians) by the factor defined in `weight` with `pre` and `post` values.
+    fn cubic_interpolate_angle(self, to: Self, pre: Self, post: Self, weight: Self) -> Self;
+
     /// Cubic interpolates between two values by the factor defined in `weight` with `pre` and `post` values.
     /// It can perform smoother interpolation than [`cubic_interpolate`](FloatExt::cubic_interpolate) by the time values.
     #[allow(clippy::too_many_arguments)]
     fn cubic_interpolate_in_time(
+        self,
+        to: Self,
+        pre: Self,
+        post: Self,
+        weight: Self,
+        to_t: Self,
+        pre_t: Self,
+        post_t: Self,
+    ) -> Self;
+
+    /// Cubic interpolates between two angles (in radians) by the factor defined in `weight` with `pre` and `post` values.
+    /// It can perform smoother interpolation than [`cubic_interpolate_angle`](FloatExt::cubic_interpolate_angle) by the time values.
+    #[allow(clippy::too_many_arguments)]
+    fn cubic_interpolate_angle_in_time(
         self,
         to: Self,
         pre: Self,
@@ -109,6 +126,11 @@ pub trait FloatExt: private::Sealed + Copy {
     ///
     /// _Godot equivalent: @GlobalScope.linear_to_db()_
     fn linear_to_db(self) -> Self;
+
+    /// Returns the multiple of `step` that is closest to `self`.
+    ///
+    /// _Godot equivalent: @GlobalScope.stepify()_
+    fn stepify(self, step: Self) -> Self;
 
     /// Maps a `value` from range `[istart, istop]` to `[ostart, ostop]`.
     ///
@@ -226,6 +248,22 @@ macro_rules! impl_float_ext {
                     + (-pre + 3.0 * self - 3.0 * to + post) * (weight * weight * weight))
             }
 
+            fn cubic_interpolate_angle(self, to: Self, pre: Self, post: Self, weight: Self) -> Self {
+                use $consts;
+                let from_rot = self % consts::TAU;
+
+                let pre_diff = (pre - from_rot) % consts::TAU;
+                let pre_rot = from_rot + (2.0 * pre_diff) % consts::TAU - pre_diff;
+
+                let to_diff = (to - from_rot) % consts::TAU;
+                let to_rot = from_rot + (2.0 * to_diff) % consts::TAU - to_diff;
+
+                let post_diff = (post - to_rot) % consts::TAU;
+                let post_rot = to_rot + (2.0 * post_diff) % consts::TAU - post_diff;
+
+                from_rot.cubic_interpolate(to_rot, pre_rot, post_rot, weight)
+            }
+
             fn cubic_interpolate_in_time(
                 self,
                 to: Self,
@@ -275,6 +313,33 @@ macro_rules! impl_float_ext {
                 Self::lerp(b1, b2, if to_t == 0.0 { 0.5 } else { t / to_t })
             }
 
+            fn cubic_interpolate_angle_in_time(
+                self,
+                to: Self,
+                pre: Self,
+                post: Self,
+                weight: Self,
+                to_t: Self,
+                pre_t: Self,
+                post_t: Self,
+            ) -> Self {
+                use $consts;
+                let from_rot = self % consts::TAU;
+
+                let pre_diff = (pre - from_rot) % consts::TAU;
+                let pre_rot = from_rot + (2.0 * pre_diff) % consts::TAU - pre_diff;
+
+                let to_diff = (to - from_rot) % consts::TAU;
+                let to_rot = from_rot + (2.0 * to_diff) % consts::TAU - to_diff;
+
+                let post_diff = (post - to_rot) % consts::TAU;
+                let post_rot = to_rot + (2.0 * post_diff) % consts::TAU - post_diff;
+
+                from_rot.cubic_interpolate_in_time(
+                    to_rot, pre_rot, post_rot, weight, to_t, pre_t, post_t,
+                )
+            }
+
             fn lerp_angle(self, to: Self, weight: Self) -> Self {
                 self + self.angle_difference(to) * weight
             }
@@ -306,6 +371,10 @@ macro_rules! impl_float_ext {
 
             fn linear_to_db(self) -> Self {
                 self.ln() * 8.685_889_638_065_037
+            }
+
+            fn stepify(self, step: Self) -> Self {
+                self.snapped(step)
             }
 
             fn remap(self, istart: Self, istop: Self, ostart: Self, ostop: Self) -> Self {
@@ -540,5 +609,24 @@ mod test {
         assert_eq_approx!(f32::ease(0.5, -2.0), 0.5);
         assert_eq_approx!(f32::ease(0.25, -2.0), 0.125);
         assert_eq_approx!(f32::ease(0.75, -2.0), 0.875);
+    }
+}
+
+#[cfg(test)]
+mod test_expansions {
+    use super::*;
+    use crate::assert_eq_approx;
+
+    #[test]
+    fn cubic_interpolate_angle() {
+        use std::f32::consts::PI;
+        let a = f32::cubic_interpolate_angle(0.1, PI - 0.1, 0.0, PI, 0.5);
+        assert_eq_approx!(a, PI / 2.0);
+    }
+
+    #[test]
+    fn stepify() {
+        assert_eq_approx!(3.14159f32.stepify(0.01), 3.14);
+        assert_eq_approx!(12.345f64.stepify(0.1), 12.3);
     }
 }

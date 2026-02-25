@@ -368,16 +368,16 @@ impl Projection {
         Vector2::new(w / self.cols[0].x, w / self.cols[1].y)
     }
 
-    /// Returns the vertical field of view of the projection (in degrees).
+    /// Returns the horizontal field of view of the projection (in degrees).
     ///
     /// _Godot equivalent: `Projection.get_fov()`_
     pub fn fov(&self) -> real {
-        if self.cols[2].y == 0.0 {
-            (2.0 * real::atan2(1.0, self.cols[1].y)).to_degrees()
+        if self.cols[2].x == 0.0 {
+            (2.0 * real::atan2(1.0, self.cols[0].x)).to_degrees()
         } else {
-            let top = real::atan2(self.cols[2].y + 1.0, self.cols[1].y);
-            let bottom = real::atan2(self.cols[2].y - 1.0, self.cols[1].y);
-            (top - bottom).to_degrees()
+            let right = real::atan2(self.cols[2].x + 1.0, self.cols[0].x);
+            let left = real::atan2(self.cols[2].x - 1.0, self.cols[0].x);
+            (right - left).to_degrees()
         }
     }
 
@@ -386,7 +386,11 @@ impl Projection {
     ///
     /// _Godot equivalent: `Projection.get_lod_multiplier()`_
     pub fn lod_multiplier(&self) -> real {
-        2.0 / self.cols[0].x
+        if self.is_orthogonal() {
+            self.viewport_half_extents().x
+        } else {
+            2.0 / self.cols[0].x
+        }
     }
 
     /// Returns the number of pixels with the given pixel width displayed per
@@ -1337,3 +1341,28 @@ impl_geometric_interop!(
     [x, y, z, w],
     self => [self.cols[0], self.cols[1], self.cols[2], self.cols[3]]
 );
+
+#[cfg(test)]
+mod test_fixes {
+    use super::*;
+    use crate::assert_eq_approx;
+
+    #[test]
+    fn fov_and_lod() {
+        let proj = Projection::create_perspective(90.0, 1.0, 0.1, 100.0, false);
+        // Godot's get_fov() returns horizontal FOV.
+        assert_eq_approx!(proj.fov(), 90.0);
+
+        let proj_wide = Projection::create_perspective(90.0, 2.0, 0.1, 100.0, false);
+        // tan(h/2) = aspect * tan(v/2) = 2.0 * tan(45) = 2.0.
+        // h = 2 * atan(2.0) = 126.87 deg.
+        assert_eq_approx!(proj_wide.fov(), 126.869897);
+
+        // lod_multiplier
+        assert_eq_approx!(proj.lod_multiplier(), 2.0 / proj.cols[0].x);
+
+        let ortho = Projection::create_orthogonal(-10.0, 10.0, -10.0, 10.0, 0.1, 100.0);
+        // 1.0 / cols[0].x = 1.0 / (2.0 / 20.0) = 10.0.
+        assert_eq_approx!(ortho.lod_multiplier(), 10.0);
+    }
+}

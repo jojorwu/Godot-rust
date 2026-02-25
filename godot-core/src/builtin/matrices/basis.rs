@@ -578,6 +578,37 @@ impl Basis {
     pub fn is_equal_approx(&self, other: &Self) -> bool {
         self.approx_eq(other)
     }
+
+    /// Returns `true` if the basis is orthogonal (its columns are perpendicular to each other and have unit length).
+    ///
+    /// _Godot equivalent: `Basis.is_orthogonal()`_
+    pub fn is_orthogonal(&self) -> bool {
+        let m = *self;
+        let ot = m.transposed();
+        let res = m * ot;
+        res.is_equal_approx(&Self::IDENTITY)
+    }
+
+    /// Returns `true` if the basis is conformal (it only contains uniform scale and rotation).
+    ///
+    /// _Godot equivalent: `Basis.is_conformal()`_
+    pub fn is_conformal(&self) -> bool {
+        let m = *self;
+        let ot = m.transposed();
+        let res = m * ot;
+        let l = res.rows[0].x;
+        if l < real::CMP_EPSILON {
+            return false;
+        }
+        res.is_equal_approx(&Self::from_scale(Vector3::new(l, l, l)))
+    }
+
+    /// Returns `true` if the basis represents a pure rotation (it is orthogonal and its determinant is positive).
+    ///
+    /// _Godot equivalent: `Basis.is_rotation()`_
+    pub fn is_rotation(&self) -> bool {
+        self.is_orthogonal() && self.determinant() > 0.0
+    }
 }
 
 impl Display for Basis {
@@ -1023,3 +1054,30 @@ impl_geometric_interop!(
     [r0, r1, r2],
     self => [self.rows[0], self.rows[1], self.rows[2]]
 );
+
+#[cfg(test)]
+mod test_analysis {
+    use super::*;
+
+    #[test]
+    fn analysis_methods() {
+        assert!(Basis::IDENTITY.is_orthogonal());
+        assert!(Basis::IDENTITY.is_conformal());
+        assert!(Basis::IDENTITY.is_rotation());
+
+        let scaled = Basis::from_scale(Vector3::new(2.0, 2.0, 2.0));
+        assert!(!scaled.is_orthogonal());
+        assert!(scaled.is_conformal());
+        assert!(!scaled.is_rotation());
+
+        let rotated = Basis::from_axis_angle(Vector3::UP, 1.0);
+        assert!(rotated.is_orthogonal());
+        assert!(rotated.is_conformal());
+        assert!(rotated.is_rotation());
+
+        let skewed = Basis::from_cols(Vector3::RIGHT, Vector3::new(1.0, 1.0, 0.0), Vector3::BACK);
+        assert!(!skewed.is_orthogonal());
+        assert!(!skewed.is_conformal());
+        assert!(!skewed.is_rotation());
+    }
+}
