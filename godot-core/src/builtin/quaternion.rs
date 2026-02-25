@@ -11,7 +11,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{ApproxEq, FloatExt, GlamConv, GlamType};
-use crate::builtin::{inner, real, Basis, EulerOrder, RQuat, RealConv, Vector3};
+use crate::builtin::{inner, real, Basis, EulerOrder, RQuat, Vector3};
 
 /// Unit quaternion to represent 3D rotations.
 ///
@@ -43,6 +43,10 @@ impl Quaternion {
 
     pub fn new(x: real, y: real, z: real, w: real) -> Self {
         Self { x, y, z, w }
+    }
+
+    pub(crate) fn from_glam(q: RQuat) -> Self {
+        Self::new(q.x, q.y, q.z, q.w)
     }
 
     /// Creates a quaternion from a Vector3 and an angle.
@@ -204,6 +208,12 @@ impl Quaternion {
         self / length
     }
 
+    /// Returns the result of the linear interpolation between this quaternion and `to` by amount `weight`.
+    #[inline]
+    pub fn lerp(self, to: Self, weight: real) -> Self {
+        self + (to - self) * weight
+    }
+
     /// # Panics
     /// If either quaternion is not normalized.
     #[inline]
@@ -211,8 +221,7 @@ impl Quaternion {
     pub fn slerp(self, to: Self, weight: real) -> Self {
         self.assert_normalized();
         to.assert_normalized();
-
-        self.as_inner().slerp(to, weight.as_f64())
+        Self::from_glam(self.to_glam().slerp(to.to_glam(), weight))
     }
 
     /// # Panics
@@ -223,7 +232,19 @@ impl Quaternion {
         self.assert_normalized();
         to.assert_normalized();
 
-        self.as_inner().slerpni(to, weight.as_f64())
+        let dot = self.dot(to);
+        if dot.abs() > 0.9995 {
+            return self.lerp(to, weight).normalized();
+        }
+
+        let theta_0 = dot.acos();
+        let theta = theta_0 * weight;
+        let sin_theta = theta.sin();
+        let sin_theta_0 = theta_0.sin();
+
+        let s0 = (theta_0 - theta).sin() / sin_theta_0;
+        let s1 = sin_theta / sin_theta_0;
+        self * s0 + to * s1
     }
 
     /// # Panics
@@ -242,8 +263,8 @@ impl Quaternion {
         pre_a.assert_normalized();
         post_b.assert_normalized();
 
-        self.as_inner()
-            .spherical_cubic_interpolate(b, pre_a, post_b, weight.as_f64())
+        self.slerp(b, weight)
+            .slerp(pre_a.slerp(post_b, weight), 2.0 * weight * (1.0 - weight))
     }
 
     /// # Panics
@@ -266,15 +287,34 @@ impl Quaternion {
         pre_a.assert_normalized();
         post_b.assert_normalized();
 
-        self.as_inner().spherical_cubic_interpolate_in_time(
-            b,
-            pre_a,
+        let t = real::lerp(0.0, b_t, weight);
+        let a1 = pre_a.slerp(
+            self,
+            if pre_a_t == 0.0 {
+                0.0
+            } else {
+                (t - pre_a_t) / -pre_a_t
+            },
+        );
+        let a2 = self.slerp(b, if b_t == 0.0 { 0.5 } else { t / b_t });
+        let a3 = b.slerp(
             post_b,
-            weight.as_f64(),
-            b_t.as_f64(),
-            pre_a_t.as_f64(),
-            post_b_t.as_f64(),
-        )
+            if post_b_t - b_t == 0.0 {
+                1.0
+            } else {
+                (t - b_t) / (post_b_t - b_t)
+            },
+        );
+        let b1 = a1.slerp(
+            a2,
+            if b_t - pre_a_t == 0.0 {
+                0.0
+            } else {
+                (t - pre_a_t) / (b_t - pre_a_t)
+            },
+        );
+        let b2 = a2.slerp(a3, if post_b_t == 0.0 { 1.0 } else { t / post_b_t });
+        b1.slerp(b2, if b_t == 0.0 { 0.5 } else { t / b_t })
     }
 
     #[inline]

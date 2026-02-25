@@ -85,6 +85,16 @@ pub trait FloatExt: private::Sealed + Copy {
     /// _Godot equivalent: @GlobalScope.lerp_angle()_
     fn lerp_angle(self, to: Self, weight: Self) -> Self;
 
+    /// Returns the shortest difference between two angles (in radians).
+    ///
+    /// _Godot equivalent: @GlobalScope.angle_difference()_
+    fn angle_difference(self, to: Self) -> Self;
+
+    /// Rotates `self` toward `to` by the fixed `delta` amount. Will not go past the final value.
+    ///
+    /// _Godot equivalent: @GlobalScope.rotate_toward()_
+    fn rotate_toward(self, to: Self, delta: Self) -> Self;
+
     /// Returns the result of the inverse linear interpolation between `self` and `to` by the given `value`.
     ///
     /// _Godot equivalent: @GlobalScope.inverse_lerp()_
@@ -256,13 +266,20 @@ macro_rules! impl_float_ext {
             }
 
             fn lerp_angle(self, to: Self, weight: Self) -> Self {
+                self + self.angle_difference(to) * weight
+            }
+
+            fn angle_difference(self, to: Self) -> Self {
                 use $consts;
 
                 // Rust's % operator (remainder) matches Godot's C++ fmod() behavior (sign matches dividend).
                 // This ensures consistent angle interpolation between Rust and Godot.
                 let difference = (to - self) % consts::TAU;
-                let distance = (2.0 * difference) % consts::TAU - difference;
-                self + distance * weight
+                (2.0 * difference) % consts::TAU - difference
+            }
+
+            fn rotate_toward(self, to: Self, delta: Self) -> Self {
+                self + self.angle_difference(to).clamp(-delta, delta)
             }
 
             fn inverse_lerp(self, to: Self, value: Self) -> Self {
@@ -472,6 +489,22 @@ mod test {
         assert_eq_approx!(f32::pingpong(1.5, 1.0), 0.5);
         assert_eq_approx!(f32::pingpong(2.5, 1.0), 0.5);
         assert_eq_approx!(f32::pingpong(-0.5, 1.0), 0.5);
+    }
+
+    #[test]
+    fn angle_difference() {
+        use std::f32::consts::PI;
+        assert_eq_approx!(f32::angle_difference(0.0, PI / 2.0), PI / 2.0);
+        assert_eq_approx!(f32::angle_difference(0.0, -PI / 2.0), -PI / 2.0);
+        assert_eq_approx!(f32::angle_difference(PI, -PI / 2.0), PI / 2.0);
+    }
+
+    #[test]
+    fn rotate_toward() {
+        use std::f32::consts::PI;
+        assert_eq_approx!(f32::rotate_toward(0.0, PI / 2.0, PI / 4.0), PI / 4.0);
+        assert_eq_approx!(f32::rotate_toward(PI / 2.0, 0.0, PI / 4.0), PI / 4.0);
+        assert_eq_approx!(f32::rotate_toward(0.0, PI, PI / 2.0).abs(), PI / 2.0);
     }
 
     #[test]
