@@ -224,7 +224,18 @@ impl Color {
     /// Blends the given color on top of this color, taking its alpha into account.
     #[must_use]
     pub fn blend(self, over: Color) -> Self {
-        self.as_inner().blend(over)
+        let sa = 1.0 - over.a;
+        let a = self.a * sa + over.a;
+        if a <= 0.0 {
+            Color::from_rgba(0.0, 0.0, 0.0, 0.0)
+        } else {
+            Color::from_rgba(
+                (self.r * self.a * sa + over.r * over.a) / a,
+                (self.g * self.a * sa + over.g * over.a) / a,
+                (self.b * self.a * sa + over.b * over.a) / a,
+                a,
+            )
+        }
     }
 
     /// Returns the linear interpolation between `self`'s components and `to`'s components. The
@@ -250,14 +261,24 @@ impl Color {
     /// from 0.0 to 1.0). See also [`lightened`][Self::lightened].
     #[must_use]
     pub fn darkened(self, amount: f64) -> Self {
-        self.as_inner().darkened(amount)
+        let amount = amount as f32;
+        let mut res = self;
+        res.r *= 1.0 - amount;
+        res.g *= 1.0 - amount;
+        res.b *= 1.0 - amount;
+        res
     }
 
     /// Creates a new color resulting by making this color lighter by the specified amount, which
     /// should be a ratio from 0.0 to 1.0. See also [`darkened`][Self::darkened].
     #[must_use]
     pub fn lightened(self, amount: f64) -> Self {
-        self.as_inner().lightened(amount)
+        let amount = amount as f32;
+        let mut res = self;
+        res.r += (1.0 - res.r) * amount;
+        res.g += (1.0 - res.g) * amount;
+        res.b += (1.0 - res.b) * amount;
+        res
     }
 
     /// Returns the color with its `r`, `g`, and `b` components inverted:
@@ -272,7 +293,14 @@ impl Color {
     /// [`Color::srgb_to_linear`] which performs the opposite operation.
     #[must_use]
     pub fn linear_to_srgb(self) -> Self {
-        self.as_inner().linear_to_srgb()
+        fn to_srgb(linear: f32) -> f32 {
+            if linear <= 0.0031308 {
+                linear * 12.92
+            } else {
+                1.055 * linear.powf(1.0 / 2.4) - 0.055
+            }
+        }
+        Color::from_rgba(to_srgb(self.r), to_srgb(self.g), to_srgb(self.b), self.a)
     }
 
     /// Returns the color converted to the linear color space. This method assumes the original
@@ -280,7 +308,14 @@ impl Color {
     /// opposite operation.
     #[must_use]
     pub fn srgb_to_linear(self) -> Self {
-        self.as_inner().srgb_to_linear()
+        fn to_linear(srgb: f32) -> f32 {
+            if srgb <= 0.04045 {
+                srgb / 12.92
+            } else {
+                ((srgb + 0.055) / 1.055).powf(2.4)
+            }
+        }
+        Color::from_rgba(to_linear(self.r), to_linear(self.g), to_linear(self.b), self.a)
     }
 
     /// Returns the HTML color code representation of this color, as 8 lowercase hex digits in the
@@ -701,6 +736,27 @@ mod test {
         assert_eq_approx!(c, c1 % 0.3);
 
         assert_eq_approx!(-c1, Color::from_rgba(-0.2, -0.4, -0.6, -0.8));
+    }
+
+    #[test]
+    fn utility_methods() {
+        use crate::assert_eq_approx;
+
+        let black = Color::BLACK;
+        let white = Color::WHITE;
+
+        assert_eq_approx!(black.lightened(0.5), Color::from_rgb(0.5, 0.5, 0.5));
+        assert_eq_approx!(white.darkened(0.5), Color::from_rgb(0.5, 0.5, 0.5));
+
+        let c1 = Color::from_rgba(1.0, 0.0, 0.0, 0.5);
+        let c2 = Color::from_rgba(0.0, 1.0, 0.0, 0.5);
+        let blended = c1.blend(c2);
+        assert_eq_approx!(blended.a, 0.75);
+        assert_eq_approx!(blended.g, 2.0 / 3.0);
+
+        let linear = Color::from_rgb(0.5, 0.5, 0.5);
+        let srgb = linear.linear_to_srgb();
+        assert_eq_approx!(srgb.srgb_to_linear(), linear);
     }
 
     #[cfg(feature = "serde")]

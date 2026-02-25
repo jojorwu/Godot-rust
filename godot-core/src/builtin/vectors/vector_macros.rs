@@ -717,45 +717,6 @@ macro_rules! impl_float_vector_fns {
                 Self::from_glam(self.to_glam().ceil())
             }
 
-            /// Cubic interpolation between `self` and `b` using `pre_a` and `post_b` as handles,
-            /// and returns the result at position `weight`.
-            ///
-            /// `weight` is on the range of 0.0 to 1.0, representing the amount of interpolation.
-            #[inline]
-            pub fn cubic_interpolate(self, b: Self, pre_a: Self, post_b: Self, weight: real) -> Self {
-                Self::new(
-                    $(
-                        self.$comp.cubic_interpolate(b.$comp, pre_a.$comp, post_b.$comp, weight)
-                    ),*
-                )
-            }
-
-            /// Cubic interpolation between `self` and `b` using `pre_a` and `post_b` as handles,
-            /// and returns the result at position `weight`.
-            ///
-            /// `weight` is on the range of 0.0 to 1.0, representing the amount of interpolation.
-            /// It can perform smoother interpolation than [`cubic_interpolate()`][Self::cubic_interpolate] by the time values.
-            #[inline]
-            #[allow(clippy::too_many_arguments)]
-            pub fn cubic_interpolate_in_time(
-                self,
-                b: Self,
-                pre_a: Self,
-                post_b: Self,
-                weight: real,
-                b_t: real,
-                pre_a_t: real,
-                post_b_t: real,
-            ) -> Self {
-                Self::new(
-                    $(
-                        self.$comp.cubic_interpolate_in_time(
-                            b.$comp, pre_a.$comp, post_b.$comp, weight, b_t, pre_a_t, post_b_t,
-                        )
-                    ),*
-                )
-            }
-
             /// Returns the normalized vector pointing from this vector to `to` or [`None`], if `self` and `to` are equal.
             ///
             /// This is equivalent to using `(b - a).try_normalized()`. See also [`direction_to()`][Self::direction_to].
@@ -847,6 +808,67 @@ macro_rules! impl_float_vector_fns {
                 } else {
                     self + vd / len * delta
                 }
+            }
+
+            /// Returns the derivative at the given `t` on the [Bézier](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
+            /// curve defined by this vector and the given `control_1`, `control_2`, and `end` points.
+            #[inline]
+            pub fn bezier_derivative(self, control_1: Self, control_2: Self, end: Self, t: real) -> Self {
+                Self::new(
+                     $(
+                         self.$comp.bezier_derivative(control_1.$comp, control_2.$comp, end.$comp, t)
+                     ),*
+                )
+            }
+
+            /// Returns the point at the given `t` on the [Bézier](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
+            /// curve defined by this vector and the given `control_1`, `control_2`, and `end` points.
+            #[inline]
+            pub fn bezier_interpolate(self, control_1: Self, control_2: Self, end: Self, t: real) -> Self {
+                Self::new(
+                    $(
+                        self.$comp.bezier_interpolate(control_1.$comp, control_2.$comp, end.$comp, t)
+                    ),*
+                )
+            }
+
+            /// Cubic interpolation between `self` and `b` using `pre_a` and `post_b` as handles,
+            /// and returns the result at position `weight`.
+            ///
+            /// `weight` is on the range of 0.0 to 1.0, representing the amount of interpolation.
+            #[inline]
+            pub fn cubic_interpolate(self, b: Self, pre_a: Self, post_b: Self, weight: real) -> Self {
+                Self::new(
+                    $(
+                        self.$comp.cubic_interpolate(b.$comp, pre_a.$comp, post_b.$comp, weight)
+                    ),*
+                )
+            }
+
+            /// Cubic interpolation between `self` and `b` using `pre_a` and `post_b` as handles,
+            /// and returns the result at position `weight`.
+            ///
+            /// `weight` is on the range of 0.0 to 1.0, representing the amount of interpolation.
+            /// It can perform smoother interpolation than [`cubic_interpolate()`][Self::cubic_interpolate] by the time values.
+            #[inline]
+            #[allow(clippy::too_many_arguments)]
+            pub fn cubic_interpolate_in_time(
+                self,
+                b: Self,
+                pre_a: Self,
+                post_b: Self,
+                weight: real,
+                b_t: real,
+                pre_a_t: real,
+                post_b_t: real,
+            ) -> Self {
+                Self::new(
+                    $(
+                        self.$comp.cubic_interpolate_in_time(
+                            b.$comp, pre_a.$comp, post_b.$comp, weight, b_t, pre_a_t, post_b_t,
+                        )
+                    ),*
+                )
             }
 
             /// Returns the result of the linear interpolation between this vector and `to` by amount `weight`.
@@ -1234,28 +1256,6 @@ macro_rules! impl_vector2_vector3_fns {
         /// # 2D and 3D functions
         /// The following methods are available on both 2D and 3D float vectors.
         impl $Vector {
-           /// Returns the derivative at the given `t` on the [Bézier](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
-           /// curve defined by this vector and the given `control_1`, `control_2`, and `end` points.
-           #[inline]
-           pub fn bezier_derivative(self, control_1: Self, control_2: Self, end: Self, t: real) -> Self {
-               Self::new(
-                    $(
-                        self.$comp.bezier_derivative(control_1.$comp, control_2.$comp, end.$comp, t)
-                    ),*
-               )
-           }
-
-            /// Returns the point at the given `t` on the [Bézier](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
-            /// curve defined by this vector and the given `control_1`, `control_2`, and `end` points.
-            #[inline]
-            pub fn bezier_interpolate(self, control_1: Self, control_2: Self, end: Self, t: real) -> Self {
-                Self::new(
-                    $(
-                        self.$comp.bezier_interpolate(control_1.$comp, control_2.$comp, end.$comp, t)
-                    ),*
-                )
-            }
-
             /// Returns a new vector "bounced off" from a plane defined by the given normal.
             ///
             /// # Panics

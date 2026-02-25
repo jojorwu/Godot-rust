@@ -100,6 +100,16 @@ pub trait FloatExt: private::Sealed + Copy {
     /// _Godot equivalent: @GlobalScope.inverse_lerp()_
     fn inverse_lerp(self, to: Self, value: Self) -> Self;
 
+    /// Returns the linear value from a decibel value.
+    ///
+    /// _Godot equivalent: @GlobalScope.db_to_linear()_
+    fn db_to_linear(self) -> Self;
+
+    /// Returns the decibel value from a linear value.
+    ///
+    /// _Godot equivalent: @GlobalScope.linear_to_db()_
+    fn linear_to_db(self) -> Self;
+
     /// Maps a `value` from range `[istart, istop]` to `[ostart, ostop]`.
     ///
     /// _Godot equivalent: @GlobalScope.remap()_
@@ -288,6 +298,14 @@ macro_rules! impl_float_ext {
                 } else {
                     (value - self) / (to - self)
                 }
+            }
+
+            fn db_to_linear(self) -> Self {
+                (self * 0.115_129_254_649_702_3).exp()
+            }
+
+            fn linear_to_db(self) -> Self {
+                self.ln() * 8.685_889_638_065_037
             }
 
             fn remap(self, istart: Self, istop: Self, ostart: Self, ostop: Self) -> Self {
@@ -505,6 +523,14 @@ mod test {
         assert_eq_approx!(f32::rotate_toward(0.0, PI / 2.0, PI / 4.0), PI / 4.0);
         assert_eq_approx!(f32::rotate_toward(PI / 2.0, 0.0, PI / 4.0), PI / 4.0);
         assert_eq_approx!(f32::rotate_toward(0.0, PI, PI / 2.0).abs(), PI / 2.0);
+    }
+
+    #[test]
+    fn db_linear() {
+        assert_eq_approx!(f32::db_to_linear(0.0), 1.0);
+        assert_eq_approx!(f32::linear_to_db(1.0), 0.0);
+        assert_eq_approx!(f32::db_to_linear(6.0206), 2.0);
+        assert_eq_approx!(f32::linear_to_db(2.0), 6.0206);
     }
 
     #[test]

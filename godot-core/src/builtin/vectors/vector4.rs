@@ -140,6 +140,19 @@ mod test {
         assert_eq!(vector.sign(), Vector4::new(1., -1., 0., 1.));
     }
 
+    #[test]
+    fn cubic_interpolate() {
+        let v1 = Vector4::new(0.0, 0.0, 0.0, 0.0);
+        let v2 = Vector4::new(1.0, 1.0, 1.0, 1.0);
+        let pre = Vector4::new(-1.0, -1.0, -1.0, -1.0);
+        let post = Vector4::new(2.0, 2.0, 2.0, 2.0);
+
+        assert_eq_approx!(
+            v1.cubic_interpolate(v2, pre, post, 0.5),
+            Vector4::new(0.5, 0.5, 0.5, 0.5)
+        );
+    }
+
     #[cfg(feature = "serde")]
     #[test]
     fn serde_roundtrip() {
