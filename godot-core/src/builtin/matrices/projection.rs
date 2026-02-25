@@ -12,8 +12,7 @@ use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{ApproxEq, GlamConv, GlamType};
 use crate::builtin::{
-    inner, real, Aabb, Plane, RMat4, RealConv, Rect2, Transform3D, Vector2, Vector3, Vector4,
-    Vector4Axis,
+    real, Aabb, Plane, RMat4, RealConv, Rect2, Transform3D, Vector2, Vector3, Vector4, Vector4Axis,
 };
 
 /// A 4x4 matrix used for 3D projective transformations.
@@ -369,16 +368,16 @@ impl Projection {
         Vector2::new(w / self.cols[0].x, w / self.cols[1].y)
     }
 
-    /// Returns the horizontal field of view of the projection (in degrees).
+    /// Returns the vertical field of view of the projection (in degrees).
     ///
     /// _Godot equivalent: `Projection.get_fov()`_
     pub fn fov(&self) -> real {
-        if self.cols[2].x == 0.0 {
-            (2.0 * real::atan2(1.0, self.cols[0].x)).to_degrees()
+        if self.cols[2].y == 0.0 {
+            (2.0 * real::atan2(1.0, self.cols[1].y)).to_degrees()
         } else {
-            let right = real::atan2(self.cols[2].x + 1.0, self.cols[0].x);
-            let left = real::atan2(self.cols[2].x - 1.0, self.cols[0].x);
-            (right - left).to_degrees()
+            let top = real::atan2(self.cols[2].y + 1.0, self.cols[1].y);
+            let bottom = real::atan2(self.cols[2].y - 1.0, self.cols[1].y);
+            (top - bottom).to_degrees()
         }
     }
 
@@ -583,12 +582,6 @@ impl Projection {
         res.cols[3].z = -2.0 * znear * z_far / dz;
 
         res
-    }
-
-    #[doc(hidden)]
-    #[allow(dead_code)]
-    pub(crate) fn as_inner(&self) -> inner::InnerProjection<'_> {
-        inner::InnerProjection::from_outer(self)
     }
 
     /// Returns `true` if this projection and `other` are approximately equal.

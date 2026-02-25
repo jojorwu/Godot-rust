@@ -140,7 +140,29 @@ impl Color {
     ///
     /// See also: [`ColorHsv::to_rgb`] for fast conversion on Rust side.
     pub fn from_hsv(h: f64, s: f64, v: f64) -> Self {
-        InnerColor::from_hsv(h, s, v, 1.0)
+        let h = h as f32;
+        let s = s as f32;
+        let v = v as f32;
+
+        if s == 0.0 {
+            return Color::from_rgb(v, v, v);
+        }
+
+        let h = (h * 6.0).rem_euclid(6.0);
+        let i = h.floor() as i32;
+        let f = h - i as f32;
+        let p = v * (1.0 - s);
+        let q = v * (1.0 - s * f);
+        let t = v * (1.0 - s * (1.0 - f));
+
+        match i {
+            0 => Color::from_rgb(v, t, p),
+            1 => Color::from_rgb(q, v, p),
+            2 => Color::from_rgb(p, v, t),
+            3 => Color::from_rgb(p, q, v),
+            4 => Color::from_rgb(t, p, v),
+            _ => Color::from_rgb(v, p, q),
+        }
     }
 
     /// Constructs a `Color` from an [OK HSL
@@ -155,7 +177,12 @@ impl Color {
     /// format where the three color components have 9 bits of precision and all three share a
     /// single 5-bit exponent.
     pub fn from_rgbe9995(rgbe: u32) -> Self {
-        InnerColor::from_rgbe9995(i64::from(rgbe))
+        let r = (rgbe & 0x1ff) as f32;
+        let g = ((rgbe >> 9) & 0x1ff) as f32;
+        let b = ((rgbe >> 18) & 0x1ff) as f32;
+        let e = ((rgbe >> 27) & 0x1f) as f32;
+        let exp = 2.0f32.powf(e - 15.0 - 9.0);
+        Color::from_rgb(r * exp, g * exp, b * exp)
     }
 
     /// Returns a copy of this color with the given alpha value. Useful for chaining with
@@ -218,7 +245,7 @@ impl Color {
     /// accurate relative luminance value. If the color is in the sRGB color space, use
     /// [`Color::srgb_to_linear`] to convert it to the linear color space first.
     pub fn luminance(self) -> f64 {
-        self.as_inner().get_luminance()
+        0.2126 * self.r as f64 + 0.7152 * self.g as f64 + 0.0722 * self.b as f64
     }
 
     /// Blends the given color on top of this color, taking its alpha into account.
@@ -254,7 +281,12 @@ impl Color {
     /// Returns a new color with all components clamped between the components of `min` and `max`.
     #[must_use]
     pub fn clamp(self, min: Color, max: Color) -> Self {
-        self.as_inner().clamp(min, max)
+        Self {
+            r: self.r.clamp(min.r, max.r),
+            g: self.g.clamp(min.g, max.g),
+            b: self.b.clamp(min.b, max.b),
+            a: self.a.clamp(min.a, max.a),
+        }
     }
 
     /// Creates a new color resulting by making this color darker by the specified amount (ratio
@@ -285,7 +317,12 @@ impl Color {
     /// `Color::from_rgba(1 - r, 1 - g, 1 - b, a)`.
     #[must_use]
     pub fn inverted(self) -> Self {
-        self.as_inner().inverted()
+        Self {
+            r: 1.0 - self.r,
+            g: 1.0 - self.g,
+            b: 1.0 - self.b,
+            a: self.a,
+        }
     }
 
     /// Returns the color converted to the [sRGB](https://en.wikipedia.org/wiki/SRGB) color space.
@@ -321,13 +358,21 @@ impl Color {
     /// Returns the HTML color code representation of this color, as 8 lowercase hex digits in the
     /// order `RRGGBBAA`, without the `#` prefix.
     pub fn to_html(self) -> GString {
-        self.as_inner().to_html(true)
+        self.to_html_opt(true)
     }
 
     /// Returns the HTML color code representation of this color, as 6 lowercase hex digits in the
     /// order `RRGGBB`, without the `#` prefix. The alpha channel is ignored.
     pub fn to_html_without_alpha(self) -> GString {
-        self.as_inner().to_html(false)
+        self.to_html_opt(false)
+    }
+
+    fn to_html_opt(self, p_alpha: bool) -> GString {
+        let mut s = format!("{:02x}{:02x}{:02x}", self.r8(), self.g8(), self.b8());
+        if p_alpha {
+            s.push_str(&format!("{:02x}", self.a8()));
+        }
+        GString::from(s)
     }
 
     /// Returns the color converted to a 32-bit integer (each component is 8 bits) with the given
@@ -405,10 +450,6 @@ impl Color {
             std::any::type_name::<Self>(),
             self
         );
-    }
-
-    fn as_inner(&self) -> InnerColor<'_> {
-        InnerColor::from_outer(self)
     }
 
     /// Returns `true` if this color and `other` are approximately equal.
@@ -741,6 +782,13 @@ mod test {
     #[test]
     fn utility_methods() {
         use crate::assert_eq_approx;
+
+        assert_eq_approx!(Color::from_hsv(0.0, 1.0, 1.0), Color::RED);
+        assert_eq_approx!(Color::from_hsv(1.0 / 3.0, 1.0, 1.0), Color::GREEN);
+        assert_eq_approx!(Color::from_hsv(2.0 / 3.0, 1.0, 1.0), Color::BLUE);
+
+        let rgbe = (24u32 << 27) | 255;
+        assert_eq_approx!(Color::from_rgbe9995(rgbe), Color::from_rgb(255.0, 0.0, 0.0));
 
         let black = Color::BLACK;
         let white = Color::WHITE;

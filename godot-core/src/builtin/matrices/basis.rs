@@ -142,6 +142,32 @@ impl Basis {
         RMat3::from_quat(quat.to_glam()).to_front()
     }
 
+    /// Creates a `Basis` that rotates the coordinate system to look towards `target`,
+    /// with `up` as the vertical direction.
+    ///
+    /// _Godot equivalent: `Basis.looking_at(Vector3 target, Vector3 up, bool use_model_front)`_
+    pub fn looking_at(target: Vector3, up: Vector3, use_model_front: bool) -> Self {
+        let mut v_z = if use_model_front { target } else { -target };
+        if v_z.is_zero_approx() {
+            v_z = if use_model_front {
+                Vector3::BACK
+            } else {
+                Vector3::FORWARD
+            };
+        }
+        v_z = v_z.normalized();
+
+        let mut v_x = up.cross(v_z);
+        if v_x.is_zero_approx() {
+            v_x = Vector3::RIGHT;
+        }
+        v_x = v_x.normalized();
+
+        let v_y = v_z.cross(v_x).normalized();
+
+        Self::from_cols(v_x, v_y, v_z)
+    }
+
     /// Create a `Basis` from three angles `a`, `b`, and `c` interpreted
     /// as Euler angles according to the given `EulerOrder`.
     ///
@@ -958,6 +984,15 @@ mod test {
         let expected_json = "{\"rows\":[{\"x\":1.0,\"y\":0.0,\"z\":0.0},{\"x\":0.0,\"y\":1.0,\"z\":0.0},{\"x\":0.0,\"y\":0.0,\"z\":1.0}]}";
 
         crate::builtin::test_utils::roundtrip(&basis, expected_json);
+    }
+
+    #[test]
+    fn looking_at() {
+        let b = Basis::looking_at(Vector3::FORWARD, Vector3::UP, false);
+        assert_eq_approx!(b.col_c(), Vector3::BACK); // Z points back
+
+        let b2 = Basis::looking_at(Vector3::FORWARD, Vector3::UP, true);
+        assert_eq_approx!(b2.col_c(), Vector3::FORWARD); // use_model_front: true
     }
 
     #[test]

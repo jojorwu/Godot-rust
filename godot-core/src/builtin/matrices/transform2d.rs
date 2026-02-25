@@ -210,6 +210,18 @@ impl Transform2D {
         self.basis().skew()
     }
 
+    /// Returns a copy of the transform rotated such that the forward axis (+X) points towards the `target` position.
+    ///
+    /// _Godot equivalent: `Transform2D.looking_at(Vector2 target)`_
+    pub fn looking_at(&self, target: Vector2) -> Self {
+        let mut res = *self;
+        let angle = (target - self.origin).angle();
+        let scale = res.scale();
+        res.a = Vector2::new(angle.cos(), angle.sin()) * scale.x;
+        res.b = Vector2::new(-angle.sin(), angle.cos()) * scale.y;
+        res
+    }
+
     /// Returns a transform interpolated between this transform and another by
     /// a given `weight` (on the range of 0.0 to 1.0).
     ///
@@ -868,6 +880,15 @@ mod test {
         let expected_json = "{\"a\":{\"x\":0.0,\"y\":0.0},\"b\":{\"x\":0.0,\"y\":0.0},\"origin\":{\"x\":0.0,\"y\":0.0}}";
 
         crate::builtin::test_utils::roundtrip(&transform, expected_json);
+    }
+
+    #[test]
+    fn looking_at() {
+        let t = Transform2D::IDENTITY.looking_at(Vector2::RIGHT);
+        assert_eq_approx!(t.rotation(), 0.0);
+
+        let t2 = Transform2D::IDENTITY.looking_at(Vector2::UP);
+        assert_eq_approx!(t2.rotation(), -std::f32::consts::FRAC_PI_2);
     }
 
     #[test]
