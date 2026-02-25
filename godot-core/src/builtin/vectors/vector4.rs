@@ -81,6 +81,7 @@ impl Vector4 {
 
 impl_float_vector_fns!(Vector4, Vector4i, (x, y, z, w));
 impl_vector4x_fns!(Vector4, real);
+impl_float_vector_geom_fns!(Vector4, (x, y, z, w));
 impl_vector3_vector4_fns!(Vector4, (x, y, z, w));
 
 impl_vector_operators!(Vector4, real, (x, y, z, w));
@@ -160,5 +161,36 @@ mod test {
         let expected_json = "{\"x\":0.0,\"y\":0.0,\"z\":0.0,\"w\":0.0}";
 
         crate::builtin::test_utils::roundtrip(&vector, expected_json);
+    }
+}
+
+#[cfg(test)]
+mod test_geom {
+    use super::*;
+    use crate::builtin::math::assert_eq_approx;
+
+    #[test]
+    fn geom_ops() {
+        let v = Vector4::new(1.0, 0.0, 0.0, 0.0);
+        assert_eq_approx!(v.limit_length(Some(0.5)), Vector4::new(0.5, 0.0, 0.0, 0.0));
+
+        let v2 = Vector4::new(2.0, 2.0, 2.0, 2.0);
+        let n = Vector4::new(1.0, 0.0, 0.0, 0.0);
+        // project v2 onto n
+        assert_eq_approx!(v2.project(n), Vector4::new(2.0, 0.0, 0.0, 0.0));
+
+        // reflect v2 about n
+        // reflect(v, n) = 2.0 * n * v.dot(n) - v
+        // v2.dot(n) = 2.0
+        // 2.0 * n * 2.0 - v2 = Vector4(4.0, 0.0, 0.0, 0.0) - Vector4(2.0, 2.0, 2.0, 2.0) = Vector4(2.0, -2.0, -2.0, -2.0)
+        assert_eq_approx!(v2.reflect(n), Vector4::new(2.0, -2.0, -2.0, -2.0));
+
+        // bounce
+        // bounce(v, n) = -reflect(v, n) = Vector4(-2.0, 2.0, 2.0, 2.0)
+        assert_eq_approx!(v2.bounce(n), Vector4::new(-2.0, 2.0, 2.0, 2.0));
+
+        // slide
+        // slide(v, n) = v - n * v.dot(n) = Vector4(2.0, 2.0, 2.0, 2.0) - Vector4(2.0, 0.0, 0.0, 0.0) = Vector4(0.0, 2.0, 2.0, 2.0)
+        assert_eq_approx!(v2.slide(n), Vector4::new(0.0, 2.0, 2.0, 2.0));
     }
 }

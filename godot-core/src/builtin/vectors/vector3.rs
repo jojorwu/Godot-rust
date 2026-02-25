@@ -239,7 +239,7 @@ impl Vector3 {
 
 impl_float_vector_fns!(Vector3, Vector3i, (x, y, z));
 impl_vector3x_fns!(Vector3, Vector2, real);
-impl_vector2_vector3_fns!(Vector3, (x, y, z));
+impl_float_vector_geom_fns!(Vector3, (x, y, z));
 impl_vector3_vector4_fns!(Vector3, (x, y, z));
 
 impl_vector_operators!(Vector3, real, (x, y, z));

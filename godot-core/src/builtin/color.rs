@@ -100,7 +100,64 @@ impl Color {
     /// Returns `None` if the format is invalid.
     pub fn from_html<S: AsArg<GString>>(html: S) -> Option<Self> {
         arg_into_ref!(html);
-        InnerColor::html_is_valid(html).then(|| InnerColor::html(html))
+        Self::from_html_str(&html.to_string())
+    }
+
+    fn from_html_str(s: &str) -> Option<Self> {
+        if !Self::html_is_valid_str(s) {
+            return None;
+        }
+
+        let start = if s.starts_with('#') { 1 } else { 0 };
+        let hex = &s[start..];
+        let len = hex.len();
+
+        let mut r = 0.0;
+        let mut g = 0.0;
+        let mut b = 0.0;
+        let mut a = 1.0;
+
+        if len == 3 || len == 4 {
+            r = u32::from_str_radix(&hex[0..1], 16).ok()? as f32 / 15.0;
+            g = u32::from_str_radix(&hex[1..2], 16).ok()? as f32 / 15.0;
+            b = u32::from_str_radix(&hex[2..3], 16).ok()? as f32 / 15.0;
+            if len == 4 {
+                a = u32::from_str_radix(&hex[3..4], 16).ok()? as f32 / 15.0;
+            }
+        } else if len == 6 || len == 8 {
+            r = u32::from_str_radix(&hex[0..2], 16).ok()? as f32 / 255.0;
+            g = u32::from_str_radix(&hex[2..4], 16).ok()? as f32 / 255.0;
+            b = u32::from_str_radix(&hex[4..6], 16).ok()? as f32 / 255.0;
+            if len == 8 {
+                a = u32::from_str_radix(&hex[6..8], 16).ok()? as f32 / 255.0;
+            }
+        }
+
+        Some(Color::from_rgba(r, g, b, a))
+    }
+
+    /// Returns `true` if the HTML color code is valid.
+    ///
+    /// _Godot equivalent: `Color.html_is_valid()`_
+    pub fn html_is_valid<S: AsArg<GString>>(color: S) -> bool {
+        arg_into_ref!(color);
+        Self::html_is_valid_str(&color.to_string())
+    }
+
+    fn html_is_valid_str(color: &str) -> bool {
+        if color.is_empty() {
+            return false;
+        }
+
+        let start = if color.starts_with('#') { 1 } else { 0 };
+        let hex = &color[start..];
+        let len = hex.len();
+
+        if ![3, 4, 6, 8].contains(&len) {
+            return false;
+        }
+
+        hex.chars().all(|c| c.is_ascii_hexdigit())
     }
 
     /// Constructs a `Color` from a string, which can be either:
@@ -814,5 +871,33 @@ mod test {
         let expected_json = "{\"r\":1.0,\"g\":1.0,\"b\":1.0,\"a\":1.0}";
 
         crate::builtin::test_utils::roundtrip(&color, expected_json);
+    }
+}
+
+#[cfg(test)]
+mod test_html {
+    use super::*;
+    use crate::assert_eq_approx;
+
+    #[test]
+    fn html_parsing() {
+        assert!(Color::html_is_valid_str("#abc"));
+        assert!(Color::html_is_valid_str("abc"));
+        assert!(Color::html_is_valid_str("#abcd"));
+        assert!(Color::html_is_valid_str("#aabbcc"));
+        assert!(Color::html_is_valid_str("#aabbccdd"));
+        assert!(!Color::html_is_valid_str("#ab"));
+        assert!(!Color::html_is_valid_str("#abcde"));
+        assert!(!Color::html_is_valid_str("#axc"));
+
+        assert_eq_approx!(Color::from_html_str("#fff").unwrap(), Color::WHITE);
+        assert_eq_approx!(Color::from_html_str("#000").unwrap(), Color::BLACK);
+        assert_eq_approx!(Color::from_html_str("#f00").unwrap(), Color::RED);
+        assert_eq_approx!(Color::from_html_str("#ff0000").unwrap(), Color::RED);
+        assert_eq_approx!(Color::from_html_str("#ff0000ff").unwrap(), Color::RED);
+
+        let red_half_alpha = Color::from_html_str("#ff000080").unwrap();
+        assert_eq_approx!(red_half_alpha.r, 1.0);
+        assert_eq_approx!(red_half_alpha.a, 128.0 / 255.0);
     }
 }

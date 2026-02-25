@@ -157,6 +157,36 @@ pub trait FloatExt: private::Sealed + Copy {
     /// _Godot equivalent: @GlobalScope.ease()_
     fn ease(self, curve: Self) -> Self;
 
+    /// Returns the sine of `self` divided by `self`.
+    ///
+    /// _Godot equivalent: @GlobalScope.sinc()_
+    fn sinc(self) -> Self;
+
+    /// Returns the sine of `PI * self` divided by `PI * self`.
+    ///
+    /// _Godot equivalent: @GlobalScope.sincn()_
+    fn sincn(self) -> Self;
+
+    /// Returns the arc sine of `self`, clamped between -1 and 1 to avoid NaN.
+    ///
+    /// _Godot equivalent: @GlobalScope.asin()_
+    fn asin_clamped(self) -> Self;
+
+    /// Returns the arc cosine of `self`, clamped between -1 and 1 to avoid NaN.
+    ///
+    /// _Godot equivalent: @GlobalScope.acos()_
+    fn acos_clamped(self) -> Self;
+
+    /// Returns the inverse hyperbolic cosine of `self`, clamped to 1 and above to avoid NaN.
+    ///
+    /// _Godot equivalent: @GlobalScope.acosh()_
+    fn acosh_clamped(self) -> Self;
+
+    /// Returns the inverse hyperbolic tangent of `self`.
+    ///
+    /// _Godot equivalent: @GlobalScope.atanh()_
+    fn atanh_clamped(self) -> Self;
+
     /// Wraps `self` between `min` and `max`.
     ///
     /// _Godot equivalent: @GlobalScope.wrapf()_
@@ -425,6 +455,62 @@ macro_rules! impl_float_ext {
                 }
             }
 
+            fn sinc(self) -> Self {
+                if self == 0.0 {
+                    1.0
+                } else {
+                    self.sin() / self
+                }
+            }
+
+            fn sincn(self) -> Self {
+                use $consts;
+                let pi = consts::PI;
+                (self * pi).sinc()
+            }
+
+            fn asin_clamped(self) -> Self {
+                use $consts;
+                let pi = consts::PI;
+                if self < -1.0 {
+                    -pi / 2.0
+                } else if self > 1.0 {
+                    pi / 2.0
+                } else {
+                    self.asin()
+                }
+            }
+
+            fn acos_clamped(self) -> Self {
+                use $consts;
+                let pi = consts::PI;
+                if self < -1.0 {
+                    pi
+                } else if self > 1.0 {
+                    0.0
+                } else {
+                    self.acos()
+                }
+            }
+
+            fn acosh_clamped(self) -> Self {
+                if self < 1.0 {
+                    0.0
+                } else {
+                    self.acosh()
+                }
+            }
+
+            fn atanh_clamped(self) -> Self {
+                if self <= -1.0 {
+                    Self::NEG_INFINITY
+                } else if self >= 1.0 {
+                    Self::INFINITY
+                } else {
+                    self.atanh()
+                }
+            }
+
             fn wrap(self, min: Self, max: Self) -> Self {
                 let range = max - min;
                 if range == 0.0 {
@@ -628,5 +714,32 @@ mod test_expansions {
     fn stepify() {
         assert_eq_approx!(3.14159f32.stepify(0.01), 3.14);
         assert_eq_approx!(12.345f64.stepify(0.1), 12.3);
+    }
+}
+
+#[cfg(test)]
+mod test_clamped_trig {
+    use super::*;
+    use crate::assert_eq_approx;
+
+    #[test]
+    fn clamped_trig() {
+        use std::f32::consts::PI;
+        assert_eq_approx!(2.0f32.asin_clamped(), PI / 2.0);
+        assert_eq_approx!((-2.0f32).asin_clamped(), -PI / 2.0);
+        assert_eq_approx!(2.0f32.acos_clamped(), 0.0);
+        assert_eq_approx!((-2.0f32).acos_clamped(), PI);
+        assert_eq_approx!(0.5f32.acosh_clamped(), 0.0);
+        assert_eq_approx!(1.5f32.acosh_clamped(), 1.5f32.acosh());
+        assert_eq_approx!(1.0f32.atanh_clamped(), f32::INFINITY);
+        assert_eq_approx!((-1.0f32).atanh_clamped(), f32::NEG_INFINITY);
+    }
+
+    #[test]
+    fn sinc_test() {
+        assert_eq_approx!(0.0f32.sinc(), 1.0);
+        assert_eq_approx!(1.0f32.sinc(), 1.0f32.sin());
+        assert_eq_approx!(0.0f32.sincn(), 1.0);
+        assert_eq_approx!(0.5f32.sincn(), (std::f32::consts::PI * 0.5).sin() / (std::f32::consts::PI * 0.5));
     }
 }

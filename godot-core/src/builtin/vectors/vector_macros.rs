@@ -1246,15 +1246,15 @@ macro_rules! impl_vector4x_fns {
     };
 }
 
-macro_rules! impl_vector2_vector3_fns {
+macro_rules! impl_float_vector_geom_fns {
     (
         // Name of the vector type.
         $Vector:ty,
         // Names of the components, with parentheses, for example `(x, y, z, w)`.
         ($($comp:ident),*)
     ) => {
-        /// # 2D and 3D functions
-        /// The following methods are available on both 2D and 3D float vectors.
+        /// # Geometric functions
+        /// The following methods are available on 2D, 3D and 4D float vectors.
         impl $Vector {
             /// Returns a new vector "bounced off" from a plane defined by the given normal.
             ///

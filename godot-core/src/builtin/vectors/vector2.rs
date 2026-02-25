@@ -167,7 +167,7 @@ impl Vector2 {
 
 impl_float_vector_fns!(Vector2, Vector2i, (x, y));
 impl_vector2x_fns!(Vector2, Vector3, real);
-impl_vector2_vector3_fns!(Vector2, (x, y));
+impl_float_vector_geom_fns!(Vector2, (x, y));
 
 impl_vector_operators!(Vector2, real, (x, y));
 
