@@ -119,15 +119,19 @@ impl VarDictionary {
     #[track_caller]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
         let key = key.to_variant();
-        let value = self.get_or_nil_variant(&key);
 
-        if !value.is_nil() || self.contains_key_variant(&key) {
-            value
-        } else {
-            panic!(
-                "{}::at(): key {key:?} missing in dictionary",
-                std::any::type_name::<Self>()
-            )
+        unsafe {
+            let value_ptr =
+                interface_fn!(dictionary_operator_index_const)(self.sys(), key.var_sys());
+
+            if !value_ptr.is_null() {
+                Variant::new_from_sys(value_ptr.cast())
+            } else {
+                panic!(
+                    "{}::at(): key {key:?} missing in dictionary",
+                    std::any::type_name::<Self>()
+                )
+            }
         }
     }
 
@@ -142,12 +146,16 @@ impl VarDictionary {
     #[inline]
     pub fn get<K: ToGodot>(&self, key: K) -> Option<Variant> {
         let key = key.to_variant();
-        let value = self.get_or_nil_variant(&key);
 
-        if !value.is_nil() || self.contains_key_variant(&key) {
-            Some(value)
-        } else {
-            None
+        unsafe {
+            let value_ptr =
+                interface_fn!(dictionary_operator_index_const)(self.sys(), key.var_sys());
+
+            if !value_ptr.is_null() {
+                Some(Variant::new_from_sys(value_ptr.cast()))
+            } else {
+                None
+            }
         }
     }
 

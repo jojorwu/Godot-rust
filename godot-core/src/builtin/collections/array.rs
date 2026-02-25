@@ -500,7 +500,13 @@ impl<T: ArrayElement> Array<T> {
     #[inline]
     #[track_caller]
     pub fn remove_as<U: FromGodot>(&mut self, index: usize) -> U {
-        self.remove(index).to_variant().to::<U>()
+        self.balanced_ensure_mutable();
+        self.check_bounds(index);
+
+        // SAFETY: We do not write any values to the array, we just remove one.
+        // We also avoid the intermediate T conversion to stay generic and potentially more efficient.
+        let variant = unsafe { self.as_inner_mut() }.pop_at(to_i64(index));
+        U::from_variant(&variant)
     }
 
     /// Removes the first occurrence of a value from the array.

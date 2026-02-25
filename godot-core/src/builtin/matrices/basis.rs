@@ -171,24 +171,6 @@ impl Basis {
         self.transposed().rows
     }
 
-    #[inline]
-    const fn to_rows_array(self) -> [real; 9] {
-        let [Vector3 {
-            x: ax,
-            y: bx,
-            z: cx,
-        }, Vector3 {
-            x: ay,
-            y: by,
-            z: cy,
-        }, Vector3 {
-            x: az,
-            y: bz,
-            z: cz,
-        }] = self.rows;
-        [ax, bx, cx, ay, by, cy, az, bz, cz]
-    }
-
     /// Creates a [`Quaternion`] representing the same rotation as this basis.
     ///
     /// _Godot equivalent: `Basis.get_rotation_quaternion()`_
@@ -594,11 +576,19 @@ impl GlamType for RMat3 {
     type Mapped = Basis;
 
     fn to_front(&self) -> Self::Mapped {
-        Basis::from_rows_array(&self.to_cols_array()).transposed()
+        Basis::from_cols(
+            self.x_axis.to_front(),
+            self.y_axis.to_front(),
+            self.z_axis.to_front(),
+        )
     }
 
     fn from_front(mapped: &Self::Mapped) -> Self {
-        Self::from_cols_array(&mapped.to_rows_array()).transpose()
+        Self::from_cols(
+            mapped.col_a().to_glam(),
+            mapped.col_b().to_glam(),
+            mapped.col_c().to_glam(),
+        )
     }
 }
 
@@ -607,11 +597,19 @@ impl GlamType for glam::Mat3A {
     type Mapped = Basis;
 
     fn to_front(&self) -> Self::Mapped {
-        Basis::from_rows_array(&self.to_cols_array()).transposed()
+        Basis::from_cols(
+            self.x_axis.to_front(),
+            self.y_axis.to_front(),
+            self.z_axis.to_front(),
+        )
     }
 
     fn from_front(mapped: &Self::Mapped) -> Self {
-        Self::from_cols_array(&mapped.to_rows_array()).transpose()
+        Self::from_cols(
+            mapped.col_a().to_glam().into(),
+            mapped.col_b().to_glam().into(),
+            mapped.col_c().to_glam().into(),
+        )
     }
 }
 

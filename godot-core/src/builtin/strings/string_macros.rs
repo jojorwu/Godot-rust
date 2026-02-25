@@ -347,8 +347,6 @@ macro_rules! impl_shared_string_api {
             pub fn starts_with(&self, text: impl $crate::meta::AsArg<$crate::builtin::GString>) -> bool {
                 self.begins_with(text)
             }
-
-
         }
 
         // --------------------------------------------------------------------------------------------------------------------------------------

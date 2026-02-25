@@ -605,7 +605,12 @@ impl GlamType for RMat4 {
     }
 
     fn from_front(mapped: &Self::Mapped) -> Self {
-        Self::from_cols_array_2d(&mapped.cols.map(|v| v.to_glam().to_array()))
+        Self::from_cols(
+            mapped.cols[0].to_glam(),
+            mapped.cols[1].to_glam(),
+            mapped.cols[2].to_glam(),
+            mapped.cols[3].to_glam(),
+        )
     }
 }
 
