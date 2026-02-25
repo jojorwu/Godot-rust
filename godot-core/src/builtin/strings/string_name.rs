@@ -11,9 +11,8 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::strings::pad_if_needed;
-use crate::builtin::{inner, Encoding, GString, NodePath, Variant};
+use crate::builtin::{inner, Encoding, GString, NodePath};
 use crate::meta::error::StringError;
-use crate::meta::AsArg;
 use crate::{impl_shared_string_api, meta};
 
 /// A string optimized for unique names.
@@ -431,8 +430,16 @@ impl ExactSizeIterator for IntoIter {}
 impl PartialEq<&str> for StringName {
     #[inline]
     fn eq(&self, other: &&str) -> bool {
-        let gstring = GString::from(self);
-        super::compare_gstring_to_str(gstring.string_sys(), other)
+        #[cfg(since_api = "4.5")]
+        {
+            self.chars().iter().copied().eq(other.chars())
+        }
+
+        #[cfg(before_api = "4.5")]
+        {
+            let gstring = GString::from(self);
+            super::compare_gstring_to_str(gstring.string_sys(), other)
+        }
     }
 }
 

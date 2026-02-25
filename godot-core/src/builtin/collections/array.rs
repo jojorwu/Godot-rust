@@ -1739,12 +1739,21 @@ macro_rules! array {
     ($($elements:expr),* $(,)?) => {
         {
             let mut array = $crate::builtin::Array::default();
-            $(
-                array.push($elements);
-            )*
+
+            let count = 0usize $( + $crate::array!(@unit $elements) )*;
+            if count > 0 {
+                #[cfg(since_api = "4.3")]
+                array.reserve(count);
+
+                $(
+                    array.push($elements);
+                )*
+            }
+
             array
         }
     };
+    (@unit $elements:expr) => { 1usize };
 }
 
 /// Constructs [`VarArray`] literals, similar to Rust's standard `vec!` macro.

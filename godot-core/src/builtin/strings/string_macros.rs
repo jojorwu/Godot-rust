@@ -44,7 +44,7 @@ macro_rules! impl_shared_string_api {
             /// Find first occurrence of `what` and return index, or `None` if not found.
             ///
             /// Check [`find_ex()`](Self::find_ex) for all custom options.
-            pub fn find(&self, what: impl AsArg<GString>) -> Option<usize> {
+            pub fn find(&self, what: impl $crate::meta::AsArg<$crate::builtin::GString>) -> Option<usize> {
                 self.find_ex(what).done()
             }
 
@@ -80,19 +80,19 @@ macro_rules! impl_shared_string_api {
             #[doc(alias = "findn", alias = "rfind", alias = "rfindn")]
             pub fn find_ex<'s, 'w>(
                 &'s self,
-                what: impl AsArg<GString> + 'w,
+                what: impl $crate::meta::AsArg<$crate::builtin::GString> + 'w,
             ) -> ExFind<'s, 'w> {
                 ExFind::new(self, what.into_arg())
             }
 
             /// Count how many times `what` appears within `range`. Use `..` for full string search.
-            pub fn count(&self, what: impl AsArg<GString>, range: impl std::ops::RangeBounds<usize>) -> usize {
+            pub fn count(&self, what: impl $crate::meta::AsArg<$crate::builtin::GString>, range: impl std::ops::RangeBounds<usize>) -> usize {
                 let (from, to) = $crate::meta::signed_range::to_godot_range_fromto(range);
                 self.as_inner().count(what.into_arg(), from, to) as usize
             }
 
             /// Count how many times `what` appears within `range`, case-insensitively. Use `..` for full string search.
-            pub fn countn(&self, what: impl AsArg<GString>, range: impl std::ops::RangeBounds<usize>) -> usize {
+            pub fn countn(&self, what: impl $crate::meta::AsArg<$crate::builtin::GString>, range: impl std::ops::RangeBounds<usize>) -> usize {
                 let (from, to) = $crate::meta::signed_range::to_godot_range_fromto(range);
                 self.as_inner().countn(what.into_arg(), from, to) as usize
             }
@@ -100,7 +100,7 @@ macro_rules! impl_shared_string_api {
             /// Splits the string according to `delimiter`.
             ///
             /// See [`split_ex()`][Self::split_ex] if you need further configuration.
-            pub fn split(&self, delimiter: impl AsArg<GString>) -> $crate::builtin::PackedStringArray {
+            pub fn split(&self, delimiter: impl $crate::meta::AsArg<$crate::builtin::GString>) -> $crate::builtin::PackedStringArray {
                 self.split_ex(delimiter).done()
             }
 
@@ -119,14 +119,14 @@ macro_rules! impl_shared_string_api {
             #[doc(alias = "rsplit")]
             pub fn split_ex<'s, 'w>(
                 &'s self,
-                delimiter: impl AsArg<GString> + 'w,
+                delimiter: impl $crate::meta::AsArg<$crate::builtin::GString> + 'w,
             ) -> ExSplit<'s, 'w> {
                 ExSplit::new(self, delimiter.into_arg())
             }
 
             /// Returns a substring of this, as another `GString`.
             // TODO is there no efficient way to implement this for StringName by interning?
-            pub fn substr(&self, range: impl std::ops::RangeBounds<usize>) -> GString {
+            pub fn substr(&self, range: impl std::ops::RangeBounds<usize>) -> $crate::builtin::GString {
                 let (from, len) = $crate::meta::signed_range::to_godot_range_fromlen(range, -1);
 
                 self.as_inner().substr(from, len)
@@ -139,9 +139,9 @@ macro_rules! impl_shared_string_api {
             /// This is faster than [`split()`][Self::split], if you only need one substring.
             pub fn get_slice(
                 &self,
-                delimiter: impl AsArg<GString>,
+                delimiter: impl $crate::meta::AsArg<$crate::builtin::GString>,
                 slice: usize,
-            ) -> Option<GString> {
+            ) -> Option<$crate::builtin::GString> {
                 let sliced = self
                     .as_inner()
                     .get_slice(delimiter, $crate::builtin::to_i64(slice));
@@ -155,7 +155,7 @@ macro_rules! impl_shared_string_api {
             /// Returns the original string if delimiter does not occur in the string. Returns `None` if `slice` is out of bounds.
             ///
             /// This is faster than [`split()`][Self::split], if you only need one substring.
-            pub fn get_slicec(&self, delimiter: char, slice: usize) -> Option<GString> {
+            pub fn get_slicec(&self, delimiter: char, slice: usize) -> Option<$crate::builtin::GString> {
                 let sliced = self.as_inner().get_slicec(
                     $crate::builtin::to_i64(delimiter as usize),
                     $crate::builtin::to_i64(slice),
@@ -168,12 +168,12 @@ macro_rules! impl_shared_string_api {
             /// Returns the total number of slices, when the string is split with the given delimiter.
             ///
             /// See also [`split()`][Self::split] and [`get_slice()`][Self::get_slice].
-            pub fn get_slice_count(&self, delimiter: impl AsArg<GString>) -> usize {
+            pub fn get_slice_count(&self, delimiter: impl $crate::meta::AsArg<$crate::builtin::GString>) -> usize {
                 $crate::builtin::to_usize(self.as_inner().get_slice_count(delimiter))
             }
 
             /// Returns a copy of the string without the specified index range.
-            pub fn erase(&self, range: impl std::ops::RangeBounds<usize>) -> GString {
+            pub fn erase(&self, range: impl std::ops::RangeBounds<usize>) -> $crate::builtin::GString {
                 let (from, len) =
                     $crate::meta::signed_range::to_godot_range_fromlen(range, i64::from(i32::MAX));
                 self.as_inner().erase(from, len)
@@ -184,14 +184,14 @@ macro_rules! impl_shared_string_api {
             /// If the position is out of bounds, the string will be inserted at the end.
             ///
             /// Consider using [`format()`](Self::format) for more flexibility.
-            pub fn insert(&self, position: usize, what: impl AsArg<GString>) -> GString {
+            pub fn insert(&self, position: usize, what: impl $crate::meta::AsArg<$crate::builtin::GString>) -> $crate::builtin::GString {
                 self.as_inner().insert($crate::builtin::to_i64(position), what)
             }
 
             /// Format a string using substitutions from an array or dictionary.
             ///
             /// See Godot's [`String.format()`](https://docs.godotengine.org/en/stable/classes/class_string.html#class-string-method-format).
-            pub fn format(&self, array_or_dict: &Variant) -> GString {
+            pub fn format(&self, array_or_dict: &$crate::builtin::Variant) -> $crate::builtin::GString {
                 self.as_inner().format(array_or_dict, "{_}")
             }
 
@@ -200,9 +200,9 @@ macro_rules! impl_shared_string_api {
             /// See Godot's [`String.format()`](https://docs.godotengine.org/en/stable/classes/class_string.html#class-string-method-format).
             pub fn format_with_placeholder(
                 &self,
-                array_or_dict: &Variant,
-                placeholder: impl AsArg<GString>,
-            ) -> GString {
+                array_or_dict: &$crate::builtin::Variant,
+                placeholder: impl $crate::meta::AsArg<$crate::builtin::GString>,
+            ) -> $crate::builtin::GString {
                 self.as_inner().format(array_or_dict, placeholder)
             }
 
@@ -214,8 +214,8 @@ macro_rules! impl_shared_string_api {
             /// respected in that case. The parameter in Godot is even called `character`. In Rust, we directly expose `char` instead.
             ///
             /// See also [`rpad()`](Self::rpad).
-            pub fn lpad(&self, min_length: usize, character: char) -> GString {
-                let one_char_string = GString::from([character].as_slice());
+            pub fn lpad(&self, min_length: usize, character: char) -> $crate::builtin::GString {
+                let one_char_string = $crate::builtin::GString::from([character].as_slice());
                 self.as_inner()
                     .lpad($crate::builtin::to_i64(min_length), &one_char_string)
             }
@@ -226,20 +226,20 @@ macro_rules! impl_shared_string_api {
             /// respected in that case. The parameter in Godot is even called `character`. In Rust, we directly expose `char` instead.
             ///
             /// See also [`lpad()`](Self::lpad).
-            pub fn rpad(&self, min_length: usize, character: char) -> GString {
-                let one_char_string = GString::from([character].as_slice());
+            pub fn rpad(&self, min_length: usize, character: char) -> $crate::builtin::GString {
+                let one_char_string = $crate::builtin::GString::from([character].as_slice());
                 self.as_inner()
                     .rpad($crate::builtin::to_i64(min_length), &one_char_string)
             }
 
             /// Formats the string representing a number to have an exact number of `digits` _after_ the decimal point.
-            pub fn pad_decimals(&self, digits: usize) -> GString {
+            pub fn pad_decimals(&self, digits: usize) -> $crate::builtin::GString {
                 self.as_inner()
                     .pad_decimals($crate::builtin::to_i64(digits))
             }
 
             /// Formats the string representing a number to have an exact number of `digits` _before_ the decimal point.
-            pub fn pad_zeros(&self, digits: usize) -> GString {
+            pub fn pad_zeros(&self, digits: usize) -> $crate::builtin::GString {
                 self.as_inner().pad_zeros($crate::builtin::to_i64(digits))
             }
 
@@ -249,7 +249,7 @@ macro_rules! impl_shared_string_api {
             /// roughly matches the alphabetical order.
             ///
             /// See also [`nocasecmp_to()`](Self::nocasecmp_to), [`naturalcasecmp_to()`](Self::naturalcasecmp_to), [`filecasecmp_to()`](Self::filecasecmp_to).
-            pub fn casecmp_to(&self, to: impl AsArg<GString>) -> std::cmp::Ordering {
+            pub fn casecmp_to(&self, to: impl $crate::meta::AsArg<$crate::builtin::GString>) -> std::cmp::Ordering {
                 sys::i64_to_ordering(self.as_inner().casecmp_to(to))
             }
 
@@ -259,7 +259,7 @@ macro_rules! impl_shared_string_api {
             /// roughly matches the alphabetical order.
             ///
             /// See also [`casecmp_to()`](Self::casecmp_to), [`naturalcasecmp_to()`](Self::naturalcasecmp_to), [`filecasecmp_to()`](Self::filecasecmp_to).
-            pub fn nocasecmp_to(&self, to: impl AsArg<GString>) -> std::cmp::Ordering {
+            pub fn nocasecmp_to(&self, to: impl $crate::meta::AsArg<$crate::builtin::GString>) -> std::cmp::Ordering {
                 sys::i64_to_ordering(self.as_inner().nocasecmp_to(to))
             }
 
@@ -276,7 +276,7 @@ macro_rules! impl_shared_string_api {
             /// if shorter.
             ///
             /// See also [`casecmp_to()`](Self::casecmp_to), [`naturalnocasecmp_to()`](Self::naturalnocasecmp_to), [`filecasecmp_to()`](Self::filecasecmp_to).
-            pub fn naturalcasecmp_to(&self, to: impl AsArg<GString>) -> std::cmp::Ordering {
+            pub fn naturalcasecmp_to(&self, to: impl $crate::meta::AsArg<$crate::builtin::GString>) -> std::cmp::Ordering {
                 sys::i64_to_ordering(self.as_inner().naturalcasecmp_to(to))
             }
 
@@ -293,7 +293,7 @@ macro_rules! impl_shared_string_api {
             /// if shorter.
             ///
             /// See also [`casecmp_to()`](Self::casecmp_to), [`naturalcasecmp_to()`](Self::naturalcasecmp_to), [`filecasecmp_to()`](Self::filecasecmp_to).
-            pub fn naturalnocasecmp_to(&self, to: impl AsArg<GString>) -> std::cmp::Ordering {
+            pub fn naturalnocasecmp_to(&self, to: impl $crate::meta::AsArg<$crate::builtin::GString>) -> std::cmp::Ordering {
                 sys::i64_to_ordering(self.as_inner().naturalnocasecmp_to(to))
             }
 
@@ -304,7 +304,7 @@ macro_rules! impl_shared_string_api {
             ///
             /// See also [`casecmp_to()`](Self::casecmp_to), [`naturalcasecmp_to()`](Self::naturalcasecmp_to), [`filenocasecmp_to()`](Self::filenocasecmp_to).
             #[cfg(since_api = "4.3")]
-            pub fn filecasecmp_to(&self, to: impl AsArg<GString>) -> std::cmp::Ordering {
+            pub fn filecasecmp_to(&self, to: impl $crate::meta::AsArg<$crate::builtin::GString>) -> std::cmp::Ordering {
                 sys::i64_to_ordering(self.as_inner().filecasecmp_to(to))
             }
 
@@ -315,7 +315,7 @@ macro_rules! impl_shared_string_api {
             ///
             /// See also [`casecmp_to()`](Self::casecmp_to), [`naturalcasecmp_to()`](Self::naturalcasecmp_to), [`filecasecmp_to()`](Self::filecasecmp_to).
             #[cfg(since_api = "4.3")]
-            pub fn filenocasecmp_to(&self, to: impl AsArg<GString>) -> std::cmp::Ordering {
+            pub fn filenocasecmp_to(&self, to: impl $crate::meta::AsArg<$crate::builtin::GString>) -> std::cmp::Ordering {
                 sys::i64_to_ordering(self.as_inner().filenocasecmp_to(to))
             }
 
@@ -326,7 +326,7 @@ macro_rules! impl_shared_string_api {
             ///
             /// Renamed from `match` because of collision with Rust keyword + possible confusion with `String::matches()` that can match regex.
             #[doc(alias = "match")]
-            pub fn match_glob(&self, pattern: impl AsArg<GString>) -> bool {
+            pub fn match_glob(&self, pattern: impl $crate::meta::AsArg<$crate::builtin::GString>) -> bool {
                 self.as_inner().match_(pattern)
             }
 
@@ -337,14 +337,15 @@ macro_rules! impl_shared_string_api {
             ///
             /// Renamed from `matchn` because of collision with Rust keyword + possible confusion with `String::matches()` that can match regex.
             #[doc(alias = "matchn")]
-            pub fn matchn_glob(&self, pattern: impl AsArg<GString>) -> bool {
+            pub fn matchn_glob(&self, pattern: impl $crate::meta::AsArg<$crate::builtin::GString>) -> bool {
                 self.as_inner().matchn(pattern)
             }
 
-            /// Alias for [`begins_with()`][Self::begins_with].
+            /// Returns `true` if the string begins with the given `text`.
+            #[doc(alias = "begins_with")]
             #[inline]
-            pub fn starts_with(&self, text: impl AsArg<GString>) -> bool {
-                self.find(text) == Some(0)
+            pub fn starts_with(&self, text: impl $crate::meta::AsArg<$crate::builtin::GString>) -> bool {
+                self.begins_with(text)
             }
 
 
@@ -353,18 +354,18 @@ macro_rules! impl_shared_string_api {
         // --------------------------------------------------------------------------------------------------------------------------------------
         // find() support
 
-        #[doc = concat!("Manual extender for [`", stringify!($Builtin), "::find_ex`][crate::builtin::", stringify!($builtin_mod), "::ExFind].")]
+        #[doc = concat!("Manual extender for [`", stringify!($Builtin), "::find_ex`][$crate::builtin::", stringify!($builtin_mod), "::ExFind].")]
         #[must_use]
         pub struct ExFind<'s, 'w> {
             owner: &'s $Builtin,
-            what: meta::CowArg<'w, GString>,
+            what: $crate::meta::CowArg<'w, $crate::builtin::GString>,
             reverse: bool,
             case_insensitive: bool,
             from_index: Option<usize>,
         }
 
         impl<'s, 'w> ExFind<'s, 'w> {
-            pub(crate) fn new(owner: &'s $Builtin, what: meta::CowArg<'w, GString>) -> Self {
+            pub(crate) fn new(owner: &'s $Builtin, what: $crate::meta::CowArg<'w, $crate::builtin::GString>) -> Self {
                 Self {
                     owner,
                     what,
@@ -429,18 +430,18 @@ macro_rules! impl_shared_string_api {
         // --------------------------------------------------------------------------------------------------------------------------------------
         // split() support
 
-        #[doc = concat!("Manual extender for [`", stringify!($Builtin), "::split_ex`][crate::builtin::", stringify!($builtin_mod), "::ExSplit].")]
+        #[doc = concat!("Manual extender for [`", stringify!($Builtin), "::split_ex`][$crate::builtin::", stringify!($builtin_mod), "::ExSplit].")]
         #[must_use]
         pub struct ExSplit<'s, 'w> {
             owner: &'s $Builtin,
-            delimiter: meta::CowArg<'w, GString>,
+            delimiter: $crate::meta::CowArg<'w, $crate::builtin::GString>,
             reverse: bool,
             allow_empty: bool,
             maxsplit: usize,
         }
 
         impl<'s, 'w> ExSplit<'s, 'w> {
-            pub(crate) fn new(owner: &'s $Builtin, delimiter: meta::CowArg<'w, GString>) -> Self {
+            pub(crate) fn new(owner: &'s $Builtin, delimiter: $crate::meta::CowArg<'w, $crate::builtin::GString>) -> Self {
                 Self {
                     owner,
                     delimiter,

@@ -368,7 +368,7 @@ impl Variant {
     #[inline]
     #[track_caller]
     pub fn len(&self) -> usize {
-        match self.get_type() {
+        let is_collection = match self.get_type() {
             VariantType::STRING
             | VariantType::ARRAY
             | VariantType::DICTIONARY
@@ -380,18 +380,18 @@ impl Variant {
             | VariantType::PACKED_STRING_ARRAY
             | VariantType::PACKED_VECTOR2_ARRAY
             | VariantType::PACKED_VECTOR3_ARRAY
-            | VariantType::PACKED_COLOR_ARRAY => {
-                let method = crate::static_sname!(c"size");
-                let result = self.call(method, &[]);
-                crate::builtin::to_usize(result.to_int())
-            }
+            | VariantType::PACKED_COLOR_ARRAY => true,
             #[cfg(since_api = "4.3")]
-            VariantType::PACKED_VECTOR4_ARRAY => {
-                let method = crate::static_sname!(c"size");
-                let result = self.call(method, &[]);
-                crate::builtin::to_usize(result.to_int())
-            }
-            _ => 0,
+            VariantType::PACKED_VECTOR4_ARRAY => true,
+            _ => false,
+        };
+
+        if is_collection {
+            let method = crate::static_sname!(c"size");
+            let result = self.call(method, &[]);
+            crate::builtin::to_usize(result.to_int())
+        } else {
+            0
         }
     }
 

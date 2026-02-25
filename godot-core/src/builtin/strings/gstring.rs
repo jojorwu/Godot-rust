@@ -13,9 +13,8 @@ use sys::types::OpaqueString;
 use sys::{ffi_methods, interface_fn, ExtVariantType, GodotFfi};
 
 use crate::builtin::strings::{pad_if_needed, Encoding};
-use crate::builtin::{inner, NodePath, StringName, Variant};
+use crate::builtin::{inner, NodePath, StringName};
 use crate::meta::error::StringError;
-use crate::meta::AsArg;
 use crate::{impl_shared_string_api, meta};
 
 /// Godot's reference counted string type.
@@ -437,7 +436,7 @@ impl fmt::Debug for GString {
 impl PartialEq<&str> for GString {
     #[inline]
     fn eq(&self, other: &&str) -> bool {
-        super::compare_gstring_to_str(self.string_sys(), other)
+        self.chars().iter().copied().eq(other.chars())
     }
 }
 
