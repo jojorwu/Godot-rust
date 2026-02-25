@@ -566,6 +566,15 @@ impl<T: PackedArrayElement> PackedArray<T> {
         }
     }
 
+    /// # Safety
+    /// - Variant must have the correct packed array type for `T`.
+    /// - Subsequent operations on this array must not rely on the type of the array.
+    pub(crate) unsafe fn from_variant_unchecked(variant: &Variant) -> Self {
+        Self::new_with_uninit(|ptr| {
+            T::ffi_from_variant(variant.var_sys(), SysPtr::force_init(ptr));
+        })
+    }
+
     /// Converts this packed array into a typed `Array<T>` of the same element type.
     ///
     /// To create an untyped `VarArray`, use [`to_var_array()`][Self::to_var_array].

@@ -13,7 +13,7 @@ use sys::types::OpaqueString;
 use sys::{ffi_methods, interface_fn, ExtVariantType, GodotFfi};
 
 use crate::builtin::strings::{pad_if_needed, Encoding};
-use crate::builtin::{inner, NodePath, StringName};
+use crate::builtin::{inner, NodePath, StringName, Variant};
 use crate::meta::error::StringError;
 use crate::{impl_shared_string_api, meta};
 
@@ -274,6 +274,16 @@ impl GString {
     #[doc(hidden)]
     pub fn as_inner(&self) -> inner::InnerString<'_> {
         inner::InnerString::from_outer(self)
+    }
+
+    /// # Safety
+    /// - Variant must have type `VariantType::STRING`.
+    /// - Subsequent operations on this string must not rely on the type of the string.
+    pub(crate) unsafe fn from_variant_unchecked(variant: &Variant) -> Self {
+        Self::new_with_uninit(|self_ptr| {
+            let string_from_variant = sys::builtin_fn!(string_from_variant);
+            string_from_variant(self_ptr, sys::SysPtr::force_mut(variant.var_sys()));
+        })
     }
 
     /// Converts this `GString` to a `StringName`.

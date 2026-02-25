@@ -118,11 +118,11 @@ impl VarDictionary {
     #[inline]
     #[track_caller]
     pub fn at<K: ToGodot>(&self, key: K) -> Variant {
-        // Code duplication with get(), to avoid third clone (since K: ToGodot takes ownership).
-
         let key = key.to_variant();
-        if self.contains_key(key.clone()) {
-            self.get_or_nil(key)
+        let value = self.get_or_nil_variant(&key);
+
+        if !value.is_nil() || self.contains_key_variant(&key) {
+            value
         } else {
             panic!(
                 "{}::at(): key {key:?} missing in dictionary",
@@ -141,11 +141,11 @@ impl VarDictionary {
     /// This can be combined with Rust's `Option` methods, e.g. `dict.get(key).unwrap_or(default)`.
     #[inline]
     pub fn get<K: ToGodot>(&self, key: K) -> Option<Variant> {
-        // If implementation is changed, make sure to update at().
-
         let key = key.to_variant();
-        if self.contains_key(key.clone()) {
-            Some(self.get_or_nil(key))
+        let value = self.get_or_nil_variant(&key);
+
+        if !value.is_nil() || self.contains_key_variant(&key) {
+            Some(value)
         } else {
             None
         }
@@ -177,7 +177,11 @@ impl VarDictionary {
     ///
     /// _Godot equivalent: `dict.get(key, null)`_
     pub fn get_or_nil<K: ToGodot>(&self, key: K) -> Variant {
-        self.as_inner().get(&key.to_variant(), &Variant::nil())
+        self.get_or_nil_variant(&key.to_variant())
+    }
+
+    fn get_or_nil_variant(&self, key: &Variant) -> Variant {
+        self.as_inner().get(key, &Variant::nil())
     }
 
     /// Gets a value and ensures the key is set, inserting default if key is absent.
@@ -219,8 +223,11 @@ impl VarDictionary {
     /// _Godot equivalent: `has`_
     #[doc(alias = "has")]
     pub fn contains_key<K: ToGodot>(&self, key: K) -> bool {
-        let key = key.to_variant();
-        self.as_inner().has(&key)
+        self.contains_key_variant(&key.to_variant())
+    }
+
+    fn contains_key_variant(&self, key: &Variant) -> bool {
+        self.as_inner().has(key)
     }
 
     /// Returns `true` if the dictionary contains all the given keys.

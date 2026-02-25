@@ -11,10 +11,15 @@ use godot_ffi as sys;
 use sys::{ffi_methods, interface_fn, GodotFfi};
 
 use crate::builtin::{
-    Aabb, Basis, Color, GString, NodePath, Plane, Projection, Quaternion, Rect2, Rect2i, Rid,
-    StringName, Transform2D, Transform3D, VarArray, VarDictionary, VariantDispatch,
-    VariantOperator, VariantType, Vector2, Vector2i, Vector3, Vector3i, Vector4, Vector4i,
+    Aabb, Basis, Color, GString, NodePath, PackedByteArray, PackedColorArray, PackedFloat32Array,
+    PackedFloat64Array, PackedInt32Array, PackedInt64Array, PackedStringArray, PackedVector2Array,
+    PackedVector3Array, Plane, Projection, Quaternion, Rect2, Rect2i, Rid, StringName, Transform2D,
+    Transform3D, VarArray, VarDictionary, VariantDispatch, VariantOperator, VariantType, Vector2,
+    Vector2i, Vector3, Vector3i, Vector4, Vector4i,
 };
+
+#[cfg(since_api = "4.3")]
+use crate::builtin::PackedVector4Array;
 use crate::classes;
 use crate::meta::error::{ConvertError, FromVariantError};
 use crate::meta::{
@@ -368,30 +373,61 @@ impl Variant {
     #[inline]
     #[track_caller]
     pub fn len(&self) -> usize {
-        let is_collection = match self.get_type() {
-            VariantType::STRING
-            | VariantType::ARRAY
-            | VariantType::DICTIONARY
-            | VariantType::PACKED_BYTE_ARRAY
-            | VariantType::PACKED_INT32_ARRAY
-            | VariantType::PACKED_INT64_ARRAY
-            | VariantType::PACKED_FLOAT32_ARRAY
-            | VariantType::PACKED_FLOAT64_ARRAY
-            | VariantType::PACKED_STRING_ARRAY
-            | VariantType::PACKED_VECTOR2_ARRAY
-            | VariantType::PACKED_VECTOR3_ARRAY
-            | VariantType::PACKED_COLOR_ARRAY => true,
+        match self.get_type() {
+            VariantType::STRING => {
+                let s = unsafe { GString::from_variant_unchecked(self) };
+                s.len()
+            }
+            VariantType::ARRAY => {
+                let a = unsafe { VarArray::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::DICTIONARY => {
+                let d = unsafe { VarDictionary::from_variant_unchecked(self) };
+                d.len()
+            }
+            VariantType::PACKED_BYTE_ARRAY => {
+                let a = unsafe { PackedByteArray::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_INT32_ARRAY => {
+                let a = unsafe { PackedInt32Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_INT64_ARRAY => {
+                let a = unsafe { PackedInt64Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_FLOAT32_ARRAY => {
+                let a = unsafe { PackedFloat32Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_FLOAT64_ARRAY => {
+                let a = unsafe { PackedFloat64Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_STRING_ARRAY => {
+                let a = unsafe { PackedStringArray::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_VECTOR2_ARRAY => {
+                let a = unsafe { PackedVector2Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_VECTOR3_ARRAY => {
+                let a = unsafe { PackedVector3Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            VariantType::PACKED_COLOR_ARRAY => {
+                let a = unsafe { PackedColorArray::from_variant_unchecked(self) };
+                a.len()
+            }
             #[cfg(since_api = "4.3")]
-            VariantType::PACKED_VECTOR4_ARRAY => true,
-            _ => false,
-        };
-
-        if is_collection {
-            let method = crate::static_sname!(c"size");
-            let result = self.call(method, &[]);
-            crate::builtin::to_usize(result.to_int())
-        } else {
-            0
+            VariantType::PACKED_VECTOR4_ARRAY => {
+                let a = unsafe { PackedVector4Array::from_variant_unchecked(self) };
+                a.len()
+            }
+            _ => 0,
         }
     }
 
