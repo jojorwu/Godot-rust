@@ -531,7 +531,7 @@ impl ClassMethod {
         // Since Godot 4.4, GDExtension advertises whether virtual methods have a default implementation or are required to be overridden.
         #[cfg(before_api = "4.4")]
         let is_virtual_required =
-            special_cases::is_virtual_method_required(&class_name, &method.name);
+            special_cases::is_virtual_method_required(class_name, &method.name);
 
         #[cfg(since_api = "4.4")]
         #[allow(clippy::let_and_return)]

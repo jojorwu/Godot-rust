@@ -54,7 +54,9 @@ impl Quaternion {
     pub fn from_axis_angle(axis: Vector3, angle: real) -> Self {
         assert!(
             axis.is_normalized(),
-            "Quaternion axis {axis:?} is not normalized."
+            "{} axis {:?} is not normalized",
+            std::any::type_name::<Self>(),
+            axis
         );
         let d = axis.length();
         let sin_angle = (angle * 0.5).sin();

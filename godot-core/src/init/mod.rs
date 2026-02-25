@@ -492,6 +492,7 @@ pub enum EditorRunBehavior {
 
 pub use sys::InitLevel;
 
+#[allow(dead_code)]
 static LIBGODOT_INITIALIZED: AtomicBool = AtomicBool::new(false);
 
 /// Initializes the GDExtension binding for LibGodot (embedded Godot).

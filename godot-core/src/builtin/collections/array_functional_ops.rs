@@ -5,9 +5,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
  */
 
-use crate::builtin::{to_i64, to_usize, Array, Callable, VarArray, Variant};
+use crate::builtin::{to_usize, Array, Callable, VarArray, Variant};
+#[cfg(since_api = "4.4")]
+use crate::builtin::to_i64;
 use crate::meta::{ArrayElement, AsArg};
-use crate::{meta, sys};
+use crate::meta;
+#[cfg(since_api = "4.4")]
+use crate::sys;
 
 /// Immutable, functional-programming operations for `Array`, based on Godot callables.
 ///

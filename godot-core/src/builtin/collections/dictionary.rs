@@ -303,16 +303,20 @@ impl VarDictionary {
     #[track_caller]
     pub fn set<K: ToGodot, V: ToGodot>(&mut self, key: K, value: V) {
         self.balanced_ensure_mutable();
-        self.set_inner(key.to_variant(), value.to_variant());
+        self.set_variant(key.to_variant(), value.to_variant());
+    }
+
+    fn set_variant(&mut self, key: Variant, value: Variant) {
+        // SAFETY: `self.get_ptr_mut_variant(&key)` always returns a valid pointer to a value in the dictionary; either pre-existing or newly inserted.
+        unsafe {
+            value.move_into_var_ptr(self.get_ptr_mut_variant(&key));
+        }
     }
 
     /// Internal method to set a value without checking mutability.
     #[doc(hidden)]
     pub fn set_inner(&mut self, key: Variant, value: Variant) {
-        // SAFETY: `self.get_ptr_mut(key)` always returns a valid pointer to a value in the dictionary; either pre-existing or newly inserted.
-        unsafe {
-            value.move_into_var_ptr(self.get_ptr_mut(key));
-        }
+        self.set_variant(key, value);
     }
 
     /// Insert a value at the given key, returning the previous value for that key (if available).
@@ -325,8 +329,8 @@ impl VarDictionary {
         self.balanced_ensure_mutable();
 
         let key = key.to_variant();
-        let old_value = self.get(key.clone());
-        self.set(key, value);
+        let old_value = self.get_variant(&key);
+        self.set_variant(key, value.to_variant());
         old_value
     }
 
@@ -341,8 +345,10 @@ impl VarDictionary {
         self.balanced_ensure_mutable();
 
         let key = key.to_variant();
-        let old_value = self.get(key.clone());
-        self.as_inner().erase(&key);
+        let old_value = self.get_variant(&key);
+        if old_value.is_some() {
+            self.as_inner().erase(&key);
+        }
         old_value
     }
 
@@ -678,12 +684,23 @@ impl VarDictionary {
         inner::InnerDictionary::from_outer(self)
     }
 
+    fn get_variant(&self, key: &Variant) -> Option<Variant> {
+        unsafe {
+            let value_ptr =
+                interface_fn!(dictionary_operator_index_const)(self.sys(), key.var_sys());
+
+            if !value_ptr.is_null() {
+                Some(Variant::new_from_sys(value_ptr.cast()))
+            } else {
+                None
+            }
+        }
+    }
+
     /// Get the pointer corresponding to the given key in the dictionary.
     ///
     /// If there exists no value at the given key, a `NIL` variant will be inserted for that key.
-    fn get_ptr_mut<K: ToGodot>(&mut self, key: K) -> sys::GDExtensionVariantPtr {
-        let key = key.to_variant();
-
+    fn get_ptr_mut_variant(&mut self, key: &Variant) -> sys::GDExtensionVariantPtr {
         // Never a null pointer, since entry either existed already or was inserted above.
         // SAFETY: accessing an unknown key _mutably_ creates that entry in the dictionary, with value `NIL`.
         unsafe { interface_fn!(dictionary_operator_index)(self.sys_mut(), key.var_sys()) }

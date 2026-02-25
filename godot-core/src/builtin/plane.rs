@@ -111,7 +111,11 @@ impl Plane {
         assert_ne!(
             normal,
             Vector3::ZERO,
-            "points {a}, {b}, {c} are all colinear"
+            "{}::from_points(): points {:?}, {:?}, {:?} are all colinear",
+            std::any::type_name::<Self>(),
+            a,
+            b,
+            c
         );
         let normal = normal.normalized();
         Self {

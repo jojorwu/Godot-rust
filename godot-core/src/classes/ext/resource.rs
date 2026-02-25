@@ -54,7 +54,7 @@ impl Resource {
         T: Inherits<Resource>,
     {
         self.duplicate_ex()
-            .deep(subresources)
+            .subresources(subresources)
             .done()
             .unwrap_or_else(|| panic!("{}::duplicate() failed", std::any::type_name::<Self>()))
             .cast::<T>()
