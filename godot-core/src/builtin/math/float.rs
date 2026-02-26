@@ -513,11 +513,11 @@ macro_rules! impl_float_ext {
 
             fn wrap(self, min: Self, max: Self) -> Self {
                 let range = max - min;
-                if range == 0.0 {
+                if range.is_zero_approx() {
                     return min;
                 }
                 let mut result = self - (range * ((self - min) / range).floor());
-                if result == max {
+                if result.approx_eq(&max) {
                     result = min;
                 }
                 result
@@ -741,5 +741,13 @@ mod test_clamped_trig {
         assert_eq_approx!(1.0f32.sinc(), 1.0f32.sin());
         assert_eq_approx!(0.0f32.sincn(), 1.0);
         assert_eq_approx!(0.5f32.sincn(), (std::f32::consts::PI * 0.5).sin() / (std::f32::consts::PI * 0.5));
+    }
+
+    #[test]
+    fn wrap_test() {
+        assert_eq_approx!(1.5f32.wrap(0.0, 1.0), 0.5);
+        assert_eq_approx!(0.5f32.wrap(0.0, 1.0), 0.5);
+        assert_eq_approx!((-0.5f32).wrap(0.0, 1.0), 0.5);
+        assert_eq_approx!(1.0f32.wrap(0.0, 1.0), 0.0);
     }
 }
