@@ -100,16 +100,25 @@ impl Color {
     /// Returns `None` if the format is invalid.
     pub fn from_html<S: AsArg<GString>>(html: S) -> Option<Self> {
         arg_into_ref!(html);
-        Self::from_html_str(&html.to_string())
+        Self::from_html_chars(html.chars())
     }
 
-    fn from_html_str(s: &str) -> Option<Self> {
-        if !Self::html_is_valid_str(s) {
+    pub fn from_html_str(html: &str) -> Option<Self> {
+        let chars: Vec<char> = html.chars().collect();
+        Self::from_html_chars(&chars)
+    }
+
+    fn from_html_chars(chars: &[char]) -> Option<Self> {
+        if !Self::html_is_valid_chars(chars) {
             return None;
         }
 
-        let start = if s.starts_with('#') { 1 } else { 0 };
-        let hex = &s[start..];
+        let start = if !chars.is_empty() && chars[0] == '#' {
+            1
+        } else {
+            0
+        };
+        let hex = &chars[start..];
         let len = hex.len();
 
         let mut r = 0.0;
@@ -117,19 +126,27 @@ impl Color {
         let mut b = 0.0;
         let mut a = 1.0;
 
+        let parse_hex = |c: char| c.to_digit(16);
+
         if len == 3 || len == 4 {
-            r = u32::from_str_radix(&hex[0..1], 16).ok()? as f32 / 15.0;
-            g = u32::from_str_radix(&hex[1..2], 16).ok()? as f32 / 15.0;
-            b = u32::from_str_radix(&hex[2..3], 16).ok()? as f32 / 15.0;
+            r = parse_hex(hex[0])? as f32 / 15.0;
+            g = parse_hex(hex[1])? as f32 / 15.0;
+            b = parse_hex(hex[2])? as f32 / 15.0;
             if len == 4 {
-                a = u32::from_str_radix(&hex[3..4], 16).ok()? as f32 / 15.0;
+                a = parse_hex(hex[3])? as f32 / 15.0;
             }
         } else if len == 6 || len == 8 {
-            r = u32::from_str_radix(&hex[0..2], 16).ok()? as f32 / 255.0;
-            g = u32::from_str_radix(&hex[2..4], 16).ok()? as f32 / 255.0;
-            b = u32::from_str_radix(&hex[4..6], 16).ok()? as f32 / 255.0;
+            let parse_byte = |s: &[char]| -> Option<f32> {
+                let hi = parse_hex(s[0])?;
+                let lo = parse_hex(s[1])?;
+                Some((hi * 16 + lo) as f32 / 255.0)
+            };
+
+            r = parse_byte(&hex[0..2])?;
+            g = parse_byte(&hex[2..4])?;
+            b = parse_byte(&hex[4..6])?;
             if len == 8 {
-                a = u32::from_str_radix(&hex[6..8], 16).ok()? as f32 / 255.0;
+                a = parse_byte(&hex[6..8])?;
             }
         }
 
@@ -141,24 +158,30 @@ impl Color {
     /// _Godot equivalent: `Color.html_is_valid()`_
     pub fn html_is_valid<S: AsArg<GString>>(color: S) -> bool {
         arg_into_ref!(color);
-        Self::html_is_valid_str(&color.to_string())
+        Self::html_is_valid_chars(color.chars())
     }
 
-    fn html_is_valid_str(color: &str) -> bool {
-        if color.is_empty() {
+    pub fn html_is_valid_str(html: &str) -> bool {
+        let chars: Vec<char> = html.chars().collect();
+        Self::html_is_valid_chars(&chars)
+    }
+
+    fn html_is_valid_chars(chars: &[char]) -> bool {
+        if chars.is_empty() {
             return false;
         }
 
-        let start = if color.starts_with('#') { 1 } else { 0 };
-        let hex = &color[start..];
+        let start = if chars[0] == '#' { 1 } else { 0 };
+        let hex = &chars[start..];
         let len = hex.len();
 
         if ![3, 4, 6, 8].contains(&len) {
             return false;
         }
 
-        hex.chars().all(|c| c.is_ascii_hexdigit())
+        hex.iter().all(|&c| c.is_ascii_hexdigit())
     }
+
 
     /// Constructs a `Color` from a string, which can be either:
     ///

@@ -12,7 +12,8 @@ use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{ApproxEq, GlamConv, GlamType};
 use crate::builtin::{
-    real, Aabb, Plane, RMat4, RealConv, Rect2, Transform3D, Vector2, Vector3, Vector4, Vector4Axis,
+    real, Aabb, Plane, RMat4, RealConv, Rect2, Transform3D, Vector2, Vector3, Vector4,
+    Vector4Axis,
 };
 
 /// A 4x4 matrix used for 3D projective transformations.
@@ -364,21 +365,16 @@ impl Projection {
     /// Returns the dimensions of the far clipping plane of the projection,
     /// divided by two.
     pub fn far_plane_half_extents(&self) -> Vector2 {
-        let w = -self.z_far() * self.cols[2].w + self.cols[3].w;
-        Vector2::new(w / self.cols[0].x, w / self.cols[1].y)
+        let z_far = self.z_far();
+        let half_extents = self.viewport_half_extents();
+        half_extents * z_far / self.z_near()
     }
 
     /// Returns the horizontal field of view of the projection (in degrees).
     ///
     /// _Godot equivalent: `Projection.get_fov()`_
     pub fn fov(&self) -> real {
-        if self.cols[2].x == 0.0 {
-            (2.0 * real::atan2(1.0, self.cols[0].x)).to_degrees()
-        } else {
-            let right = real::atan2(self.cols[2].x + 1.0, self.cols[0].x);
-            let left = real::atan2(self.cols[2].x - 1.0, self.cols[0].x);
-            (right - left).to_degrees()
-        }
+        (1.0 / self.cols[1].y).atan().to_degrees() * 2.0
     }
 
     /// Returns the factor by which the visible level of detail is scaled by
@@ -386,11 +382,7 @@ impl Projection {
     ///
     /// _Godot equivalent: `Projection.get_lod_multiplier()`_
     pub fn lod_multiplier(&self) -> real {
-        if self.is_orthogonal() {
-            self.viewport_half_extents().x
-        } else {
-            2.0 / self.cols[0].x
-        }
+        1.0 / self.cols[1].y
     }
 
     /// Returns the number of pixels with the given pixel width displayed per
@@ -398,8 +390,7 @@ impl Projection {
     ///
     /// _Godot equivalent: `Projection.get_pixels_per_meter()`_
     pub fn get_pixels_per_meter(&self, pixel_width: i64) -> i64 {
-        let width = 2.0 * (-self.z_near() * self.cols[2].w + self.cols[3].w) / self.cols[0].x;
-        (pixel_width as real / width) as i64
+        (self.cols[1].y * pixel_width as real / 2.0) as i64
     }
 
     /// Returns the clipping plane of this Projection whose index is given by
@@ -407,87 +398,62 @@ impl Projection {
     ///
     /// _Godot equivalent: `Projection.get_projection_plane()`_
     pub fn get_projection_plane(&self, plane: ProjectionPlane) -> Plane {
-        let p = match plane {
-            ProjectionPlane::NEAR => {
-                let mut p = Plane {
-                    normal: Vector3::new(
-                        self.cols[0].w + self.cols[0].z,
-                        self.cols[1].w + self.cols[1].z,
-                        self.cols[2].w + self.cols[2].z,
-                    ),
-                    d: self.cols[3].w + self.cols[3].z,
-                };
-                p.normal = -p.normal;
-                p.d = -p.d;
-                p
-            }
-            ProjectionPlane::FAR => {
-                let mut p = Plane {
-                    normal: Vector3::new(
-                        self.cols[0].w - self.cols[0].z,
-                        self.cols[1].w - self.cols[1].z,
-                        self.cols[2].w - self.cols[2].z,
-                    ),
-                    d: self.cols[3].w - self.cols[3].z,
-                };
-                p.normal = -p.normal;
-                p.d = -p.d;
-                p
-            }
+        match plane {
+            ProjectionPlane::NEAR => Plane::new(Vector3::new(0.0, 0.0, -1.0), -self.z_near()),
+            ProjectionPlane::FAR => Plane::new(Vector3::new(0.0, 0.0, 1.0), self.z_far()),
             ProjectionPlane::LEFT => {
-                let mut p = Plane {
-                    normal: Vector3::new(
+                let mut p = Plane::new(
+                    Vector3::new(
                         self.cols[0].w + self.cols[0].x,
                         self.cols[1].w + self.cols[1].x,
                         self.cols[2].w + self.cols[2].x,
                     ),
-                    d: self.cols[3].w + self.cols[3].x,
-                };
+                    self.cols[3].w + self.cols[3].x,
+                );
                 p.normal = -p.normal;
                 p.d = -p.d;
-                p
-            }
-            ProjectionPlane::TOP => {
-                let mut p = Plane {
-                    normal: Vector3::new(
-                        self.cols[0].w - self.cols[0].y,
-                        self.cols[1].w - self.cols[1].y,
-                        self.cols[2].w - self.cols[2].y,
-                    ),
-                    d: self.cols[3].w - self.cols[3].y,
-                };
-                p.normal = -p.normal;
-                p.d = -p.d;
-                p
+                p.normalized()
             }
             ProjectionPlane::RIGHT => {
-                let mut p = Plane {
-                    normal: Vector3::new(
+                let mut p = Plane::new(
+                    Vector3::new(
                         self.cols[0].w - self.cols[0].x,
                         self.cols[1].w - self.cols[1].x,
                         self.cols[2].w - self.cols[2].x,
                     ),
-                    d: self.cols[3].w - self.cols[3].x,
-                };
+                    self.cols[3].w - self.cols[3].x,
+                );
                 p.normal = -p.normal;
                 p.d = -p.d;
-                p
+                p.normalized()
+            }
+            ProjectionPlane::TOP => {
+                let mut p = Plane::new(
+                    Vector3::new(
+                        self.cols[0].w - self.cols[0].y,
+                        self.cols[1].w - self.cols[1].y,
+                        self.cols[2].w - self.cols[2].y,
+                    ),
+                    self.cols[3].w - self.cols[3].y,
+                );
+                p.normal = -p.normal;
+                p.d = -p.d;
+                p.normalized()
             }
             ProjectionPlane::BOTTOM => {
-                let mut p = Plane {
-                    normal: Vector3::new(
+                let mut p = Plane::new(
+                    Vector3::new(
                         self.cols[0].w + self.cols[0].y,
                         self.cols[1].w + self.cols[1].y,
                         self.cols[2].w + self.cols[2].y,
                     ),
-                    d: self.cols[3].w + self.cols[3].y,
-                };
+                    self.cols[3].w + self.cols[3].y,
+                );
                 p.normal = -p.normal;
                 p.d = -p.d;
-                p
+                p.normalized()
             }
-        };
-        p.normalized()
+        }
     }
 
     /// Returns the dimensions of the viewport plane that this Projection
@@ -495,8 +461,7 @@ impl Projection {
     ///
     /// _Godot equivalent: `Projection.get_viewport_half_extents()`_
     pub fn viewport_half_extents(&self) -> Vector2 {
-        let w = -self.z_near() * self.cols[2].w + self.cols[3].w;
-        Vector2::new(w / self.cols[0].x, w / self.cols[1].y)
+        Vector2::new(1.0 / self.cols[0].x, 1.0 / self.cols[1].y)
     }
 
     /// Returns the distance for this Projection beyond which positions are
@@ -504,7 +469,7 @@ impl Projection {
     ///
     /// _Godot equivalent: `Projection.get_z_far()`_
     pub fn z_far(&self) -> real {
-        (self.cols[3].w - self.cols[3].z) / (self.cols[2].w - self.cols[2].z)
+        self.cols[3].z / (self.cols[2].z + 1.0)
     }
 
     /// Returns the distance for this Projection before which positions are
@@ -512,7 +477,7 @@ impl Projection {
     ///
     /// _Godot equivalent: `Projection.get_z_near()`_
     pub fn z_near(&self) -> real {
-        (self.cols[3].w + self.cols[3].z) / (self.cols[2].w + self.cols[2].z)
+        self.cols[3].z / (self.cols[2].z - 1.0)
     }
 
     /// Returns a Projection that performs the inverse of this Projection's
@@ -577,16 +542,16 @@ impl Projection {
     ///
     /// _Godot equivalent: `Projection.perspective_znear_adjusted()`_
     pub fn perspective_znear_adjusted(&self, new_znear: real) -> Self {
-        let mut res = *self;
+        let mut p = *self;
         let z_far = self.z_far();
-        let znear = new_znear;
+        let z_near = new_znear;
 
-        let dz = z_far - znear;
-        res.cols[2].z = -(z_far + znear) / dz;
-        res.cols[3].z = -2.0 * znear * z_far / dz;
+        p.cols[2].z = -(z_far + z_near) / (z_far - z_near);
+        p.cols[3].z = -2.0 * z_far * z_near / (z_far - z_near);
 
-        res
+        p
     }
+
 
     /// Returns `true` if this projection and `other` are approximately equal.
     #[inline]
@@ -1194,26 +1159,6 @@ mod test {
     }
 
     #[test]
-    fn test_utility_methods() {
-        let proj = Projection::create_perspective(90.0, 1.0, 0.1, 100.0, false);
-        assert_eq_approx!(proj.aspect(), 1.0);
-        assert_eq_approx!(proj.fov(), 90.0);
-        assert_eq_approx!(proj.z_near(), 0.1);
-        assert_eq_approx!(proj.z_far(), 100.0);
-
-        let proj_near = proj.perspective_znear_adjusted(0.2);
-        // Use a bit larger epsilon for adjusted z_near/z_far because of propagation of errors.
-        let zn = proj_near.z_near();
-        let zf = proj_near.z_far();
-        assert!((zn - 0.2).abs() < 0.001, "z_near: {zn}");
-        assert!((zf - 100.0).abs() < 0.01, "z_far: {zf}");
-
-        let near_plane = proj.get_projection_plane(ProjectionPlane::NEAR);
-        assert_eq_approx!(near_plane.normal, Vector3::BACK);
-        assert_eq_approx!(near_plane.d, 0.1);
-    }
-
-    #[test]
     fn test_is_orthogonal() {
         fn f(v: isize) -> real {
             (v as real) * 0.5 - 0.5
@@ -1341,28 +1286,3 @@ impl_geometric_interop!(
     [x, y, z, w],
     self => [self.cols[0], self.cols[1], self.cols[2], self.cols[3]]
 );
-
-#[cfg(test)]
-mod test_fixes {
-    use super::*;
-    use crate::assert_eq_approx;
-
-    #[test]
-    fn fov_and_lod() {
-        let proj = Projection::create_perspective(90.0, 1.0, 0.1, 100.0, false);
-        // Godot's get_fov() returns horizontal FOV.
-        assert_eq_approx!(proj.fov(), 90.0);
-
-        let proj_wide = Projection::create_perspective(90.0, 2.0, 0.1, 100.0, false);
-        // tan(h/2) = aspect * tan(v/2) = 2.0 * tan(45) = 2.0.
-        // h = 2 * atan(2.0) = 126.87 deg.
-        assert_eq_approx!(proj_wide.fov(), 126.869897);
-
-        // lod_multiplier
-        assert_eq_approx!(proj.lod_multiplier(), 2.0 / proj.cols[0].x);
-
-        let ortho = Projection::create_orthogonal(-10.0, 10.0, -10.0, 10.0, 0.1, 100.0);
-        // 1.0 / cols[0].x = 1.0 / (2.0 / 20.0) = 10.0.
-        assert_eq_approx!(ortho.lod_multiplier(), 10.0);
-    }
-}

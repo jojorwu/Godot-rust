@@ -1258,12 +1258,32 @@ impl PackedByteArray {
 impl PackedStringArray {
     /// Returns a string which is the concatenation of the array elements with the given `delimiter`.
     pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
-        use meta::GodotFfiVariant;
-        let variant = self.ffi_to_variant();
-        let method = crate::static_sname!(c"join");
+        let slice = self.as_slice();
+        if slice.is_empty() {
+            return GString::new();
+        }
+        if slice.len() == 1 {
+            return slice[0].clone();
+        }
+
         meta::arg_into_ref!(delimiter);
-        let result = variant.call(method, &[delimiter.to_variant()]);
-        result.to::<GString>()
+        let delim_chars = delimiter.chars();
+
+        let mut total_chars = 0;
+        for s in slice {
+            total_chars += s.len();
+        }
+        total_chars += delim_chars.len() * (slice.len() - 1);
+
+        let mut res_chars = Vec::with_capacity(total_chars);
+        for (i, s) in slice.iter().enumerate() {
+            if i > 0 {
+                res_chars.extend_from_slice(delim_chars);
+            }
+            res_chars.extend_from_slice(s.chars());
+        }
+
+        GString::from(res_chars.as_slice())
     }
 }
 

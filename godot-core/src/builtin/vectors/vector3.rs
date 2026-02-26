@@ -181,7 +181,7 @@ impl Vector3 {
     /// Note that behavior is different from 2D [`Vector2::angle_to()`], which returns the **signed** angle.
     #[inline]
     pub fn angle_to(self, to: Self) -> real {
-        self.glam2(&to, |a, b| a.angle_between(b))
+        real::atan2(self.cross(to).length(), self.dot(to))
     }
 
     /// Returns the signed angle to the given vector, as radians in `[-π, +π]`.

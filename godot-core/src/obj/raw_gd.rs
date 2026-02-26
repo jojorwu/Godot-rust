@@ -18,7 +18,9 @@ use crate::meta::{ClassId, FromGodot, GodotConvert, GodotFfiVariant, GodotType, 
 use crate::obj::bounds::{Declarer, DynMemory as _};
 use crate::obj::casts::CastSuccess;
 use crate::obj::rtti::ObjectRtti;
-use crate::obj::{bounds, Bounds, Gd, GdDerefTarget, GdMut, GdRef, GodotClass, InstanceId};
+use crate::obj::{
+    bounds, Bounds, Gd, GdDerefTarget, GdMut, GdRef, GodotClass, InstanceId, Singleton,
+};
 use crate::storage::{InstanceCache, InstanceStorage, Storage};
 use crate::{classes, meta, out};
 
@@ -131,14 +133,14 @@ impl<T: GodotClass> RawGd<T> {
         }
 
         let self_class_name = unsafe { self.as_non_null() }.dynamic_class_string();
-        let self_class_id = ClassId::new_dynamic(self_class_name.to_string());
         let target_class_id = U::class_id();
+        let target_class_name = target_class_id.to_string_name();
 
-        if self_class_id == target_class_id {
+        if self_class_name == target_class_name {
             return true;
         }
 
-        self_class_id.inherits(target_class_id)
+        crate::classes::ClassDb::singleton().is_parent_class(&self_class_name, &target_class_name)
     }
 
     // See use-site for explanation.
