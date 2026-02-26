@@ -1114,6 +1114,12 @@ impl<T: PackedArrayElement + fmt::Display> fmt::Display for PackedArray<T> {
 macro_rules! declare_encode_decode {
     // $Via could be inferred, but ensures we have the correct type expectations.
     ($Ty:ty, $bytes:literal, $encode_fn:ident, $decode_fn:ident, $Via:ty) => {
+        declare_encode_decode!(@impl $Ty, $bytes, $encode_fn, $decode_fn, $Via, native);
+    };
+    (ffi $Ty:ty, $bytes:literal, $encode_fn:ident, $decode_fn:ident, $Via:ty) => {
+        declare_encode_decode!(@impl $Ty, $bytes, $encode_fn, $decode_fn, $Via, ffi);
+    };
+    (@impl $Ty:ty, $bytes:literal, $encode_fn:ident, $decode_fn:ident, $Via:ty, $mode:ident) => {
         #[doc = concat!("Encodes `", stringify!($Ty), "` as ", stringify!($bytes), " byte(s) at position `byte_offset`.")]
         ///
         /// Returns `Err` if there is not enough space left to write the value, and does nothing in that case.
@@ -1123,17 +1129,15 @@ macro_rules! declare_encode_decode {
         #[doc = concat!("[`", stringify!($Ty), "::to_be_bytes()`].")]
         #[track_caller]
         pub fn $encode_fn(&mut self, byte_offset: usize, value: $Ty) -> Result<(), CollectionError> {
-            // sys::static_assert!(std::mem::size_of::<$Ty>() == $bytes); -- used for testing, can't keep enabled due to half-floats.
-
-            if byte_offset + $bytes > self.len() {
+            let len = self.len();
+            if byte_offset + $bytes > len {
                 return Err(CollectionError::OutOfBounds {
                     index: byte_offset + $bytes,
-                    len: self.len(),
+                    len,
                 });
             }
 
-            self.as_inner()
-                .$encode_fn(to_i64(byte_offset), value as $Via);
+            declare_encode_decode!(@encode $mode, self, byte_offset, value, $encode_fn, $Ty, $Via);
             Ok(())
         }
 
@@ -1147,16 +1151,43 @@ macro_rules! declare_encode_decode {
         #[doc = concat!("[`", stringify!($Ty), "::from_be_bytes()`].")]
         #[track_caller]
         pub fn $decode_fn(&self, byte_offset: usize) -> Result<$Ty, CollectionError> {
-            if byte_offset + $bytes > self.len() {
+            let len = self.len();
+            if byte_offset + $bytes > len {
                 return Err(CollectionError::OutOfBounds {
                     index: byte_offset + $bytes,
-                    len: self.len(),
+                    len,
                 });
             }
 
-            let decoded: $Via = self.as_inner().$decode_fn(to_i64(byte_offset));
-            Ok(decoded as $Ty)
+            let decoded = declare_encode_decode!(@decode $mode, self, byte_offset, $decode_fn, $Ty, $Via);
+            Ok(decoded)
         }
+    };
+
+    (@encode native, $self:ident, $offset:ident, $value:ident, $fn:ident, $Ty:ty, $Via:ty) => {
+        let slice = $self.as_mut_slice();
+        // SAFETY: index checked above.
+        let ptr = unsafe { slice.as_mut_ptr().add($offset) as *mut $Ty };
+        unsafe {
+            ptr.write_unaligned($value);
+        }
+    };
+    (@encode ffi, $self:ident, $offset:ident, $value:ident, $fn:ident, $Ty:ty, $Via:ty) => {
+        $self.as_inner().$fn(to_i64($offset), $value as $Via);
+    };
+
+    (@decode native, $self:ident, $offset:ident, $fn:ident, $Ty:ty, $Via:ty) => {
+        {
+            let slice = $self.as_slice();
+            // SAFETY: index checked above.
+            let ptr = unsafe { slice.as_ptr().add($offset) as *const $Ty };
+            unsafe {
+                ptr.read_unaligned()
+            }
+        }
+    };
+    (@decode ffi, $self:ident, $offset:ident, $fn:ident, $Ty:ty, $Via:ty) => {
+        $self.as_inner().$fn(to_i64($offset)) as $Ty
     };
 }
 
@@ -1249,7 +1280,7 @@ impl PackedByteArray {
     declare_encode_decode!(i32, 4, encode_s32, decode_s32, i64);
     declare_encode_decode!(u64, 8, encode_u64, decode_u64, i64);
     declare_encode_decode!(i64, 8, encode_s64, decode_s64, i64);
-    declare_encode_decode!(f32, 2, encode_half, decode_half, f64);
+    declare_encode_decode!(ffi f32, 2, encode_half, decode_half, f64);
     declare_encode_decode!(f32, 4, encode_float, decode_float, f64);
     declare_encode_decode!(f64, 8, encode_double, decode_double, f64);
 

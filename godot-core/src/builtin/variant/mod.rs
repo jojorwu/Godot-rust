@@ -902,11 +902,23 @@ impl Variant {
     #[inline]
     #[track_caller]
     pub fn hash_u32(&self) -> u32 {
-        // @GlobalScope.hash() actually calls the VariantUtilityFunctions::hash(&Variant) function (C++).
-        // This function calls the passed reference's `hash` method, which returns a uint32_t.
-        // Therefore, casting this function to u32 is always fine.
-        let hash = unsafe { interface_fn!(variant_hash)(self.var_sys()) };
-        crate::builtin::to_u32_from_i64(hash)
+        match self.get_type() {
+            VariantType::NIL => 0,
+            VariantType::BOOL => {
+                if self.to_bool() {
+                    1
+                } else {
+                    0
+                }
+            }
+            _ => {
+                // @GlobalScope.hash() actually calls the VariantUtilityFunctions::hash(&Variant) function (C++).
+                // This function calls the passed reference's `hash` method, which returns a uint32_t.
+                // Therefore, casting this function to u32 is always fine.
+                let hash = unsafe { interface_fn!(variant_hash)(self.var_sys()) };
+                crate::builtin::to_u32_from_i64(hash)
+            }
+        }
     }
 
     /// Interpret the `Variant` as `bool`.
@@ -920,9 +932,22 @@ impl Variant {
     /// - default-constructed other builtins (e.g. zero vector, degenerate plane, zero RID, etc...)
     #[inline]
     pub fn booleanize(&self) -> bool {
-        // See Variant::is_zero(), roughly https://github.com/godotengine/godot/blob/master/core/variant/variant.cpp#L859.
-        let booleanized = unsafe { interface_fn!(variant_booleanize)(self.var_sys()) };
-        sys::conv::bool_from_sys(booleanized)
+        match self.get_type() {
+            VariantType::NIL => false,
+            VariantType::BOOL => self.to_bool(),
+            VariantType::INT => self.to_int() != 0,
+            VariantType::FLOAT => self.to_float() != 0.0,
+            VariantType::STRING | VariantType::ARRAY | VariantType::DICTIONARY => !self.is_empty(),
+            VariantType::OBJECT => !self.is_nil(),
+            _ => {
+                if self.is_packed_array() {
+                    return !self.is_empty();
+                }
+                // See Variant::is_zero(), roughly https://github.com/godotengine/godot/blob/master/core/variant/variant.cpp#L859.
+                let booleanized = unsafe { interface_fn!(variant_booleanize)(self.var_sys()) };
+                sys::conv::bool_from_sys(booleanized)
+            }
+        }
     }
 
     /// Assuming that this is of type `OBJECT`, checks whether the object is dead.
@@ -1161,9 +1186,9 @@ impl PartialEq for Variant {
         if self_type == other_type {
             match self_type {
                 VariantType::NIL => return true,
-                VariantType::BOOL => return self.to_bool() == other.to_bool(),
-                VariantType::INT => return self.to_int() == other.to_int(),
-                VariantType::FLOAT => return self.to_float() == other.to_float(),
+                VariantType::BOOL => return self.to::<bool>() == other.to::<bool>(),
+                VariantType::INT => return self.to::<i64>() == other.to::<i64>(),
+                VariantType::FLOAT => return self.to::<f64>() == other.to::<f64>(),
                 VariantType::STRING => {
                     // SAFETY: we checked the type.
                     let s1 = unsafe { GString::from_variant_unchecked(self) };
