@@ -792,25 +792,18 @@ impl<T: ArrayElement> Array<T> {
     where
         F: FnMut(&T) -> cmp::Ordering,
     {
-        let mut low = 0;
-        let mut high = self.len();
-
-        while low < high {
-            let mid = low + (high - low) / 2;
-            let val = self.at(mid);
-            match func(&val) {
-                cmp::Ordering::Equal => return Ok(mid),
-                cmp::Ordering::Less => {
-                    // target is greater than mid
-                    low = mid + 1;
-                }
-                cmp::Ordering::Greater => {
-                    // target is less than mid
-                    high = mid;
-                }
-            }
+        let len = self.len();
+        if len == 0 {
+            return Err(0);
         }
-        Err(low)
+
+        let ptr = self.ptr(0);
+        let slice = unsafe { Variant::borrow_slice(ptr, len) };
+
+        slice.binary_search_by(|v| {
+            let v_t = T::from_variant(v);
+            func(&v_t)
+        })
     }
 
     /// Sorts the array, using a type-safe comparator.
@@ -833,15 +826,20 @@ impl<T: ArrayElement> Array<T> {
     {
         self.balanced_ensure_mutable();
 
-        if self.len() <= 1 {
+        let len = self.len();
+        if len <= 1 {
             return;
         }
 
         let mut vec = Vec::from(&*self);
         vec.sort_unstable_by(func);
 
-        self.clear();
-        self.extend(vec);
+        let ptr = self.ptr_mut(0);
+        let slice = unsafe { Variant::borrow_slice_mut(ptr, len) };
+
+        for (i, item) in vec.into_iter().enumerate() {
+            slice[i] = item.to_variant();
+        }
     }
 
     /// Access to Godot's functional-programming APIs based on callables.

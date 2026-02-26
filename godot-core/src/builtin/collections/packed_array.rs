@@ -6,7 +6,7 @@
  */
 
 use std::iter::FromIterator;
-use std::{fmt, ops, ptr};
+use std::{cmp, fmt, ops, ptr};
 
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi, SysPtr};
@@ -504,28 +504,38 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
-    pub fn find(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
-        let from = to_i64(from.unwrap_or(0));
-        let index = T::op_find(self.as_inner(), value.into_arg(), from);
-        if index >= 0 {
-            Some(to_usize(index))
-        } else {
-            None
+    pub fn find(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize>
+    where
+        T: PartialEq,
+    {
+        let from = from.unwrap_or(0);
+        let slice = self.as_slice();
+        if from >= slice.len() {
+            return None;
         }
+
+        meta::arg_into_ref!(value: T);
+        slice[from..]
+            .iter()
+            .position(|x| x == value)
+            .map(|i| i + from)
     }
 
     /// Searches the array backwards for the last occurrence of a value and returns its index, or `None` if not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
-    pub fn rfind(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
-        let from = from.map(to_i64).unwrap_or(-1);
-        let index = T::op_rfind(self.as_inner(), value.into_arg(), from);
-        // It's not documented, but `rfind` returns -1 if not found.
-        if index >= 0 {
-            Some(to_usize(index))
-        } else {
-            None
+    pub fn rfind(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize>
+    where
+        T: PartialEq,
+    {
+        let slice = self.as_slice();
+        let from = from.unwrap_or_else(|| slice.len().saturating_sub(1));
+        if slice.is_empty() || from >= slice.len() {
+            return None;
         }
+
+        meta::arg_into_ref!(value: T);
+        slice[..=from].iter().rposition(|x| x == value)
     }
 
     /// Finds the index of an existing value in a _sorted_ array using binary search.
@@ -533,25 +543,34 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// If the value is not present in the array, returns the insertion index that would maintain sorting order.
     ///
     /// Calling `bsearch()` on an unsorted array results in unspecified (but safe) behavior.
-    pub fn bsearch(&self, value: impl AsArg<T>) -> usize {
-        // Note: bsearch in Godot requires mutable access but doesn't actually modify the array
-        // We cast away the const-ness as this is a Godot API limitation
+    pub fn bsearch(&self, value: impl AsArg<T>) -> usize
+    where
+        T: PartialOrd,
+    {
+        let slice = self.as_slice();
+        meta::arg_into_ref!(value: T);
 
-        let inner = self.as_inner();
-        to_usize(T::op_bsearch(inner, value.into_arg(), true))
+        match slice.binary_search_by(|x| x.partial_cmp(value).unwrap_or(cmp::Ordering::Less)) {
+            Ok(i) => i,
+            Err(i) => i,
+        }
     }
 
     /// Reverses the order of the elements in the array.
     pub fn reverse(&mut self) {
-        T::op_reverse(self.as_inner());
+        self.as_mut_slice().reverse();
     }
 
     /// Sorts the elements of the array in ascending order.
     ///
     /// This sort is [stable](https://en.wikipedia.org/wiki/Sorting_algorithm#Stability), since elements inside packed arrays are
     /// indistinguishable. Relative order between equal elements thus isn't observable.
-    pub fn sort(&mut self) {
-        T::op_sort(self.as_inner());
+    pub fn sort(&mut self)
+    where
+        T: PartialOrd,
+    {
+        self.as_mut_slice()
+            .sort_by(|a, b| a.partial_cmp(b).unwrap_or(cmp::Ordering::Less));
     }
 
     // Must remain internal. godot-rust convention is to use to_*, into_*, cast* for conversions between types of the library.

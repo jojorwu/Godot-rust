@@ -126,8 +126,19 @@ impl<T: GodotClass> RawGd<T> {
     /// Returns true if the object's dynamic type is `U` or a subclass of `U`.
     #[inline]
     pub(crate) fn is_instance_of<U: GodotClass>(&self) -> bool {
-        self.is_null() // Null can be cast to anything.
-            || self.as_object_ref().is_class(&U::class_id().to_gstring())
+        if self.is_null() {
+            return true;
+        }
+
+        let self_class_name = unsafe { self.as_non_null() }.dynamic_class_string();
+        let self_class_id = ClassId::new_dynamic(self_class_name.to_string());
+        let target_class_id = U::class_id();
+
+        if self_class_id == target_class_id {
+            return true;
+        }
+
+        self_class_id.inherits(target_class_id)
     }
 
     // See use-site for explanation.

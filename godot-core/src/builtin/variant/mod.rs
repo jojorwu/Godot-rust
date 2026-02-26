@@ -93,6 +93,32 @@ macro_rules! impl_variant_to_relaxed {
     };
 }
 
+macro_rules! impl_variant_to_relaxed_copy {
+    ($($name:ident, $ty:ty);* $(;)?) => {
+        $(
+            #[doc = concat!("⚠️ Returns the variant as a `", stringify!($ty), "`, using relaxed conversion rules, panicking if it fails.")]
+            #[inline]
+            #[track_caller]
+            pub fn $name(&self) -> $ty {
+                #[cfg(since_api = "4.4")]
+                if self.get_type() == <$ty>::VARIANT_TYPE.variant_as_nil() {
+                    return unsafe { *(self.get_internal_ptr() as *const $ty) };
+                }
+
+                self.try_to_relaxed::<$ty>()
+                    .unwrap_or_else(|err| {
+                        panic!(
+                            "{}::{}(): failed to convert to {}: {err}",
+                            std::any::type_name::<Self>(),
+                            stringify!($name),
+                            std::any::type_name::<$ty>()
+                        )
+                    })
+            }
+        )*
+    };
+}
+
 impl Variant {
     #[cold]
     #[inline(never)]
@@ -471,7 +497,7 @@ impl Variant {
         self.try_to()
     }
 
-    impl_variant_to_relaxed! {
+    impl_variant_to_relaxed_copy! {
         to_int, i64;
         to_float, f64;
         to_bool, bool;
@@ -491,10 +517,13 @@ impl Variant {
         to_transform3d, Transform3D;
         to_projection, Projection;
         to_color, Color;
+        to_rid, Rid;
+    }
+
+    impl_variant_to_relaxed! {
         to_gstring, GString;
         to_string_name, StringName;
         to_node_path, NodePath;
-        to_rid, Rid;
         to_callable, crate::builtin::Callable;
         to_signal, crate::builtin::Signal;
         to_array, crate::builtin::Array<Variant>;
@@ -962,6 +991,21 @@ impl Variant {
         // self.stringify() != "<Freed Object>".into()
     }
 
+    #[cfg(since_api = "4.4")]
+    #[inline]
+    pub(crate) fn get_internal_ptr(&self) -> *const std::ffi::c_void {
+        let getter = get_variant_get_internal_ptr_func(self.get_type());
+        // SAFETY: variant_get_ptr_internal_getter returns a pointer into variant data.
+        unsafe {
+            getter.unwrap_or_else(|| {
+                panic!(
+                    "variant_get_ptr_internal_getter missing for type {:?}",
+                    self.get_type()
+                )
+            })(sys::SysPtr::force_mut(self.var_sys()))
+        }
+    }
+
     // Conversions from/to Godot C++ `Variant*` pointers
     ffi_methods! {
         type sys::GDExtensionVariantPtr = *mut Self;
@@ -1184,6 +1228,156 @@ impl PartialEq for Variant {
         let other_type = other.get_type();
 
         if self_type == other_type {
+            #[cfg(since_api = "4.4")]
+            {
+                match self_type {
+                    VariantType::BOOL => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const bool)
+                                == *(other.get_internal_ptr() as *const bool)
+                        }
+                    }
+                    VariantType::INT => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const i64)
+                                == *(other.get_internal_ptr() as *const i64)
+                        }
+                    }
+                    VariantType::FLOAT => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const f64)
+                                == *(other.get_internal_ptr() as *const f64)
+                        }
+                    }
+                    VariantType::VECTOR2 => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Vector2)
+                                == *(other.get_internal_ptr() as *const Vector2)
+                        }
+                    }
+                    VariantType::VECTOR2I => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Vector2i)
+                                == *(other.get_internal_ptr() as *const Vector2i)
+                        }
+                    }
+                    VariantType::RECT2 => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Rect2)
+                                == *(other.get_internal_ptr() as *const Rect2)
+                        }
+                    }
+                    VariantType::RECT2I => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Rect2i)
+                                == *(other.get_internal_ptr() as *const Rect2i)
+                        }
+                    }
+                    VariantType::VECTOR3 => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Vector3)
+                                == *(other.get_internal_ptr() as *const Vector3)
+                        }
+                    }
+                    VariantType::VECTOR3I => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Vector3i)
+                                == *(other.get_internal_ptr() as *const Vector3i)
+                        }
+                    }
+                    VariantType::TRANSFORM2D => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Transform2D)
+                                == *(other.get_internal_ptr() as *const Transform2D)
+                        }
+                    }
+                    VariantType::VECTOR4 => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Vector4)
+                                == *(other.get_internal_ptr() as *const Vector4)
+                        }
+                    }
+                    VariantType::VECTOR4I => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Vector4i)
+                                == *(other.get_internal_ptr() as *const Vector4i)
+                        }
+                    }
+                    VariantType::PLANE => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Plane)
+                                == *(other.get_internal_ptr() as *const Plane)
+                        }
+                    }
+                    VariantType::QUATERNION => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Quaternion)
+                                == *(other.get_internal_ptr() as *const Quaternion)
+                        }
+                    }
+                    VariantType::AABB => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Aabb)
+                                == *(other.get_internal_ptr() as *const Aabb)
+                        }
+                    }
+                    VariantType::BASIS => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Basis)
+                                == *(other.get_internal_ptr() as *const Basis)
+                        }
+                    }
+                    VariantType::TRANSFORM3D => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Transform3D)
+                                == *(other.get_internal_ptr() as *const Transform3D)
+                        }
+                    }
+                    VariantType::PROJECTION => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Projection)
+                                == *(other.get_internal_ptr() as *const Projection)
+                        }
+                    }
+                    VariantType::COLOR => {
+                        return unsafe {
+                            *(self.get_internal_ptr() as *const Color)
+                                == *(other.get_internal_ptr() as *const Color)
+                        }
+                    }
+                    VariantType::NIL => return true,
+                    VariantType::STRING => {
+                        // SAFETY: we checked the type.
+                        let s1 = unsafe { GString::from_variant_unchecked(self) };
+                        let s2 = unsafe { GString::from_variant_unchecked(other) };
+                        return s1 == s2;
+                    }
+                    VariantType::STRING_NAME => {
+                        // SAFETY: we checked the type.
+                        let s1 = unsafe { StringName::from_variant_unchecked(self) };
+                        let s2 = unsafe { StringName::from_variant_unchecked(other) };
+                        return s1 == s2;
+                    }
+                    VariantType::NODE_PATH => {
+                        // SAFETY: we checked the type.
+                        let s1 = unsafe { NodePath::from_variant_unchecked(self) };
+                        let s2 = unsafe { NodePath::from_variant_unchecked(other) };
+                        return s1 == s2;
+                    }
+                    VariantType::RID => {
+                        // SAFETY: we checked the type.
+                        let r1 = unsafe { Rid::from_variant_unchecked(self) };
+                        let r2 = unsafe { Rid::from_variant_unchecked(other) };
+                        return r1 == r2;
+                    }
+                    VariantType::OBJECT => {
+                        return self.object_id_unchecked() == other.object_id_unchecked();
+                    }
+                    _ => {}
+                }
+            }
+
+            #[cfg(before_api = "4.4")]
             match self_type {
                 VariantType::NIL => return true,
                 VariantType::BOOL => return self.to::<bool>() == other.to::<bool>(),
@@ -1214,7 +1408,8 @@ impl PartialEq for Variant {
                     return r1 == r2;
                 }
                 VariantType::OBJECT => {
-                    return self.object_id_unchecked() == other.object_id_unchecked();
+                    // Not available before 4.4, but object_id() has a fallback.
+                    return self.object_id() == other.object_id();
                 }
                 _ => {}
             }

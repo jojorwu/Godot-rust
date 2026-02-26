@@ -53,9 +53,8 @@ impl Resource {
     where
         T: Inherits<Resource>,
     {
-        self.duplicate_ex()
-            .deep(subresources)
-            .done()
+        // Call the underlying generated method directly to avoid renamed builder methods.
+        self.duplicate_full(subresources)
             .unwrap_or_else(|| panic!("{}::duplicate() failed", std::any::type_name::<Self>()))
             .cast::<T>()
     }
