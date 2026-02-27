@@ -12,7 +12,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{FloatExt, GlamConv, GlamType};
-use crate::builtin::{inner, real, RVec4, Vector4Axis, Vector4i};
+use crate::builtin::{real, RVec4, Vector4Axis, Vector4i};
 
 /// Vector used for 4D math using floating point coordinates.
 ///
@@ -71,13 +71,7 @@ impl Vector4 {
 impl_vector_fns!(Vector4, RVec4, real, (x, y, z, w));
 
 /// # Specialized `Vector4` functions
-impl Vector4 {
-    #[doc(hidden)]
-    #[inline]
-    pub fn as_inner(&self) -> inner::InnerVector4<'_> {
-        inner::InnerVector4::from_outer(self)
-    }
-}
+impl Vector4 {}
 
 impl_float_vector_fns!(Vector4, Vector4i, (x, y, z, w));
 impl_vector4x_fns!(Vector4, real);
@@ -172,7 +166,7 @@ mod test_geom {
     #[test]
     fn geom_ops() {
         let v = Vector4::new(1.0, 0.0, 0.0, 0.0);
-        assert_eq_approx!(v.limit_length(Some(0.5)), Vector4::new(0.5, 0.0, 0.0, 0.0));
+        assert_eq_approx!(v.limit_length(0.5), Vector4::new(0.5, 0.0, 0.0, 0.0));
 
         let v2 = Vector4::new(2.0, 2.0, 2.0, 2.0);
         let n = Vector4::new(1.0, 0.0, 0.0, 0.0);

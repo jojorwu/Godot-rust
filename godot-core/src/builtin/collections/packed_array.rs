@@ -175,13 +175,15 @@ impl<T: PackedArrayElement> PackedArray<T> {
     #[doc(alias = "size")]
     #[inline]
     pub fn len(&self) -> usize {
-        to_usize(T::op_size(self.as_inner()))
+        self.as_slice().len()
     }
 
     /// Returns `true` if the array is empty.
+    ///
+    /// _Godot equivalent: `is_empty()`_
     #[inline]
     pub fn is_empty(&self) -> bool {
-        T::op_is_empty(self.as_inner())
+        self.len() == 0
     }
 
     /// Returns `true` if this array is typed. Always true for `PackedArray`.

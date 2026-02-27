@@ -26,38 +26,58 @@ pub trait FloatExt: private::Sealed + Copy {
 
     /// Check if two angles are approximately equal, by comparing the distance
     /// between the points on the unit circle with 0 using [`real::approx_eq`].
+    ///
+    /// _Godot equivalent: @GlobalScope.is_angle_equal_approx()_
     fn is_angle_equal_approx(self, other: Self) -> bool;
 
     /// Check if `self` is within [`Self::CMP_EPSILON`] of `0.0`.
+    ///
+    /// _Godot equivalent: @GlobalScope.is_zero_approx()_
     fn is_zero_approx(self) -> bool;
 
     /// Returns the floating-point modulus of `self` divided by `pmod`, wrapping equally in positive and negative.
+    ///
+    /// _Godot equivalent: @GlobalScope.fposmod()_
     fn fposmod(self, pmod: Self) -> Self;
 
     /// Returns the multiple of `step` that is closest to `self`.
+    ///
+    /// _Godot equivalent: @GlobalScope.snapped()_
     fn snapped(self, step: Self) -> Self;
 
     /// Godot's `sign` function, returns `0.0` when self is `0.0`.
     ///
     /// See also [`f32::signum`] and [`f64::signum`], which always return `-1.0` or `1.0` (or `NaN`).
+    ///
+    /// _Godot equivalent: @GlobalScope.sign()_
     fn sign(self) -> Self;
 
     /// Returns the derivative at the given `t` on a one-dimensional Bézier curve defined by the given
     /// `control_1`, `control_2`, and `end` points.
+    ///
+    /// _Godot equivalent: @GlobalScope.bezier_derivative()_
     fn bezier_derivative(self, control_1: Self, control_2: Self, end: Self, t: Self) -> Self;
 
     /// Returns the point at the given `t` on a one-dimensional Bézier curve defined by the given
     /// `control_1`, `control_2`, and `end` points.
+    ///
+    /// _Godot equivalent: @GlobalScope.bezier_interpolate()_
     fn bezier_interpolate(self, control_1: Self, control_2: Self, end: Self, t: Self) -> Self;
 
     /// Cubic interpolates between two values by the factor defined in `weight` with `pre` and `post` values.
+    ///
+    /// _Godot equivalent: @GlobalScope.cubic_interpolate()_
     fn cubic_interpolate(self, to: Self, pre: Self, post: Self, weight: Self) -> Self;
 
     /// Cubic interpolates between two angles (in radians) by the factor defined in `weight` with `pre` and `post` values.
+    ///
+    /// _Godot equivalent: @GlobalScope.cubic_interpolate_angle()_
     fn cubic_interpolate_angle(self, to: Self, pre: Self, post: Self, weight: Self) -> Self;
 
     /// Cubic interpolates between two values by the factor defined in `weight` with `pre` and `post` values.
     /// It can perform smoother interpolation than [`cubic_interpolate`](FloatExt::cubic_interpolate) by the time values.
+    ///
+    /// _Godot equivalent: @GlobalScope.cubic_interpolate_in_time()_
     #[allow(clippy::too_many_arguments)]
     fn cubic_interpolate_in_time(
         self,
@@ -72,6 +92,8 @@ pub trait FloatExt: private::Sealed + Copy {
 
     /// Cubic interpolates between two angles (in radians) by the factor defined in `weight` with `pre` and `post` values.
     /// It can perform smoother interpolation than [`cubic_interpolate_angle`](FloatExt::cubic_interpolate_angle) by the time values.
+    ///
+    /// _Godot equivalent: @GlobalScope.cubic_interpolate_angle_in_time()_
     #[allow(clippy::too_many_arguments)]
     fn cubic_interpolate_angle_in_time(
         self,
@@ -278,7 +300,13 @@ macro_rules! impl_float_ext {
                     + (-pre + 3.0 * self - 3.0 * to + post) * (weight * weight * weight))
             }
 
-            fn cubic_interpolate_angle(self, to: Self, pre: Self, post: Self, weight: Self) -> Self {
+            fn cubic_interpolate_angle(
+                self,
+                to: Self,
+                pre: Self,
+                post: Self,
+                weight: Self,
+            ) -> Self {
                 use $consts;
                 let from_rot = self % consts::TAU;
 
@@ -740,7 +768,10 @@ mod test_clamped_trig {
         assert_eq_approx!(0.0f32.sinc(), 1.0);
         assert_eq_approx!(1.0f32.sinc(), 1.0f32.sin());
         assert_eq_approx!(0.0f32.sincn(), 1.0);
-        assert_eq_approx!(0.5f32.sincn(), (std::f32::consts::PI * 0.5).sin() / (std::f32::consts::PI * 0.5));
+        assert_eq_approx!(
+            0.5f32.sincn(),
+            (std::f32::consts::PI * 0.5).sin() / (std::f32::consts::PI * 0.5)
+        );
     }
 
     #[test]

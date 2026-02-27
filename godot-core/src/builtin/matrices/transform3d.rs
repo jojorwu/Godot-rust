@@ -239,7 +239,7 @@ impl Transform3D {
     /// with a corresponding scaling transform `S` from the left, i.e., `S * X`.
     /// This can be seen as transforming with respect to the global/parent frame.
     ///
-    /// _Godot equivalent: `Transform2D.scaled()`_
+    /// _Godot equivalent: `Transform3D.scaled()`_
     #[must_use]
     #[inline]
     pub fn scaled(&self, scale: Vector3) -> Self {
@@ -254,7 +254,7 @@ impl Transform3D {
     /// with a corresponding scaling transform `S` from the right, i.e., `X * S`.
     /// This can be seen as transforming with respect to the local frame.
     ///
-    /// _Godot equivalent: `Transform2D.scaled_local()`_
+    /// _Godot equivalent: `Transform3D.scaled_local()`_
     #[must_use]
     #[inline]
     pub fn scaled_local(&self, scale: Vector3) -> Self {

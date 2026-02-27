@@ -256,9 +256,11 @@ impl VarDictionary {
     }
 
     /// Returns true if the dictionary is empty.
+    ///
+    /// _Godot equivalent: `is_empty()`_
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.as_inner().is_empty()
+        self.len() == 0
     }
 
     /// Returns the value for the given key, converted to `V`, or `None` if the key is absent or conversion fails.

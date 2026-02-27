@@ -98,9 +98,19 @@ impl Basis {
 
     /// Create a `Basis` from an axis and angle.
     ///
+    /// # Panics
+    /// If `axis` is not normalized.
+    ///
     /// _Godot equivalent: `Basis(Vector3 axis, float angle)`_
     #[inline]
+    #[track_caller]
     pub fn from_axis_angle(axis: Vector3, angle: real) -> Self {
+        assert!(
+            axis.is_normalized(),
+            "{}::from_axis_angle(): axis is not normalized (axis={:?})",
+            std::any::type_name::<Self>(),
+            axis
+        );
         RMat3::from_axis_angle(axis.to_glam(), angle).to_front()
     }
 

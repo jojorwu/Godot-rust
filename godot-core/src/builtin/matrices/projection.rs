@@ -12,8 +12,7 @@ use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{ApproxEq, GlamConv, GlamType};
 use crate::builtin::{
-    real, Aabb, Plane, RMat4, RealConv, Rect2, Transform3D, Vector2, Vector3, Vector4,
-    Vector4Axis,
+    real, Aabb, Plane, RMat4, RealConv, Rect2, Transform3D, Vector2, Vector3, Vector4, Vector4Axis,
 };
 
 /// A 4x4 matrix used for 3D projective transformations.
@@ -358,12 +357,16 @@ impl Projection {
     }
 
     /// Returns the X:Y aspect ratio of this Projection's viewport.
+    ///
+    /// _Godot equivalent: `Projection.get_aspect()`_
     pub fn aspect(&self) -> real {
         self.cols[1].y / self.cols[0].x
     }
 
     /// Returns the dimensions of the far clipping plane of the projection,
     /// divided by two.
+    ///
+    /// _Godot equivalent: `Projection.get_far_plane_half_extents()`_
     pub fn far_plane_half_extents(&self) -> Vector2 {
         let z_far = self.z_far();
         let half_extents = self.viewport_half_extents();
@@ -551,7 +554,6 @@ impl Projection {
 
         p
     }
-
 
     /// Returns `true` if this projection and `other` are approximately equal.
     #[inline]

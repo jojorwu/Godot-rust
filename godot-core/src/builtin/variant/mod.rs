@@ -372,7 +372,17 @@ impl Variant {
                 | VariantType::PACKED_VECTOR2_ARRAY
                 | VariantType::PACKED_VECTOR3_ARRAY
                 | VariantType::PACKED_COLOR_ARRAY
-        ) || (cfg!(since_api = "4.3") && self.get_type() == VariantType::PACKED_VECTOR4_ARRAY)
+        ) || self.is_vector4_array()
+    }
+
+    #[cfg(since_api = "4.3")]
+    fn is_vector4_array(&self) -> bool {
+        self.get_type() == VariantType::PACKED_VECTOR4_ARRAY
+    }
+
+    #[cfg(before_api = "4.3")]
+    fn is_vector4_array(&self) -> bool {
+        false
     }
 
     /// Returns the Godot type name of the variant as a `GString`.
@@ -1415,8 +1425,7 @@ impl PartialEq for Variant {
             }
         }
 
-        Self::evaluate(self, other, VariantOperator::EQUAL)
-            .is_some_and(|v| v.to::<bool>())
+        Self::evaluate(self, other, VariantOperator::EQUAL).is_some_and(|v| v.to::<bool>())
     }
 }
 

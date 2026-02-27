@@ -602,6 +602,7 @@ pub mod export_info_functions {
     /// For `Array<GString>` and `PackedStringArray` fields using one of the `@export[_global]_{file|dir}` annotations.
     ///
     /// Formats: `"4/13:"`, `"4/15:*.png"`, ...
+    #[allow(dead_code)]
     fn to_string_array_hint(hint: PropertyHint, filter: &str) -> PropertyHintInfo {
         let variant_ord = VariantType::STRING.ord(); // "4"
         let hint_ord = hint.ord();

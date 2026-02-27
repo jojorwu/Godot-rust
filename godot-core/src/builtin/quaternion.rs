@@ -11,7 +11,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{ApproxEq, FloatExt, GlamConv, GlamType};
-use crate::builtin::{inner, real, Basis, EulerOrder, RQuat, Vector3};
+use crate::builtin::{real, Basis, EulerOrder, RQuat, Vector3};
 
 /// Unit quaternion to represent 3D rotations.
 ///
@@ -337,11 +337,6 @@ impl Quaternion {
             std::any::type_name::<Self>(),
             self
         );
-    }
-
-    #[doc(hidden)]
-    pub fn as_inner(&self) -> inner::InnerQuaternion<'_> {
-        inner::InnerQuaternion::from_outer(self)
     }
 
     /// Returns `true` if this quaternion and `other` are approximately equal.
