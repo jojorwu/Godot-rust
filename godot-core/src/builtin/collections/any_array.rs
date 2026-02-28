@@ -131,11 +131,10 @@ impl AnyArray {
 
     /// Returns `true` if the array is empty.
     ///
-    /// Checking for emptiness incurs an FFI call. If you know the size hasn't changed, you may consider storing
-    /// it in a variable. For loops, prefer iterators.
+    /// _Godot equivalent: `is_empty()`_
     #[inline]
     pub fn is_empty(&self) -> bool {
-        self.array.as_inner().is_empty()
+        self.len() == 0
     }
 
     crate::declare_hash_u32_method! {

@@ -13,7 +13,7 @@ use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{FloatExt, GlamConv, GlamType};
 use crate::builtin::vectors::Vector2Axis;
-use crate::builtin::{inner, real, RAffine2, RVec2, Vector2i};
+use crate::builtin::{real, RAffine2, RVec2, Vector2i};
 
 /// Vector used for 2D math using floating point coordinates.
 ///
@@ -135,6 +135,8 @@ impl Vector2 {
     }
 
     /// Returns the result of rotating this vector by `angle` (in radians).
+    ///
+    /// _Godot equivalent: `Vector2.rotated()`_
     #[inline]
     pub fn rotated(self, angle: real) -> Self {
         Self::from_glam(RAffine2::from_angle(angle).transform_vector2(self.to_glam()))
@@ -157,17 +159,11 @@ impl Vector2 {
         let angle = self.angle_to(to);
         self.rotated(angle * weight) * (result_length / start_length)
     }
-
-    #[doc(hidden)]
-    #[inline]
-    pub fn as_inner(&self) -> inner::InnerVector2<'_> {
-        inner::InnerVector2::from_outer(self)
-    }
 }
 
 impl_float_vector_fns!(Vector2, Vector2i, (x, y));
 impl_vector2x_fns!(Vector2, Vector3, real);
-impl_vector2_vector3_fns!(Vector2, (x, y));
+impl_float_vector_geom_fns!(Vector2, (x, y));
 
 impl_vector_operators!(Vector2, real, (x, y));
 
@@ -244,6 +240,21 @@ mod test {
         assert_eq!(vector.sign(), Vector2::new(1., -1.));
         let vector = Vector2::new(0.1, 0.0);
         assert_eq!(vector.sign(), Vector2::new(1., 0.));
+    }
+
+    #[test]
+    fn test_geometric() {
+        let v = Vector2::new(1.0, -1.0);
+        let n = Vector2::new(0.0, 1.0);
+
+        // reflect(v, n) = 2 * n * v.dot(n) - v
+        // v.dot(n) = -1.0
+        // 2 * (0, 1) * -1 - (1, -1) = (0, -2) - (1, -1) = (-1, -1)
+        assert_eq_approx!(v.reflect(n), Vector2::new(-1.0, -1.0));
+        assert_eq_approx!(v.bounce(n), Vector2::new(1.0, 1.0));
+        assert_eq_approx!(v.slide(n), Vector2::new(1.0, 0.0));
+
+        assert_eq_approx!(Vector2::new(10.0, 10.0).limit_length(5.0).length(), 5.0);
     }
 
     #[cfg(feature = "serde")]

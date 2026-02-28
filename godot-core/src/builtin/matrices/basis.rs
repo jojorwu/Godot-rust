@@ -98,9 +98,19 @@ impl Basis {
 
     /// Create a `Basis` from an axis and angle.
     ///
+    /// # Panics
+    /// If `axis` is not normalized.
+    ///
     /// _Godot equivalent: `Basis(Vector3 axis, float angle)`_
     #[inline]
+    #[track_caller]
     pub fn from_axis_angle(axis: Vector3, angle: real) -> Self {
+        assert!(
+            axis.is_normalized(),
+            "{}::from_axis_angle(): axis is not normalized (axis={:?})",
+            std::any::type_name::<Self>(),
+            axis
+        );
         RMat3::from_axis_angle(axis.to_glam(), angle).to_front()
     }
 
@@ -140,6 +150,32 @@ impl Basis {
     #[inline]
     pub fn from_quaternion(quat: Quaternion) -> Self {
         RMat3::from_quat(quat.to_glam()).to_front()
+    }
+
+    /// Creates a `Basis` that rotates the coordinate system to look towards `target`,
+    /// with `up` as the vertical direction.
+    ///
+    /// _Godot equivalent: `Basis.looking_at(Vector3 target, Vector3 up, bool use_model_front)`_
+    pub fn looking_at(target: Vector3, up: Vector3, use_model_front: bool) -> Self {
+        let mut v_z = if use_model_front { target } else { -target };
+        if v_z.is_zero_approx() {
+            v_z = if use_model_front {
+                Vector3::BACK
+            } else {
+                Vector3::FORWARD
+            };
+        }
+        v_z = v_z.normalized();
+
+        let mut v_x = up.cross(v_z);
+        if v_x.is_zero_approx() {
+            v_x = Vector3::RIGHT;
+        }
+        v_x = v_x.normalized();
+
+        let v_y = v_z.cross(v_x).normalized();
+
+        Self::from_cols(v_x, v_y, v_z)
     }
 
     /// Create a `Basis` from three angles `a`, `b`, and `c` interpreted
@@ -552,6 +588,37 @@ impl Basis {
     pub fn is_equal_approx(&self, other: &Self) -> bool {
         self.approx_eq(other)
     }
+
+    /// Returns `true` if the basis is orthogonal (its columns are perpendicular to each other and have unit length).
+    ///
+    /// _Godot equivalent: `Basis.is_orthogonal()`_
+    pub fn is_orthogonal(&self) -> bool {
+        let m = *self;
+        let ot = m.transposed();
+        let res = m * ot;
+        res.is_equal_approx(&Self::IDENTITY)
+    }
+
+    /// Returns `true` if the basis is conformal (it only contains uniform scale and rotation).
+    ///
+    /// _Godot equivalent: `Basis.is_conformal()`_
+    pub fn is_conformal(&self) -> bool {
+        let m = *self;
+        let ot = m.transposed();
+        let res = m * ot;
+        let l = res.rows[0].x;
+        if l < real::CMP_EPSILON {
+            return false;
+        }
+        res.is_equal_approx(&Self::from_scale(Vector3::new(l, l, l)))
+    }
+
+    /// Returns `true` if the basis represents a pure rotation (it is orthogonal and its determinant is positive).
+    ///
+    /// _Godot equivalent: `Basis.is_rotation()`_
+    pub fn is_rotation(&self) -> bool {
+        self.is_orthogonal() && self.determinant() > 0.0
+    }
 }
 
 impl Display for Basis {
@@ -961,6 +1028,15 @@ mod test {
     }
 
     #[test]
+    fn looking_at() {
+        let b = Basis::looking_at(Vector3::FORWARD, Vector3::UP, false);
+        assert_eq_approx!(b.col_c(), Vector3::BACK); // Z points back
+
+        let b2 = Basis::looking_at(Vector3::FORWARD, Vector3::UP, true);
+        assert_eq_approx!(b2.col_c(), Vector3::FORWARD); // use_model_front: true
+    }
+
+    #[test]
     fn test_geometric_interop() {
         use crate::builtin::Vector3;
         let r0 = Vector3::new(1.0, 2.0, 3.0);
@@ -988,3 +1064,30 @@ impl_geometric_interop!(
     [r0, r1, r2],
     self => [self.rows[0], self.rows[1], self.rows[2]]
 );
+
+#[cfg(test)]
+mod test_analysis {
+    use super::*;
+
+    #[test]
+    fn analysis_methods() {
+        assert!(Basis::IDENTITY.is_orthogonal());
+        assert!(Basis::IDENTITY.is_conformal());
+        assert!(Basis::IDENTITY.is_rotation());
+
+        let scaled = Basis::from_scale(Vector3::new(2.0, 2.0, 2.0));
+        assert!(!scaled.is_orthogonal());
+        assert!(scaled.is_conformal());
+        assert!(!scaled.is_rotation());
+
+        let rotated = Basis::from_axis_angle(Vector3::UP, 1.0);
+        assert!(rotated.is_orthogonal());
+        assert!(rotated.is_conformal());
+        assert!(rotated.is_rotation());
+
+        let skewed = Basis::from_cols(Vector3::RIGHT, Vector3::new(1.0, 1.0, 0.0), Vector3::BACK);
+        assert!(!skewed.is_orthogonal());
+        assert!(!skewed.is_conformal());
+        assert!(!skewed.is_rotation());
+    }
+}

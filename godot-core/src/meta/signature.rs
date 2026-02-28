@@ -363,10 +363,16 @@ impl<Params: OutParamTuple, Ret: EngineFromGodot> Signature<Params, Ret> {
         let call_ctx = CallContext::outbound(class_name, method_name);
         // $crate::out!("out_class_ptrcall: {call_ctx}");
 
-        let class_fn = sys::interface_fn!(object_method_bind_ptrcall);
-
         unsafe {
             Self::raw_ptrcall(args, &call_ctx, |explicit_args, return_ptr| {
+                static CLASS_PTRCALL: sys::Global<sys::GDExtensionInterfaceObjectMethodBindPtrcall> =
+                    sys::Global::new(|| {
+                        let interface = unsafe { sys::get_interface() };
+                        interface.object_method_bind_ptrcall
+                    });
+
+                let class_fn = CLASS_PTRCALL.lock();
+                let class_fn = class_fn.unwrap();
                 class_fn(
                     method_bind.0,
                     ValidatedObject::object_ptr(validated_obj.as_ref()),

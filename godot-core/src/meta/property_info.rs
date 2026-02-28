@@ -391,6 +391,7 @@ impl PropertyInfo {
     // ------------------------------------------------------------------------------------------------------------------------------------------
     // Introspection API -- could be made public in the future
 
+    #[allow(dead_code)]
     pub(crate) fn is_array_of_elem<T>(&self) -> bool
     where
         T: ArrayElement,

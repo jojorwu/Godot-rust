@@ -6,7 +6,7 @@
  */
 
 use std::iter::FromIterator;
-use std::{fmt, ops, ptr};
+use std::{cmp, fmt, ops, ptr};
 
 use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi, SysPtr};
@@ -175,13 +175,15 @@ impl<T: PackedArrayElement> PackedArray<T> {
     #[doc(alias = "size")]
     #[inline]
     pub fn len(&self) -> usize {
-        to_usize(T::op_size(self.as_inner()))
+        self.as_slice().len()
     }
 
     /// Returns `true` if the array is empty.
+    ///
+    /// _Godot equivalent: `is_empty()`_
     #[inline]
     pub fn is_empty(&self) -> bool {
-        T::op_is_empty(self.as_inner())
+        self.len() == 0
     }
 
     /// Returns `true` if this array is typed. Always true for `PackedArray`.
@@ -504,28 +506,38 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// Searches the array for the first occurrence of a value and returns its index, or `None` if not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
-    pub fn find(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
-        let from = to_i64(from.unwrap_or(0));
-        let index = T::op_find(self.as_inner(), value.into_arg(), from);
-        if index >= 0 {
-            Some(to_usize(index))
-        } else {
-            None
+    pub fn find(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize>
+    where
+        T: PartialEq,
+    {
+        let from = from.unwrap_or(0);
+        let slice = self.as_slice();
+        if from >= slice.len() {
+            return None;
         }
+
+        meta::arg_into_ref!(value: T);
+        slice[from..]
+            .iter()
+            .position(|x| x == value)
+            .map(|i| i + from)
     }
 
     /// Searches the array backwards for the last occurrence of a value and returns its index, or `None` if not found.
     ///
     /// Starts searching at index `from`; pass `None` to search the entire array.
-    pub fn rfind(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize> {
-        let from = from.map(to_i64).unwrap_or(-1);
-        let index = T::op_rfind(self.as_inner(), value.into_arg(), from);
-        // It's not documented, but `rfind` returns -1 if not found.
-        if index >= 0 {
-            Some(to_usize(index))
-        } else {
-            None
+    pub fn rfind(&self, value: impl AsArg<T>, from: Option<usize>) -> Option<usize>
+    where
+        T: PartialEq,
+    {
+        let slice = self.as_slice();
+        let from = from.unwrap_or_else(|| slice.len().saturating_sub(1));
+        if slice.is_empty() || from >= slice.len() {
+            return None;
         }
+
+        meta::arg_into_ref!(value: T);
+        slice[..=from].iter().rposition(|x| x == value)
     }
 
     /// Finds the index of an existing value in a _sorted_ array using binary search.
@@ -533,25 +545,34 @@ impl<T: PackedArrayElement> PackedArray<T> {
     /// If the value is not present in the array, returns the insertion index that would maintain sorting order.
     ///
     /// Calling `bsearch()` on an unsorted array results in unspecified (but safe) behavior.
-    pub fn bsearch(&self, value: impl AsArg<T>) -> usize {
-        // Note: bsearch in Godot requires mutable access but doesn't actually modify the array
-        // We cast away the const-ness as this is a Godot API limitation
+    pub fn bsearch(&self, value: impl AsArg<T>) -> usize
+    where
+        T: PartialOrd,
+    {
+        let slice = self.as_slice();
+        meta::arg_into_ref!(value: T);
 
-        let inner = self.as_inner();
-        to_usize(T::op_bsearch(inner, value.into_arg(), true))
+        match slice.binary_search_by(|x| x.partial_cmp(value).unwrap_or(cmp::Ordering::Less)) {
+            Ok(i) => i,
+            Err(i) => i,
+        }
     }
 
     /// Reverses the order of the elements in the array.
     pub fn reverse(&mut self) {
-        T::op_reverse(self.as_inner());
+        self.as_mut_slice().reverse();
     }
 
     /// Sorts the elements of the array in ascending order.
     ///
     /// This sort is [stable](https://en.wikipedia.org/wiki/Sorting_algorithm#Stability), since elements inside packed arrays are
     /// indistinguishable. Relative order between equal elements thus isn't observable.
-    pub fn sort(&mut self) {
-        T::op_sort(self.as_inner());
+    pub fn sort(&mut self)
+    where
+        T: PartialOrd,
+    {
+        self.as_mut_slice()
+            .sort_by(|a, b| a.partial_cmp(b).unwrap_or(cmp::Ordering::Less));
     }
 
     // Must remain internal. godot-rust convention is to use to_*, into_*, cast* for conversions between types of the library.
@@ -1114,6 +1135,12 @@ impl<T: PackedArrayElement + fmt::Display> fmt::Display for PackedArray<T> {
 macro_rules! declare_encode_decode {
     // $Via could be inferred, but ensures we have the correct type expectations.
     ($Ty:ty, $bytes:literal, $encode_fn:ident, $decode_fn:ident, $Via:ty) => {
+        declare_encode_decode!(@impl $Ty, $bytes, $encode_fn, $decode_fn, $Via, native);
+    };
+    (ffi $Ty:ty, $bytes:literal, $encode_fn:ident, $decode_fn:ident, $Via:ty) => {
+        declare_encode_decode!(@impl $Ty, $bytes, $encode_fn, $decode_fn, $Via, ffi);
+    };
+    (@impl $Ty:ty, $bytes:literal, $encode_fn:ident, $decode_fn:ident, $Via:ty, $mode:ident) => {
         #[doc = concat!("Encodes `", stringify!($Ty), "` as ", stringify!($bytes), " byte(s) at position `byte_offset`.")]
         ///
         /// Returns `Err` if there is not enough space left to write the value, and does nothing in that case.
@@ -1123,17 +1150,15 @@ macro_rules! declare_encode_decode {
         #[doc = concat!("[`", stringify!($Ty), "::to_be_bytes()`].")]
         #[track_caller]
         pub fn $encode_fn(&mut self, byte_offset: usize, value: $Ty) -> Result<(), CollectionError> {
-            // sys::static_assert!(std::mem::size_of::<$Ty>() == $bytes); -- used for testing, can't keep enabled due to half-floats.
-
-            if byte_offset + $bytes > self.len() {
+            let len = self.len();
+            if byte_offset + $bytes > len {
                 return Err(CollectionError::OutOfBounds {
                     index: byte_offset + $bytes,
-                    len: self.len(),
+                    len,
                 });
             }
 
-            self.as_inner()
-                .$encode_fn(to_i64(byte_offset), value as $Via);
+            declare_encode_decode!(@encode $mode, self, byte_offset, value, $encode_fn, $Ty, $Via);
             Ok(())
         }
 
@@ -1147,16 +1172,43 @@ macro_rules! declare_encode_decode {
         #[doc = concat!("[`", stringify!($Ty), "::from_be_bytes()`].")]
         #[track_caller]
         pub fn $decode_fn(&self, byte_offset: usize) -> Result<$Ty, CollectionError> {
-            if byte_offset + $bytes > self.len() {
+            let len = self.len();
+            if byte_offset + $bytes > len {
                 return Err(CollectionError::OutOfBounds {
                     index: byte_offset + $bytes,
-                    len: self.len(),
+                    len,
                 });
             }
 
-            let decoded: $Via = self.as_inner().$decode_fn(to_i64(byte_offset));
-            Ok(decoded as $Ty)
+            let decoded = declare_encode_decode!(@decode $mode, self, byte_offset, $decode_fn, $Ty, $Via);
+            Ok(decoded)
         }
+    };
+
+    (@encode native, $self:ident, $offset:ident, $value:ident, $fn:ident, $Ty:ty, $Via:ty) => {
+        let slice = $self.as_mut_slice();
+        // SAFETY: index checked above.
+        let ptr = unsafe { slice.as_mut_ptr().add($offset) as *mut $Ty };
+        unsafe {
+            ptr.write_unaligned($value);
+        }
+    };
+    (@encode ffi, $self:ident, $offset:ident, $value:ident, $fn:ident, $Ty:ty, $Via:ty) => {
+        $self.as_inner().$fn(to_i64($offset), $value as $Via);
+    };
+
+    (@decode native, $self:ident, $offset:ident, $fn:ident, $Ty:ty, $Via:ty) => {
+        {
+            let slice = $self.as_slice();
+            // SAFETY: index checked above.
+            let ptr = unsafe { slice.as_ptr().add($offset) as *const $Ty };
+            unsafe {
+                ptr.read_unaligned()
+            }
+        }
+    };
+    (@decode ffi, $self:ident, $offset:ident, $fn:ident, $Ty:ty, $Via:ty) => {
+        $self.as_inner().$fn(to_i64($offset)) as $Ty
     };
 }
 
@@ -1208,12 +1260,32 @@ impl PackedByteArray {
 impl PackedStringArray {
     /// Returns a string which is the concatenation of the array elements with the given `delimiter`.
     pub fn join(&self, delimiter: impl AsArg<GString>) -> GString {
-        use meta::GodotFfiVariant;
-        let variant = self.ffi_to_variant();
-        let method = crate::static_sname!(c"join");
+        let slice = self.as_slice();
+        if slice.is_empty() {
+            return GString::new();
+        }
+        if slice.len() == 1 {
+            return slice[0].clone();
+        }
+
         meta::arg_into_ref!(delimiter);
-        let result = variant.call(method, &[delimiter.to_variant()]);
-        result.to::<GString>()
+        let delim_chars = delimiter.chars();
+
+        let mut total_chars = 0;
+        for s in slice {
+            total_chars += s.len();
+        }
+        total_chars += delim_chars.len() * (slice.len() - 1);
+
+        let mut res_chars = Vec::with_capacity(total_chars);
+        for (i, s) in slice.iter().enumerate() {
+            if i > 0 {
+                res_chars.extend_from_slice(delim_chars);
+            }
+            res_chars.extend_from_slice(s.chars());
+        }
+
+        GString::from(res_chars.as_slice())
     }
 }
 
@@ -1249,7 +1321,7 @@ impl PackedByteArray {
     declare_encode_decode!(i32, 4, encode_s32, decode_s32, i64);
     declare_encode_decode!(u64, 8, encode_u64, decode_u64, i64);
     declare_encode_decode!(i64, 8, encode_s64, decode_s64, i64);
-    declare_encode_decode!(f32, 2, encode_half, decode_half, f64);
+    declare_encode_decode!(ffi f32, 2, encode_half, decode_half, f64);
     declare_encode_decode!(f32, 4, encode_float, decode_float, f64);
     declare_encode_decode!(f64, 8, encode_double, decode_double, f64);
 

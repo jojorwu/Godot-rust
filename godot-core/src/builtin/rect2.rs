@@ -212,6 +212,86 @@ impl Rect2 {
             && point.y < self.position.y + self.size.y
     }
 
+    /// Returns the point where this bounding box and the given segment intersect.
+    ///
+    /// # Panics (Debug)
+    /// If `self.size` is negative.
+    ///
+    /// _Godot equivalent: `intersects_segment`_
+    #[inline]
+    #[track_caller]
+    pub fn intersect_segment(self, from: Vector2, to: Vector2) -> Option<Vector2> {
+        self.assert_nonnegative();
+
+        let mut min: real = 0.0;
+        let mut max: real = 1.0;
+
+        for i in 0..2 {
+            let seg_from = from[i];
+            let seg_to = to[i];
+            let box_begin = self.position[i];
+            let box_end = self.position[i] + self.size[i];
+            let cmin;
+            let cmax;
+
+            if seg_from < seg_to {
+                if seg_from > box_end || seg_to < box_begin {
+                    return None;
+                }
+                let length = seg_to - seg_from;
+                cmin = if seg_from < box_begin {
+                    (box_begin - seg_from) / length
+                } else {
+                    0.0
+                };
+                cmax = if seg_to > box_end {
+                    (box_end - seg_from) / length
+                } else {
+                    1.0
+                };
+            } else {
+                if seg_to > box_end || seg_from < box_begin {
+                    return None;
+                }
+                let length = seg_to - seg_from;
+                cmin = if seg_from > box_end {
+                    (box_end - seg_from) / length
+                } else {
+                    0.0
+                };
+                cmax = if seg_to < box_begin {
+                    (box_begin - seg_from) / length
+                } else {
+                    1.0
+                };
+            }
+
+            if cmin > min {
+                min = cmin;
+            }
+            if cmax < max {
+                max = cmax;
+            }
+            if min > max {
+                return None;
+            }
+        }
+
+        Some(from + (to - from) * min)
+    }
+
+    /// Returns `true` if this bounding box and the given segment intersect.
+    ///
+    /// # Panics (Debug)
+    /// If `self.size` is negative.
+    ///
+    /// _Godot equivalent: `bool(intersects_segment(from, to))`_
+    #[inline]
+    #[track_caller]
+    pub fn intersects_segment(self, from: Vector2, to: Vector2) -> bool {
+        self.intersect_segment(from, to).is_some()
+    }
+
     /// Returns the intersection of this Rect2 and `b`. If the rectangles do not intersect, an empty Rect2 is returned.
     #[inline]
     #[track_caller]
@@ -362,6 +442,24 @@ impl_geometric_interop!(Rect2, (Vector2, Vector2),
 
 #[cfg(test)]
 mod test {
+    use super::*;
+
+    #[test]
+    fn intersect_segment() {
+        let rect = Rect2::new(Vector2::ZERO, Vector2::new(10.0, 10.0));
+        let from = Vector2::new(-5.0, 5.0);
+        let to = Vector2::new(5.0, 5.0);
+
+        assert_eq!(
+            rect.intersect_segment(from, to),
+            Some(Vector2::new(0.0, 5.0))
+        );
+
+        let from_outside = Vector2::new(-5.0, -5.0);
+        let to_outside = Vector2::new(-1.0, -1.0);
+        assert_eq!(rect.intersect_segment(from_outside, to_outside), None);
+    }
+
     #[cfg(feature = "serde")]
     #[test]
     fn serde_roundtrip() {

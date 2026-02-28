@@ -7,10 +7,12 @@
 
 mod approx_eq;
 mod float;
+mod geometry;
 mod glam_helpers;
 mod xform;
 
 pub use approx_eq::ApproxEq;
+pub use geometry::{Geometry2D, Geometry3D};
 pub use float::FloatExt;
 
 /// Wraps `value` between `min` and `max`.
@@ -26,6 +28,23 @@ pub fn wrapi(value: i64, min: i64, max: i64) -> i64 {
         result += range;
     }
     result + min
+}
+
+/// Returns the smallest power of 2 that is greater than or equal to `value`.
+///
+/// _Godot equivalent: @GlobalScope.nearest_po2()_
+pub fn nearest_po2(mut value: i64) -> i64 {
+    if value <= 0 {
+        return 0;
+    }
+    value -= 1;
+    value |= value >> 1;
+    value |= value >> 2;
+    value |= value >> 4;
+    value |= value >> 8;
+    value |= value >> 16;
+    value |= value >> 32;
+    value + 1
 }
 
 // Internal glam re-exports
@@ -44,5 +63,20 @@ mod test {
         assert_ne_approx!(1.0, 2.0);
         assert_eq_approx!(1.0, 1.000001, "Message {}", "formatted");
         assert_ne_approx!(1.0, 2.0, "Message {}", "formatted");
+    }
+}
+
+#[cfg(test)]
+mod test_nearest_po2 {
+    use super::*;
+
+    #[test]
+    fn nearest_po2_test() {
+        assert_eq!(nearest_po2(3), 4);
+        assert_eq!(nearest_po2(4), 4);
+        assert_eq!(nearest_po2(5), 8);
+        assert_eq!(nearest_po2(0), 0);
+        assert_eq!(nearest_po2(-5), 0);
+        assert_eq!(nearest_po2(1000), 1024);
     }
 }

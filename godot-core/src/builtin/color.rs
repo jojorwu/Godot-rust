@@ -98,9 +98,104 @@ impl Color {
     /// - `#RGB` and `RGB`. Equivalent to `#RRGGBBff`.
     ///
     /// Returns `None` if the format is invalid.
+    ///
+    /// _Godot equivalent: `Color.from_html()`_
     pub fn from_html<S: AsArg<GString>>(html: S) -> Option<Self> {
         arg_into_ref!(html);
-        InnerColor::html_is_valid(html).then(|| InnerColor::html(html))
+        Self::from_html_chars(html.chars())
+    }
+
+    /// Constructs a `Color` from an HTML color code string, using a `&str`.
+    ///
+    /// See [`Color::from_html()`] for more details.
+    #[inline]
+    pub fn from_html_str(html: &str) -> Option<Self> {
+        let chars: Vec<char> = html.chars().collect();
+        Self::from_html_chars(&chars)
+    }
+
+    fn from_html_chars(chars: &[char]) -> Option<Self> {
+        if !Self::html_is_valid_chars(chars) {
+            return None;
+        }
+
+        let start = if !chars.is_empty() && chars[0] == '#' {
+            1
+        } else {
+            0
+        };
+        let hex = &chars[start..];
+        let len = hex.len();
+
+        let mut r = 0.0;
+        let mut g = 0.0;
+        let mut b = 0.0;
+        let mut a = 1.0;
+
+        let parse_hex = |c: char| c.to_digit(16);
+
+        if len == 3 || len == 4 {
+            r = parse_hex(hex[0])? as f32 / 15.0;
+            g = parse_hex(hex[1])? as f32 / 15.0;
+            b = parse_hex(hex[2])? as f32 / 15.0;
+            if len == 4 {
+                a = parse_hex(hex[3])? as f32 / 15.0;
+            }
+        } else if len == 6 || len == 8 {
+            let parse_byte = |s: &[char]| -> Option<f32> {
+                let hi = parse_hex(s[0])?;
+                let lo = parse_hex(s[1])?;
+                Some((hi * 16 + lo) as f32 / 255.0)
+            };
+
+            r = parse_byte(&hex[0..2])?;
+            g = parse_byte(&hex[2..4])?;
+            b = parse_byte(&hex[4..6])?;
+            if len == 8 {
+                a = parse_byte(&hex[6..8])?;
+            }
+        }
+
+        Some(Color::from_rgba(r, g, b, a))
+    }
+
+    /// Returns `true` if `color` is a valid HTML color code string.
+    ///
+    /// _Godot equivalent: `Color.html_is_valid()`_
+    pub fn html_is_valid<S: AsArg<GString>>(color: S) -> bool {
+        arg_into_ref!(color);
+        Self::html_is_valid_chars(color.chars())
+    }
+
+    /// Returns `true` if `html` is a valid HTML color code string, using a `&str`.
+    ///
+    /// See [`Color::html_is_valid()`] for more details.
+    #[inline]
+    pub fn html_is_valid_str(html: &str) -> bool {
+        let chars: Vec<char> = html.chars().collect();
+        Self::html_is_valid_chars(&chars)
+    }
+
+    fn html_is_valid_chars(chars: &[char]) -> bool {
+        if chars.is_empty() {
+            return false;
+        }
+
+        let start = if chars[0] == '#' { 1 } else { 0 };
+        let hex = &chars[start..];
+        let len = hex.len();
+
+        if ![3, 4, 6, 8].contains(&len) {
+            return false;
+        }
+
+        for &c in hex {
+            if !c.is_ascii_hexdigit() {
+                return false;
+            }
+        }
+
+        true
     }
 
     /// Constructs a `Color` from a string, which can be either:
@@ -117,6 +212,9 @@ impl Color {
     ///
     /// [color_constants]: https://docs.godotengine.org/en/latest/classes/class_color.html#constants
     /// [cheat_sheet]: https://raw.githubusercontent.com/godotengine/godot-docs/master/img/color_constants.png
+    ///
+    /// _Godot equivalent: `Color.from_string()`_
+    #[inline]
     pub fn from_string(string: impl AsArg<GString>) -> Option<Self> {
         arg_into_ref!(string);
 
@@ -133,29 +231,69 @@ impl Color {
         }
     }
 
-    /// Constructs a `Color` from an [HSV profile](https://en.wikipedia.org/wiki/HSL_and_HSV) using
-    /// [Godot's builtin method](https://docs.godotengine.org/en/stable/classes/class_color.html#class-color-method-from-hsv).
+    /// Constructs a `Color` from an [HSV profile](https://en.wikipedia.org/wiki/HSL_and_HSV).
+    ///
     /// The hue (`h`), saturation (`s`), and value (`v`) are typically between 0.0 and 1.0. Alpha is set to 1; use [`Color::with_alpha`]
     /// to change it.
     ///
     /// See also: [`ColorHsv::to_rgb`] for fast conversion on Rust side.
+    ///
+    /// _Godot equivalent: `Color.from_hsv()`_
+    #[inline]
     pub fn from_hsv(h: f64, s: f64, v: f64) -> Self {
-        InnerColor::from_hsv(h, s, v, 1.0)
+        let h = h as f32;
+        let s = s as f32;
+        let v = v as f32;
+
+        if s == 0.0 {
+            return Color::from_rgb(v, v, v);
+        }
+
+        let h = (h * 6.0).rem_euclid(6.0);
+        let i = h.floor() as i32;
+        let f = h - i as f32;
+        let p = v * (1.0 - s);
+        let q = v * (1.0 - s * f);
+        let t = v * (1.0 - s * (1.0 - f));
+
+        match i {
+            0 => Color::from_rgb(v, t, p),
+            1 => Color::from_rgb(q, v, p),
+            2 => Color::from_rgb(p, v, t),
+            3 => Color::from_rgb(p, q, v),
+            4 => Color::from_rgb(t, p, v),
+            _ => Color::from_rgb(v, p, q),
+        }
     }
 
-    /// Constructs a `Color` from an [OK HSL
-    /// profile](https://bottosson.github.io/posts/colorpicker/). The hue (`h`), saturation (`s`),
-    /// and lightness (`l`) are typically between 0.0 and 1.0. Alpha is set to 1; use
+    /// Constructs a `Color` from an [OK HSL profile](https://bottosson.github.io/posts/colorpicker/).
+    ///
+    /// The hue (`h`), saturation (`s`), and lightness (`l`) are typically between 0.0 and 1.0. Alpha is set to 1; use
     /// [`Color::with_alpha`] to change it.
+    ///
+    /// _Godot equivalent: `Color.from_ok_hsl()`_
+    #[inline]
     pub fn from_ok_hsl(h: f64, s: f64, l: f64) -> Self {
+        // Source: https://bottosson.github.io/posts/colorpicker/
+        //
+        // This is a complex transformation involving multiple matrices and non-linearities.
+        // For now, we delegate to the engine to ensure accuracy and avoid large constant matrices in code.
         InnerColor::from_ok_hsl(h, s, l, 1.0)
     }
 
     /// Constructs a `Color` from an RGBE9995 format integer. This is a special OpenGL texture
     /// format where the three color components have 9 bits of precision and all three share a
     /// single 5-bit exponent.
+    ///
+    /// _Godot equivalent: `Color.from_rgbe9995()`_
+    #[inline]
     pub fn from_rgbe9995(rgbe: u32) -> Self {
-        InnerColor::from_rgbe9995(i64::from(rgbe))
+        let r = (rgbe & 0x1ff) as f32;
+        let g = ((rgbe >> 9) & 0x1ff) as f32;
+        let b = ((rgbe >> 18) & 0x1ff) as f32;
+        let e = ((rgbe >> 27) & 0x1f) as f32;
+        let exp = 2.0f32.powf(e - 15.0 - 9.0);
+        Color::from_rgb(r * exp, g * exp, b * exp)
     }
 
     /// Returns a copy of this color with the given alpha value. Useful for chaining with
@@ -210,26 +348,47 @@ impl Color {
         self.a = from_u8(a);
     }
 
-    /// Returns the light intensity of the color, as a value between 0.0 and 1.0 (inclusive). This
-    /// is useful when determining whether a color is light or dark. Colors with a luminance
-    /// smaller than 0.5 can be generally considered dark.
+    /// Returns the light intensity of the color, as a value between 0.0 and 1.0 (inclusive).
     ///
-    /// Note: `luminance` relies on the color being in the linear color space to return an
-    /// accurate relative luminance value. If the color is in the sRGB color space, use
-    /// [`Color::srgb_to_linear`] to convert it to the linear color space first.
+    /// This is useful when determining whether a color is light or dark. Colors with a luminance smaller than 0.5 can be generally
+    /// considered dark.
+    ///
+    /// Note: `luminance` relies on the color being in the linear color space to return an accurate relative luminance value. If the color
+    /// is in the sRGB color space, use [`Color::srgb_to_linear`] to convert it to the linear color space first.
+    ///
+    /// _Godot equivalent: `Color.get_luminance()`_
+    #[inline]
     pub fn luminance(self) -> f64 {
-        self.as_inner().get_luminance()
+        f64::from(0.2126 * self.r + 0.7152 * self.g + 0.0722 * self.b)
     }
 
     /// Blends the given color on top of this color, taking its alpha into account.
+    ///
+    /// _Godot equivalent: `Color.blend()`_
     #[must_use]
+    #[inline]
     pub fn blend(self, over: Color) -> Self {
-        self.as_inner().blend(over)
+        let mut res = Color::default();
+        let sa = over.a;
+        let da = self.a * (1.0 - sa);
+        let a = sa + da;
+        if a <= 0.0 {
+            return Color::from_rgba(0.0, 0.0, 0.0, 0.0);
+        } else {
+            res.r = (over.r * sa + self.r * da) / a;
+            res.g = (over.g * sa + self.g * da) / a;
+            res.b = (over.b * sa + self.b * da) / a;
+            res.a = a;
+        }
+        res
     }
 
     /// Returns the linear interpolation between `self`'s components and `to`'s components. The
     /// interpolation factor `weight` should be between 0.0 and 1.0 (inclusive).
+    ///
+    /// _Godot equivalent: `Color.lerp()`_
     #[must_use]
+    #[inline]
     pub fn lerp(self, to: Color, weight: f64) -> Self {
         let weight = weight as f32;
         Self {
@@ -241,58 +400,140 @@ impl Color {
     }
 
     /// Returns a new color with all components clamped between the components of `min` and `max`.
+    ///
+    /// _Godot equivalent: `Color.clamp()`_
     #[must_use]
+    #[inline]
     pub fn clamp(self, min: Color, max: Color) -> Self {
-        self.as_inner().clamp(min, max)
+        Color {
+            r: self.r.clamp(min.r, max.r),
+            g: self.g.clamp(min.g, max.g),
+            b: self.b.clamp(min.b, max.b),
+            a: self.a.clamp(min.a, max.a),
+        }
     }
 
     /// Creates a new color resulting by making this color darker by the specified amount (ratio
     /// from 0.0 to 1.0). See also [`lightened`][Self::lightened].
+    ///
+    /// _Godot equivalent: `Color.darkened()`_
     #[must_use]
+    #[inline]
     pub fn darkened(self, amount: f64) -> Self {
-        self.as_inner().darkened(amount)
+        let amount = amount as f32;
+        Color {
+            r: self.r * (1.0 - amount),
+            g: self.g * (1.0 - amount),
+            b: self.b * (1.0 - amount),
+            a: self.a,
+        }
     }
 
     /// Creates a new color resulting by making this color lighter by the specified amount, which
     /// should be a ratio from 0.0 to 1.0. See also [`darkened`][Self::darkened].
+    ///
+    /// _Godot equivalent: `Color.lightened()`_
     #[must_use]
+    #[inline]
     pub fn lightened(self, amount: f64) -> Self {
-        self.as_inner().lightened(amount)
+        let amount = amount as f32;
+        Color {
+            r: self.r + (1.0 - self.r) * amount,
+            g: self.g + (1.0 - self.g) * amount,
+            b: self.b + (1.0 - self.b) * amount,
+            a: self.a,
+        }
     }
 
     /// Returns the color with its `r`, `g`, and `b` components inverted:
     /// `Color::from_rgba(1 - r, 1 - g, 1 - b, a)`.
+    ///
+    /// _Godot equivalent: `Color.inverted()`_
     #[must_use]
+    #[inline]
     pub fn inverted(self) -> Self {
-        self.as_inner().inverted()
+        Color {
+            r: 1.0 - self.r,
+            g: 1.0 - self.g,
+            b: 1.0 - self.b,
+            a: self.a,
+        }
     }
 
     /// Returns the color converted to the [sRGB](https://en.wikipedia.org/wiki/SRGB) color space.
+    ///
     /// This method assumes the original color is in the linear color space. See also
     /// [`Color::srgb_to_linear`] which performs the opposite operation.
+    /// This method assumes the original color is in the linear color space. See also
+    /// [`Color::srgb_to_linear`] which performs the opposite operation.
+    ///
+    /// _Godot equivalent: `Color.linear_to_srgb()`_
     #[must_use]
+    #[inline]
     pub fn linear_to_srgb(self) -> Self {
-        self.as_inner().linear_to_srgb()
+        fn f(c: f32) -> f32 {
+            if c <= 0.0031308 {
+                12.92 * c
+            } else {
+                1.055 * c.powf(1.0 / 2.4) - 0.055
+            }
+        }
+        Color {
+            r: f(self.r),
+            g: f(self.g),
+            b: f(self.b),
+            a: self.a,
+        }
     }
 
-    /// Returns the color converted to the linear color space. This method assumes the original
-    /// color is in the sRGB color space. See also [`Color::linear_to_srgb`] which performs the
-    /// opposite operation.
+    /// Returns the color converted to the linear color space.
+    ///
+    /// This method assumes the original color is in the sRGB color space. See also [`Color::linear_to_srgb`]
+    /// which performs the opposite operation.
+    ///
+    /// _Godot equivalent: `Color.srgb_to_linear()`_
     #[must_use]
+    #[inline]
     pub fn srgb_to_linear(self) -> Self {
-        self.as_inner().srgb_to_linear()
+        fn f(c: f32) -> f32 {
+            if c <= 0.04045 {
+                c / 12.92
+            } else {
+                ((c + 0.055) / 1.055).powf(2.4)
+            }
+        }
+        Color {
+            r: f(self.r),
+            g: f(self.g),
+            b: f(self.b),
+            a: self.a,
+        }
     }
 
     /// Returns the HTML color code representation of this color, as 8 lowercase hex digits in the
     /// order `RRGGBBAA`, without the `#` prefix.
+    /// order `RRGGBBAA`, without the `#` prefix.
+    ///
+    /// _Godot equivalent: `Color.to_html(true)`_
+    #[inline]
     pub fn to_html(self) -> GString {
-        self.as_inner().to_html(true)
+        format!(
+            "{:02x}{:02x}{:02x}{:02x}",
+            self.r8(),
+            self.g8(),
+            self.b8(),
+            self.a8()
+        )
+        .into()
     }
 
     /// Returns the HTML color code representation of this color, as 6 lowercase hex digits in the
     /// order `RRGGBB`, without the `#` prefix. The alpha channel is ignored.
+    ///
+    /// _Godot equivalent: `Color.to_html(false)`_
+    #[inline]
     pub fn to_html_without_alpha(self) -> GString {
-        self.as_inner().to_html(false)
+        format!("{:02x}{:02x}{:02x}", self.r8(), self.g8(), self.b8()).into()
     }
 
     /// Returns the color converted to a 32-bit integer (each component is 8 bits) with the given
@@ -370,10 +611,6 @@ impl Color {
             std::any::type_name::<Self>(),
             self
         );
-    }
-
-    fn as_inner(&self) -> InnerColor<'_> {
-        InnerColor::from_outer(self)
     }
 
     /// Returns `true` if this color and `other` are approximately equal.

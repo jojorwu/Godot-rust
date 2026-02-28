@@ -165,6 +165,14 @@ impl ClassId {
         self.global_index == 0
     }
 
+    /// Returns `true` if this `ClassId` was created at runtime (e.g. for `Object` or via `new_dynamic`).
+    #[doc(hidden)]
+    pub fn is_dynamic(&self) -> bool {
+        let cache = CLASS_ID_CACHE.lock();
+        let entry = cache.get_entry(to_usize(i64::from(self.global_index)));
+        entry.is_dynamic
+    }
+
     /// Returns the class name as a `GString`.
     pub fn to_gstring(&self) -> GString {
         self.with_string_name(|s| s.into())
@@ -260,18 +268,20 @@ impl fmt::Debug for ClassId {
 struct ClassIdEntry {
     rust_str: CowStr,
     godot_str: OnceLock<StringName>,
+    is_dynamic: bool,
 }
 
 impl ClassIdEntry {
-    const fn new(rust_str: CowStr) -> Self {
+    fn new(rust_str: CowStr, is_dynamic: bool) -> Self {
         Self {
             rust_str,
             godot_str: OnceLock::new(),
+            is_dynamic,
         }
     }
 
     fn none() -> Self {
-        Self::new(Cow::Borrowed(""))
+        Self::new(Cow::Borrowed(""), true)
     }
 }
 
@@ -340,7 +350,8 @@ impl ClassIdCache {
                 panic!("ClassId cache exceeded maximum capacity of 65536 entries")
             });
 
-        self.entries.push(ClassIdEntry::new(source.clone()));
+        let is_dynamic = type_id.is_none();
+        self.entries.push(ClassIdEntry::new(source.clone(), is_dynamic));
         self.string_to_index
             .insert(source.into_owned(), global_index);
 

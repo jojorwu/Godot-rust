@@ -59,4 +59,32 @@ impl ComputePipeline {
             self.rd.sync();
         }
     }
+
+    /// Optimized path for frequent data updates.
+    /// Returns the underlying RenderingDevice.
+    pub fn rd(&self) -> &Gd<RenderingDevice> {
+        &self.rd
+    }
+
+    /// Executes a batch of commands.
+    pub fn execute_batch<F>(&mut self, f: F)
+    where
+        F: FnOnce(&mut RenderingDevice),
+    {
+        f(&mut *self.rd)
+    }
+
+    /// Insert a full memory barrier.
+    pub fn full_barrier(&mut self) {
+        self.rd.full_barrier();
+    }
+
+    /// Insert a specific memory barrier.
+    pub fn barrier(
+        &mut self,
+        from: crate::classes::rendering_device::BarrierMask,
+        to: crate::classes::rendering_device::BarrierMask,
+    ) {
+        self.rd.barrier(from, to);
+    }
 }

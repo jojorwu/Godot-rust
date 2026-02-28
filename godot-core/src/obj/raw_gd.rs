@@ -68,7 +68,11 @@ impl<T: GodotClass> RawGd<T> {
             #[cfg(safeguards_strict)]
             let rtti = Some(ObjectRtti::from_obj_sys(obj, instance_id));
             #[cfg(not(safeguards_strict))]
-            let rtti = Some(ObjectRtti::of::<T>(instance_id));
+            let rtti = if T::class_id().is_dynamic() {
+                Some(ObjectRtti::from_obj_sys(obj, instance_id))
+            } else {
+                Some(ObjectRtti::of::<T>(instance_id))
+            };
             rtti
         };
 
@@ -126,8 +130,13 @@ impl<T: GodotClass> RawGd<T> {
     /// Returns true if the object's dynamic type is `U` or a subclass of `U`.
     #[inline]
     pub(crate) fn is_instance_of<U: GodotClass>(&self) -> bool {
-        self.is_null() // Null can be cast to anything.
-            || self.as_object_ref().is_class(&U::class_id().to_gstring())
+        if self.is_null() {
+            return true;
+        }
+
+        // SAFETY: we checked is_null() above.
+        let rtti = unsafe { self.cached_rtti.as_ref().unwrap_unchecked() };
+        rtti.is_type::<U>()
     }
 
     // See use-site for explanation.
@@ -221,8 +230,20 @@ impl<T: GodotClass> RawGd<T> {
         self.check_rtti("ffi_cast");
 
         let cast_object_ptr = unsafe {
-            let class_tag = interface_fn!(classdb_get_class_tag)(U::class_id().string_sys());
-            interface_fn!(object_cast_to)(self.obj_sys(), class_tag)
+            struct ClassTag(*mut std::ffi::c_void);
+            unsafe impl Send for ClassTag {}
+            unsafe impl Sync for ClassTag {}
+
+            static CLASS_TAGS: sys::Global<std::collections::HashMap<ClassId, ClassTag>> =
+                sys::Global::new(std::collections::HashMap::new);
+
+            let class_id = U::class_id();
+            let mut tags = CLASS_TAGS.lock();
+            let class_tag = tags.entry(class_id).or_insert_with(|| {
+                ClassTag(interface_fn!(classdb_get_class_tag)(class_id.string_sys()))
+            });
+
+            interface_fn!(object_cast_to)(self.obj_sys(), class_tag.0)
         };
 
         if cast_object_ptr.is_null() {
@@ -445,10 +466,7 @@ impl<T: GodotClass> RawGd<T> {
 
         let is_alive = instance_id.lookup_validity();
 
-        #[cfg(safeguards_strict)]
         let type_ok = self.cached_rtti.as_ref().unwrap().is_type::<T>();
-        #[cfg(not(safeguards_strict))]
-        let type_ok = true;
 
         if !is_alive || !type_ok {
             self.check_rtti_slow(method_name);
@@ -791,9 +809,21 @@ impl<T: GodotClass> GodotFfiVariant for RawGd<T> {
             return Err(FromVariantError::DeadObject.into_error(variant.clone()));
         }
 
+        #[cfg(since_api = "4.4")]
+        let raw = {
+            let instance_id = variant.object_id_unchecked().unwrap(); // safe because is_object_alive was checked.
+            let ptr = classes::object_ptr_from_id(instance_id);
+            if ptr.is_null() {
+                return Err(FromVariantError::DeadObject.into_error(variant.clone()));
+            }
+            // SAFETY: ptr is valid (checked above).
+            unsafe { RawGd::<classes::Object>::from_obj_sys(ptr) }
+        };
+
+        #[cfg(before_api = "4.4")]
         let raw = unsafe {
             // Uses RawGd<Object> and not Self, because Godot still allows illegal conversions. We thus check with manual casting later on.
-            // See https://github.com/godot-rust/gdext/issues/158.
+            // See https://github.com/godotengine/godot/issues/158.
 
             RawGd::<classes::Object>::new_with_uninit(|self_ptr| {
                 let converter = sys::builtin_fn!(object_from_variant);

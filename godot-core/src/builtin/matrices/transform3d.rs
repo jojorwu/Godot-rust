@@ -143,6 +143,14 @@ impl Transform3D {
         self.glam(|aff| aff.inverse())
     }
 
+    /// Returns a copy of the transform rotated such that the forward axis (-Z) points towards the `target` position.
+    ///
+    /// _Godot equivalent: `Transform3D.looking_at(Vector3 target, Vector3 up, bool use_model_front)`_
+    pub fn looking_at(&self, target: Vector3, up: Vector3, use_model_front: bool) -> Self {
+        let basis = Basis::looking_at(target - self.origin, up, use_model_front);
+        Self::new(basis, self.origin)
+    }
+
     /// Returns a transform interpolated between this transform and another by
     /// a given weight (on the range of 0.0 to 1.0).
     #[must_use]
@@ -231,7 +239,7 @@ impl Transform3D {
     /// with a corresponding scaling transform `S` from the left, i.e., `S * X`.
     /// This can be seen as transforming with respect to the global/parent frame.
     ///
-    /// _Godot equivalent: `Transform2D.scaled()`_
+    /// _Godot equivalent: `Transform3D.scaled()`_
     #[must_use]
     #[inline]
     pub fn scaled(&self, scale: Vector3) -> Self {
@@ -246,7 +254,7 @@ impl Transform3D {
     /// with a corresponding scaling transform `S` from the right, i.e., `X * S`.
     /// This can be seen as transforming with respect to the local frame.
     ///
-    /// _Godot equivalent: `Transform2D.scaled_local()`_
+    /// _Godot equivalent: `Transform3D.scaled_local()`_
     #[must_use]
     #[inline]
     pub fn scaled_local(&self, scale: Vector3) -> Self {
@@ -631,6 +639,17 @@ mod test {
         let expected_json = "{\"basis\":{\"rows\":[{\"x\":1.0,\"y\":0.0,\"z\":0.0},{\"x\":0.0,\"y\":1.0,\"z\":0.0},{\"x\":0.0,\"y\":0.0,\"z\":1.0}]},\"origin\":{\"x\":0.0,\"y\":0.0,\"z\":0.0}}";
 
         crate::builtin::test_utils::roundtrip(&transform, expected_json);
+    }
+
+    #[test]
+    fn looking_at() {
+        use crate::builtin::math::assert_eq_approx;
+
+        let t = Transform3D::IDENTITY.looking_at(Vector3::FORWARD, Vector3::UP, false);
+        assert_eq_approx!(t.basis.col_c(), Vector3::BACK);
+
+        let t2 = Transform3D::IDENTITY.looking_at(Vector3::RIGHT, Vector3::UP, false);
+        assert_eq_approx!(t2.basis.col_c(), Vector3::LEFT);
     }
 
     #[test]

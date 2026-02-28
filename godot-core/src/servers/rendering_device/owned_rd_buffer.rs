@@ -49,4 +49,11 @@ impl OwnedRdBuffer {
         let mut rd = self.server.clone();
         rd.buffer_get_data(self.rid)
     }
+
+    /// Clears the buffer data (sets to zero).
+    #[track_caller]
+    pub fn clear(&mut self) {
+        let mut rd = self.server.clone();
+        rd.buffer_clear(self.rid, 0, crate::builtin::to_u32(rd.buffer_get_data(self.rid).len() as u64));
+    }
 }

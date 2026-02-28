@@ -13,7 +13,7 @@ use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{FloatExt, GlamConv, GlamType};
 use crate::builtin::vectors::Vector3Axis;
-use crate::builtin::{inner, real, Basis, RVec3, Vector2, Vector3i};
+use crate::builtin::{real, Basis, RVec3, Vector2, Vector3i};
 
 /// Vector used for 3D math using floating point coordinates.
 ///
@@ -93,12 +93,6 @@ impl_vector_fns!(Vector3, RVec3, real, (x, y, z));
 
 /// # Specialized `Vector3` functions
 impl Vector3 {
-    #[doc(hidden)]
-    #[inline]
-    pub fn as_inner(&self) -> inner::InnerVector3<'_> {
-        inner::InnerVector3::from_outer(self)
-    }
-
     /// Returns the cross product of this vector and `with`.
     ///
     /// This returns a vector perpendicular to both this and `with`, which would be the normal vector of the plane
@@ -135,7 +129,12 @@ impl Vector3 {
     #[inline]
     #[track_caller]
     pub fn octahedron_encode(self) -> Vector2 {
-        assert!(self.is_normalized(), "vector is not normalized!");
+        assert!(
+            self.is_normalized(),
+            "{}::octahedron_encode(): vector is not normalized (self={:?})",
+            std::any::type_name::<Self>(),
+            self
+        );
 
         let mut n = self;
         n /= n.x.abs() + n.y.abs() + n.z.abs();
@@ -169,10 +168,17 @@ impl Vector3 {
     ///
     /// # Panics
     /// If `axis` is not normalized.
+    ///
+    /// _Godot equivalent: `Vector3.rotated()`_
     #[inline]
     #[track_caller]
     pub fn rotated(self, axis: Self, angle: real) -> Self {
-        assert!(axis.is_normalized(), "axis is not normalized!");
+        assert!(
+            axis.is_normalized(),
+            "{}::rotated(): axis is not normalized (axis={:?})",
+            std::any::type_name::<Self>(),
+            axis
+        );
         Basis::from_axis_angle(axis, angle) * self
     }
 
@@ -181,7 +187,7 @@ impl Vector3 {
     /// Note that behavior is different from 2D [`Vector2::angle_to()`], which returns the **signed** angle.
     #[inline]
     pub fn angle_to(self, to: Self) -> real {
-        self.glam2(&to, |a, b| a.angle_between(b))
+        real::atan2(self.cross(to).length(), self.dot(to))
     }
 
     /// Returns the signed angle to the given vector, as radians in `[-π, +π]`.
@@ -239,7 +245,7 @@ impl Vector3 {
 
 impl_float_vector_fns!(Vector3, Vector3i, (x, y, z));
 impl_vector3x_fns!(Vector3, Vector2, real);
-impl_vector2_vector3_fns!(Vector3, (x, y, z));
+impl_float_vector_geom_fns!(Vector3, (x, y, z));
 impl_vector3_vector4_fns!(Vector3, (x, y, z));
 
 impl_vector_operators!(Vector3, real, (x, y, z));
@@ -326,6 +332,24 @@ mod test {
     fn sign() {
         let vector = Vector3::new(0.2, -0.5, 0.0);
         assert_eq!(vector.sign(), Vector3::new(1., -1., 0.));
+    }
+
+    #[test]
+    fn test_geometric() {
+        let v = Vector3::new(1.0, -1.0, 2.0);
+        let n = Vector3::new(0.0, 1.0, 0.0);
+
+        // reflect(v, n) = 2 * n * v.dot(n) - v
+        // v.dot(n) = -1.0
+        // 2 * (0, 1, 0) * -1 - (1, -1, 2) = (0, -2, 0) - (1, -1, 2) = (-1, -1, -2)
+        assert_eq_approx!(v.reflect(n), Vector3::new(-1.0, -1.0, -2.0));
+        assert_eq_approx!(v.bounce(n), Vector3::new(1.0, 1.0, 2.0));
+        assert_eq_approx!(v.slide(n), Vector3::new(1.0, 0.0, 2.0));
+
+        assert_eq_approx!(
+            Vector3::new(10.0, 10.0, 10.0).limit_length(5.0).length(),
+            5.0
+        );
     }
 
     #[test]

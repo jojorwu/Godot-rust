@@ -23,7 +23,7 @@ impl OwnedRdVertexArray {
         server: &crate::obj::Gd<RenderingDevice>,
         vertex_count: u32,
         vertex_format: i64,
-        src_buffers: &Array<Rid>,
+        src_buffers: impl crate::meta::AsArg<crate::builtin::Array<crate::builtin::Rid>>,
     ) -> Self {
         let mut server = server.clone();
         let rid = server.vertex_array_create(vertex_count, vertex_format, src_buffers);
@@ -36,15 +36,15 @@ impl OwnedRdVertexArray {
         server: &crate::obj::Gd<RenderingDevice>,
         vertex_count: u32,
         vertex_format: i64,
-        src_buffers: &Array<Rid>,
-        offsets: &PackedInt64Array,
+        src_buffers: impl crate::meta::AsArg<crate::builtin::Array<crate::builtin::Rid>>,
+        offsets: impl crate::meta::AsArg<crate::builtin::PackedInt64Array>,
     ) -> Self {
         let mut server = server.clone();
         let rid = server.vertex_array_create_full(
             vertex_count,
             vertex_format,
-            src_buffers.to_ffi(),
-            offsets.to_ffi(),
+            src_buffers,
+            offsets,
         );
         unsafe { Self::from_rid(rid, server) }
     }

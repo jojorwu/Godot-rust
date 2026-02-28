@@ -717,45 +717,6 @@ macro_rules! impl_float_vector_fns {
                 Self::from_glam(self.to_glam().ceil())
             }
 
-            /// Cubic interpolation between `self` and `b` using `pre_a` and `post_b` as handles,
-            /// and returns the result at position `weight`.
-            ///
-            /// `weight` is on the range of 0.0 to 1.0, representing the amount of interpolation.
-            #[inline]
-            pub fn cubic_interpolate(self, b: Self, pre_a: Self, post_b: Self, weight: real) -> Self {
-                Self::new(
-                    $(
-                        self.$comp.cubic_interpolate(b.$comp, pre_a.$comp, post_b.$comp, weight)
-                    ),*
-                )
-            }
-
-            /// Cubic interpolation between `self` and `b` using `pre_a` and `post_b` as handles,
-            /// and returns the result at position `weight`.
-            ///
-            /// `weight` is on the range of 0.0 to 1.0, representing the amount of interpolation.
-            /// It can perform smoother interpolation than [`cubic_interpolate()`][Self::cubic_interpolate] by the time values.
-            #[inline]
-            #[allow(clippy::too_many_arguments)]
-            pub fn cubic_interpolate_in_time(
-                self,
-                b: Self,
-                pre_a: Self,
-                post_b: Self,
-                weight: real,
-                b_t: real,
-                pre_a_t: real,
-                post_b_t: real,
-            ) -> Self {
-                Self::new(
-                    $(
-                        self.$comp.cubic_interpolate_in_time(
-                            b.$comp, pre_a.$comp, post_b.$comp, weight, b_t, pre_a_t, post_b_t,
-                        )
-                    ),*
-                )
-            }
-
             /// Returns the normalized vector pointing from this vector to `to` or [`None`], if `self` and `to` are equal.
             ///
             /// This is equivalent to using `(b - a).try_normalized()`. See also [`direction_to()`][Self::direction_to].
@@ -837,6 +798,81 @@ macro_rules! impl_float_vector_fns {
                 $( self.$comp.is_zero_approx() )&&*
             }
 
+            /// Returns a new vector moved toward `to` by the fixed `delta` amount. Will not go past the final value.
+            ///
+            /// _Godot equivalent: `move_toward()`_
+            #[inline]
+            pub fn move_toward(self, to: Self, delta: real) -> Self {
+                let vd = to - self;
+                let len = vd.length();
+                if len <= delta || len < real::CMP_EPSILON {
+                    to
+                } else {
+                    self + vd / len * delta
+                }
+            }
+
+            /// Returns the derivative at the given `t` on the [Bézier](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
+            /// curve defined by this vector and the given `control_1`, `control_2`, and `end` points.
+            #[inline]
+            pub fn bezier_derivative(self, control_1: Self, control_2: Self, end: Self, t: real) -> Self {
+                Self::new(
+                     $(
+                         self.$comp.bezier_derivative(control_1.$comp, control_2.$comp, end.$comp, t)
+                     ),*
+                )
+            }
+
+            /// Returns the point at the given `t` on the [Bézier](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
+            /// curve defined by this vector and the given `control_1`, `control_2`, and `end` points.
+            #[inline]
+            pub fn bezier_interpolate(self, control_1: Self, control_2: Self, end: Self, t: real) -> Self {
+                Self::new(
+                    $(
+                        self.$comp.bezier_interpolate(control_1.$comp, control_2.$comp, end.$comp, t)
+                    ),*
+                )
+            }
+
+            /// Cubic interpolation between `self` and `b` using `pre_a` and `post_b` as handles,
+            /// and returns the result at position `weight`.
+            ///
+            /// `weight` is on the range of 0.0 to 1.0, representing the amount of interpolation.
+            #[inline]
+            pub fn cubic_interpolate(self, b: Self, pre_a: Self, post_b: Self, weight: real) -> Self {
+                Self::new(
+                    $(
+                        self.$comp.cubic_interpolate(b.$comp, pre_a.$comp, post_b.$comp, weight)
+                    ),*
+                )
+            }
+
+            /// Cubic interpolation between `self` and `b` using `pre_a` and `post_b` as handles,
+            /// and returns the result at position `weight`.
+            ///
+            /// `weight` is on the range of 0.0 to 1.0, representing the amount of interpolation.
+            /// It can perform smoother interpolation than [`cubic_interpolate()`][Self::cubic_interpolate] by the time values.
+            #[inline]
+            #[allow(clippy::too_many_arguments)]
+            pub fn cubic_interpolate_in_time(
+                self,
+                b: Self,
+                pre_a: Self,
+                post_b: Self,
+                weight: real,
+                b_t: real,
+                pre_a_t: real,
+                post_b_t: real,
+            ) -> Self {
+                Self::new(
+                    $(
+                        self.$comp.cubic_interpolate_in_time(
+                            b.$comp, pre_a.$comp, post_b.$comp, weight, b_t, pre_a_t, post_b_t,
+                        )
+                    ),*
+                )
+            }
+
             /// Returns the result of the linear interpolation between this vector and `to` by amount `weight`.
             ///
             /// `weight` is on the range of `0.0` to `1.0`, representing the amount of interpolation.
@@ -886,6 +922,8 @@ macro_rules! impl_float_vector_fns {
             }
 
             /// Returns a vector composed of the [`FloatExt::fposmod()`] of this vector's components and `pmod`.
+            ///
+            /// _Godot equivalent: `posmod()`_
             #[inline]
             pub fn posmod(self, pmod: real) -> Self {
                 Self::new(
@@ -894,6 +932,8 @@ macro_rules! impl_float_vector_fns {
             }
 
             /// Returns a vector composed of the [`FloatExt::fposmod()`] of this vector's components and `modv`'s components.
+            ///
+            /// _Godot equivalent: `posmodv()`_
             #[inline]
             pub fn posmodv(self, modv: Self) -> Self {
                 Self::new(
@@ -936,6 +976,106 @@ macro_rules! impl_float_vector_fns {
     };
 }
 
+macro_rules! impl_vector_axis_fns {
+    ($Vector:ty, $AxisEnum:ty, ($($comp:ident => $axis:ident),+)) => {
+        impl $Vector {
+            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".max_axis_index`*")]
+            #[inline]
+            pub fn max_axis_index(self) -> usize {
+                let mut max_index = 0;
+                let mut current_index = 0;
+                let mut components = [$(self.$comp),+].into_iter();
+                let mut max_value = components.next().unwrap();
+
+                for val in components {
+                    current_index += 1;
+                    if val > max_value {
+                        max_value = val;
+                        max_index = current_index;
+                    }
+                }
+                max_index
+            }
+
+            /// Returns the axis of the vector's highest value. See [`AxisEnum`] enum. If all components are equal, this method returns [`None`].
+            ///
+            /// To mimic Godot's behavior, use [`max_axis_index()`][Self::max_axis_index].
+            #[inline]
+            pub fn max_axis(self) -> Option<$AxisEnum> {
+                let mut components = [$( (<$AxisEnum>::$axis, self.$comp) ),+].into_iter();
+                let (mut max_axis, mut max_value) = components.next().unwrap();
+                let mut tie = false;
+
+                for (axis, val) in components {
+                    match val.partial_cmp(&max_value) {
+                        Some(Ordering::Greater) => {
+                            max_value = val;
+                            max_axis = axis;
+                            tie = false;
+                        }
+                        Some(Ordering::Equal) => {
+                            tie = true;
+                        }
+                        _ => {}
+                    }
+                }
+                if tie {
+                    None
+                } else {
+                    Some(max_axis)
+                }
+            }
+
+            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".min_axis_index`*")]
+            #[inline]
+            pub fn min_axis_index(self) -> usize {
+                let mut min_index = 0;
+                let mut current_index = 0;
+                let mut components = [$(self.$comp),+].into_iter();
+                let mut min_value = components.next().unwrap();
+
+                for val in components {
+                    current_index += 1;
+                    if val < min_value {
+                        min_value = val;
+                        min_index = current_index;
+                    }
+                }
+                min_index
+            }
+
+            /// Returns the axis of the vector's lowest value. See [`AxisEnum`] enum. If all components are equal, this method returns [`None`].
+            ///
+            /// To mimic Godot's behavior, use [`min_axis_index()`][Self::min_axis_index].
+            #[inline]
+            pub fn min_axis(self) -> Option<$AxisEnum> {
+                let mut components = [$( (<$AxisEnum>::$axis, self.$comp) ),+].into_iter();
+                let (mut min_axis, mut min_value) = components.next().unwrap();
+                let mut tie = false;
+
+                for (axis, val) in components {
+                    match val.partial_cmp(&min_value) {
+                        Some(Ordering::Less) => {
+                            min_value = val;
+                            min_axis = axis;
+                            tie = false;
+                        }
+                        Some(Ordering::Equal) => {
+                            tie = true;
+                        }
+                        _ => {}
+                    }
+                }
+                if tie {
+                    None
+                } else {
+                    Some(min_axis)
+                }
+            }
+        }
+    };
+}
+
 macro_rules! impl_vector2x_fns {
     (
         // Name of the vector type.
@@ -953,49 +1093,9 @@ macro_rules! impl_vector2x_fns {
             pub fn aspect(self) -> real {
                 self.x as real / self.y as real
             }
-
-            /// Returns the axis of the vector's highest value. See [`Vector2Axis`] enum. If all components are equal, this method returns [`None`].
-            ///
-            /// To mimic Godot's behavior, unwrap this function's result with `unwrap_or(Vector2Axis::X)`.
-            ///
-            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".max_axis_index`*")]
-            #[inline]
-            pub fn max_axis_index(self) -> usize {
-                if self.x < self.y { 1 } else { 0 }
-            }
-
-            /// Returns the axis of the vector's highest value. See [`Vector2Axis`] enum. If all components are equal, this method returns [`None`].
-            ///
-            /// To mimic Godot's behavior, use [`max_axis_index()`][Self::max_axis_index].
-            #[inline]
-            pub fn max_axis(self) -> Option<Vector2Axis> {
-                match self.x.partial_cmp(&self.y) {
-                    Some(Ordering::Less) => Some(Vector2Axis::Y),
-                    Some(Ordering::Equal) => None,
-                    Some(Ordering::Greater) => Some(Vector2Axis::X),
-                    _ => None,
-                }
-            }
-
-            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".min_axis_index`*")]
-            #[inline]
-            pub fn min_axis_index(self) -> usize {
-                if self.x < self.y { 0 } else { 1 }
-            }
-
-            /// Returns the axis of the vector's lowest value. See [`Vector2Axis`] enum. If all components are equal, this method returns [`None`].
-            ///
-            /// To mimic Godot's behavior, use [`min_axis_index()`][Self::min_axis_index].
-            #[inline]
-            pub fn min_axis(self) -> Option<Vector2Axis> {
-                match self.x.partial_cmp(&self.y) {
-                    Some(Ordering::Less) => Some(Vector2Axis::X),
-                    Some(Ordering::Equal) => None,
-                    Some(Ordering::Greater) => Some(Vector2Axis::Y),
-                    _ => None,
-                }
-            }
         }
+
+        impl_vector_axis_fns!($Vector, Vector2Axis, (x => X, y => Y));
 
         impl $crate::builtin::SwizzleToVector for ($Scalar, $Scalar) {
             type Output = $Vector;
@@ -1015,80 +1115,12 @@ macro_rules! impl_vector3x_fns {
         // Type of target component, for example `real`.
         $Scalar:ty
     ) => {
-        /// # 3D functions
-        /// The following methods are only available on 3D vectors (for both float and int).
+        impl_vector_axis_fns!($Vector, Vector3Axis, (x => X, y => Y, z => Z));
+
         impl $Vector {
-            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".max_axis_index`*")]
-            #[inline]
-            pub fn max_axis_index(self) -> usize {
-                if self.x < self.y {
-                    if self.y < self.z { 2 } else { 1 }
-                } else {
-                    if self.x < self.z { 2 } else { 0 }
-                }
-            }
-
-            /// Returns the axis of the vector's highest value. See [`Vector3Axis`] enum. If all components are equal, this method returns [`None`].
-            ///
-            /// To mimic Godot's behavior, use [`max_axis_index()`][Self::max_axis_index].
-            #[inline]
-            pub fn max_axis(self) -> Option<Vector3Axis> {
-                match self.x.partial_cmp(&self.y) {
-                    Some(Ordering::Less) => match self.y.partial_cmp(&self.z) {
-                        Some(Ordering::Less) => Some(Vector3Axis::Z),
-                        Some(Ordering::Equal) => None,
-                        Some(Ordering::Greater) => Some(Vector3Axis::Y),
-                        _ => None,
-                    },
-                    Some(Ordering::Equal) => match self.x.partial_cmp(&self.z) {
-                        Some(Ordering::Less) => Some(Vector3Axis::Z),
-                        _ => None,
-                    },
-                    Some(Ordering::Greater) => match self.x.partial_cmp(&self.z) {
-                        Some(Ordering::Less) => Some(Vector3Axis::Z),
-                        Some(Ordering::Equal) => None,
-                        Some(Ordering::Greater) => Some(Vector3Axis::X),
-                        _ => None,
-                    },
-                    _ => None,
-                }
-            }
-
-            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".min_axis_index`*")]
-            #[inline]
-            pub fn min_axis_index(self) -> usize {
-                if self.x < self.y {
-                    if self.x < self.z { 0 } else { 2 }
-                } else {
-                    if self.y < self.z { 1 } else { 2 }
-                }
-            }
-
-            /// Returns the axis of the vector's lowest value. See [`Vector3Axis`] enum. If all components are equal, this method returns [`None`].
-            ///
-            /// To mimic Godot's behavior, use [`min_axis_index()`][Self::min_axis_index].
-            #[inline]
-            pub fn min_axis(self) -> Option<Vector3Axis> {
-                match self.x.partial_cmp(&self.y) {
-                    Some(Ordering::Less) => match self.x.partial_cmp(&self.z) {
-                        Some(Ordering::Less) => Some(Vector3Axis::X),
-                        Some(Ordering::Equal) => None,
-                        Some(Ordering::Greater) => Some(Vector3Axis::Z),
-                        _ => None,
-                    },
-                    Some(Ordering::Equal) => match self.x.partial_cmp(&self.z) {
-                        Some(Ordering::Greater) => Some(Vector3Axis::Z),
-                        _ => None,
-                    },
-                    Some(Ordering::Greater) => match self.y.partial_cmp(&self.z) {
-                        Some(Ordering::Less) => Some(Vector3Axis::Y),
-                        Some(Ordering::Equal) => None,
-                        Some(Ordering::Greater) => Some(Vector3Axis::Z),
-                        _ => None,
-                    },
-                    _ => None,
-                }
-            }
+            /// # 3D functions
+            /// The following methods are only available on 3D vectors (for both float and int).
+            const _3D_MARKER: () = ();
         }
 
         impl $crate::builtin::SwizzleToVector for ($Scalar, $Scalar, $Scalar) {
@@ -1107,100 +1139,12 @@ macro_rules! impl_vector4x_fns {
         // Type of target component, for example `real`.
         $Scalar:ty
     ) => {
-        /// # 4D functions
-        /// The following methods are only available on 4D vectors (for both float and int).
+        impl_vector_axis_fns!($Vector, Vector4Axis, (x => X, y => Y, z => Z, w => W));
+
         impl $Vector {
-            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".max_axis_index`*")]
-            #[inline]
-            pub fn max_axis_index(self) -> usize {
-                let mut max_index = 0;
-                let mut max_value = self.x;
-
-                if self.y > max_value {
-                    max_index = 1;
-                    max_value = self.y;
-                }
-                if self.z > max_value {
-                    max_index = 2;
-                    max_value = self.z;
-                }
-                if self.w > max_value {
-                    max_index = 3;
-                }
-                max_index
-            }
-
-            /// Returns the axis of the vector's highest value. See [`Vector4Axis`] enum. If all components are equal, this method returns [`None`].
-            ///
-            /// To mimic Godot's behavior, use [`max_axis_index()`][Self::max_axis_index].
-            #[inline]
-            pub fn max_axis(self) -> Option<Vector4Axis> {
-                let mut max_axis = Vector4Axis::X;
-                let mut previous = None;
-                let mut max_value = self.x;
-
-                let components = [
-                    (Vector4Axis::Y, self.y),
-                    (Vector4Axis::Z, self.z),
-                    (Vector4Axis::W, self.w),
-                ];
-
-                for (axis, value) in components {
-                    if value >= max_value {
-                        max_axis = axis;
-                        previous = Some(max_value);
-                        max_value = value;
-                    }
-                }
-
-                (Some(max_value) != previous).then_some(max_axis)
-            }
-
-            #[doc = concat!("*Godot equivalent: `", stringify!($Vector), ".min_axis_index`*")]
-            #[inline]
-            pub fn min_axis_index(self) -> usize {
-                let mut min_index = 0;
-                let mut min_value = self.x;
-
-                if self.y < min_value {
-                    min_index = 1;
-                    min_value = self.y;
-                }
-                if self.z < min_value {
-                    min_index = 2;
-                    min_value = self.z;
-                }
-                if self.w < min_value {
-                    min_index = 3;
-                }
-                min_index
-            }
-
-            /// Returns the axis of the vector's lowest value. See [`Vector4Axis`] enum. If all components are equal, this method returns [`None`].
-            ///
-            /// To mimic Godot's behavior, use [`min_axis_index()`][Self::min_axis_index].
-            #[inline]
-            pub fn min_axis(self) -> Option<Vector4Axis> {
-                let mut min_axis = Vector4Axis::X;
-                let mut previous = None;
-                let mut min_value = self.x;
-
-                let components = [
-                    (Vector4Axis::Y, self.y),
-                    (Vector4Axis::Z, self.z),
-                    (Vector4Axis::W, self.w),
-                ];
-
-                for (axis, value) in components {
-                    if value <= min_value {
-                        min_axis = axis;
-                        previous = Some(min_value);
-                        min_value = value;
-                    }
-                }
-
-                (Some(min_value) != previous).then_some(min_axis)
-            }
+            /// # 4D functions
+            /// The following methods are only available on 4D vectors (for both float and int).
+            const _4D_MARKER: () = ();
         }
 
         impl $crate::builtin::SwizzleToVector for ($Scalar, $Scalar, $Scalar, $Scalar) {
@@ -1212,38 +1156,16 @@ macro_rules! impl_vector4x_fns {
     };
 }
 
-macro_rules! impl_vector2_vector3_fns {
+macro_rules! impl_float_vector_geom_fns {
     (
         // Name of the vector type.
         $Vector:ty,
         // Names of the components, with parentheses, for example `(x, y, z, w)`.
         ($($comp:ident),*)
     ) => {
-        /// # 2D and 3D functions
-        /// The following methods are available on both 2D and 3D float vectors.
+        /// # Geometric functions
+        /// The following methods are available on 2D, 3D and 4D float vectors.
         impl $Vector {
-           /// Returns the derivative at the given `t` on the [Bézier](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
-           /// curve defined by this vector and the given `control_1`, `control_2`, and `end` points.
-           #[inline]
-           pub fn bezier_derivative(self, control_1: Self, control_2: Self, end: Self, t: real) -> Self {
-               Self::new(
-                    $(
-                        self.$comp.bezier_derivative(control_1.$comp, control_2.$comp, end.$comp, t)
-                    ),*
-               )
-           }
-
-            /// Returns the point at the given `t` on the [Bézier](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)
-            /// curve defined by this vector and the given `control_1`, `control_2`, and `end` points.
-            #[inline]
-            pub fn bezier_interpolate(self, control_1: Self, control_2: Self, end: Self, t: real) -> Self {
-                Self::new(
-                    $(
-                        self.$comp.bezier_interpolate(control_1.$comp, control_2.$comp, end.$comp, t)
-                    ),*
-                )
-            }
-
             /// Returns a new vector "bounced off" from a plane defined by the given normal.
             ///
             /// # Panics
@@ -1262,20 +1184,13 @@ macro_rules! impl_vector2_vector3_fns {
 
             /// Returns the vector with a maximum length by limiting its length to `length`.
             #[inline]
-            pub fn limit_length(self, length: Option<real>) -> Self {
-                let length = length.unwrap_or(1.0);
-
+            pub fn limit_length(self, length: real) -> Self {
                 Self::from_glam(self.to_glam().clamp_length_max(length))
-
-            }
-
-            /// Returns a new vector moved toward `to` by the fixed `delta` amount. Will not go past the final value.
-            #[inline]
-            pub fn move_toward(self, to: Self, delta: real) -> Self {
-                Self::from_glam(self.to_glam().move_towards(to.to_glam(), delta))
             }
 
             /// Returns the result of projecting the vector onto the given vector `b`.
+            ///
+            /// _Godot equivalent: `project()`_
             #[inline]
             pub fn project(self, b: Self) -> Self {
                 Self::from_glam(self.to_glam().project_onto(b.to_glam()))

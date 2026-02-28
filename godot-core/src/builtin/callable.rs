@@ -14,9 +14,9 @@ use sys::{ffi_methods, ExtVariantType, GodotFfi};
 use crate::builtin::{inner, AnyArray, CowStr, StringName, Variant};
 use crate::meta::{GodotType, ToGodot};
 use crate::obj::bounds::DynMemory;
-use crate::obj::{Bounds, Gd, GodotClass, InstanceId};
 #[cfg(since_api = "4.4")]
 use crate::obj::Singleton;
+use crate::obj::{Bounds, Gd, GodotClass, InstanceId};
 use crate::{classes, meta};
 
 #[cfg(before_api = "4.3")]
@@ -212,7 +212,6 @@ impl Callable {
     {
         Self::from_once_fn(name, rust_function)
     }
-
 
     /// Create callable from **thread-safe** Rust function or closure.
     ///

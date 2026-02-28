@@ -12,7 +12,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{GlamConv, GlamType};
-use crate::builtin::{inner, real, RVec3, Vector3, Vector3Axis};
+use crate::builtin::{real, RVec3, Vector3, Vector3Axis};
 
 /// Vector used for 3D math using integer coordinates.
 ///
@@ -79,12 +79,6 @@ impl Vector3i {
     #[inline]
     pub fn to_glam_real(self) -> RVec3 {
         RVec3::new(self.x as real, self.y as real, self.z as real)
-    }
-
-    #[doc(hidden)]
-    #[inline]
-    pub fn as_inner(&self) -> inner::InnerVector3i<'_> {
-        inner::InnerVector3i::from_outer(self)
     }
 
     /// Returns `true` if this vector and `other` are approximately equal.

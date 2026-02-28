@@ -609,10 +609,6 @@ pub fn is_builtin_method_exposed(builtin_ty: &TyName, godot_method_name: &str) -
         | ("PackedByteArray", "get_string_from_wchar")
         | ("PackedByteArray", "hex_encode")
 
-        // Basis
-        | ("Basis", "looking_at")
-        | ("Transform3D", "looking_at")
-
         => true, _ => false
     }
 }

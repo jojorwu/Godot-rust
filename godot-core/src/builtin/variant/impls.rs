@@ -38,6 +38,19 @@ macro_rules! impl_ffi_variant {
     (@impls $by_ref_or_val:ident; $T:ty, $from_fn:ident, $to_fn:ident $(; $GodotTy:ident)?) => {
         impl GodotFfiVariant for $T {
             fn ffi_to_variant(&self) -> Variant {
+                #[cfg(since_api = "4.4")]
+                {
+                    let target_type = Self::VARIANT_TYPE.variant_as_nil();
+                    if let Some(constructor) = crate::builtin::variant::get_variant_from_type_constructor(target_type) {
+                        let variant = unsafe {
+                            Variant::new_with_var_uninit(|variant_ptr| {
+                                constructor(variant_ptr, sys::SysPtr::force_mut(self.sys()));
+                            })
+                        };
+                        return variant;
+                    }
+                }
+
                 let variant = unsafe {
                     Variant::new_with_var_uninit(|variant_ptr| {
                         let converter = sys::builtin_fn!($from_fn);

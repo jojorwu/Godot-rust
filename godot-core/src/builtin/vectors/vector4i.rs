@@ -12,7 +12,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{GlamConv, GlamType};
-use crate::builtin::{inner, real, RVec4, Vector4, Vector4Axis};
+use crate::builtin::{real, RVec4, Vector4, Vector4Axis};
 
 /// Vector used for 4D math using integer coordinates.
 ///
@@ -83,12 +83,6 @@ impl Vector4i {
             self.z as real,
             self.w as real,
         )
-    }
-
-    #[doc(hidden)]
-    #[inline]
-    pub fn as_inner(&self) -> inner::InnerVector4i<'_> {
-        inner::InnerVector4i::from_outer(self)
     }
 
     /// Returns `true` if this vector and `other` are approximately equal.

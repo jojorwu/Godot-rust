@@ -12,7 +12,7 @@ use godot_ffi as sys;
 use sys::{ffi_methods, ExtVariantType, GodotFfi};
 
 use crate::builtin::math::{FloatExt, GlamConv, GlamType};
-use crate::builtin::{inner, real, RVec4, Vector4Axis, Vector4i};
+use crate::builtin::{real, RVec4, Vector4Axis, Vector4i};
 
 /// Vector used for 4D math using floating point coordinates.
 ///
@@ -71,16 +71,11 @@ impl Vector4 {
 impl_vector_fns!(Vector4, RVec4, real, (x, y, z, w));
 
 /// # Specialized `Vector4` functions
-impl Vector4 {
-    #[doc(hidden)]
-    #[inline]
-    pub fn as_inner(&self) -> inner::InnerVector4<'_> {
-        inner::InnerVector4::from_outer(self)
-    }
-}
+impl Vector4 {}
 
 impl_float_vector_fns!(Vector4, Vector4i, (x, y, z, w));
 impl_vector4x_fns!(Vector4, real);
+impl_float_vector_geom_fns!(Vector4, (x, y, z, w));
 impl_vector3_vector4_fns!(Vector4, (x, y, z, w));
 
 impl_vector_operators!(Vector4, real, (x, y, z, w));
@@ -140,6 +135,19 @@ mod test {
         assert_eq!(vector.sign(), Vector4::new(1., -1., 0., 1.));
     }
 
+    #[test]
+    fn cubic_interpolate() {
+        let v1 = Vector4::new(0.0, 0.0, 0.0, 0.0);
+        let v2 = Vector4::new(1.0, 1.0, 1.0, 1.0);
+        let pre = Vector4::new(-1.0, -1.0, -1.0, -1.0);
+        let post = Vector4::new(2.0, 2.0, 2.0, 2.0);
+
+        assert_eq_approx!(
+            v1.cubic_interpolate(v2, pre, post, 0.5),
+            Vector4::new(0.5, 0.5, 0.5, 0.5)
+        );
+    }
+
     #[cfg(feature = "serde")]
     #[test]
     fn serde_roundtrip() {
@@ -147,5 +155,36 @@ mod test {
         let expected_json = "{\"x\":0.0,\"y\":0.0,\"z\":0.0,\"w\":0.0}";
 
         crate::builtin::test_utils::roundtrip(&vector, expected_json);
+    }
+}
+
+#[cfg(test)]
+mod test_geom {
+    use super::*;
+    use crate::builtin::math::assert_eq_approx;
+
+    #[test]
+    fn geom_ops() {
+        let v = Vector4::new(1.0, 0.0, 0.0, 0.0);
+        assert_eq_approx!(v.limit_length(0.5), Vector4::new(0.5, 0.0, 0.0, 0.0));
+
+        let v2 = Vector4::new(2.0, 2.0, 2.0, 2.0);
+        let n = Vector4::new(1.0, 0.0, 0.0, 0.0);
+        // project v2 onto n
+        assert_eq_approx!(v2.project(n), Vector4::new(2.0, 0.0, 0.0, 0.0));
+
+        // reflect v2 about n
+        // reflect(v, n) = 2.0 * n * v.dot(n) - v
+        // v2.dot(n) = 2.0
+        // 2.0 * n * 2.0 - v2 = Vector4(4.0, 0.0, 0.0, 0.0) - Vector4(2.0, 2.0, 2.0, 2.0) = Vector4(2.0, -2.0, -2.0, -2.0)
+        assert_eq_approx!(v2.reflect(n), Vector4::new(2.0, -2.0, -2.0, -2.0));
+
+        // bounce
+        // bounce(v, n) = -reflect(v, n) = Vector4(-2.0, 2.0, 2.0, 2.0)
+        assert_eq_approx!(v2.bounce(n), Vector4::new(-2.0, 2.0, 2.0, 2.0));
+
+        // slide
+        // slide(v, n) = v - n * v.dot(n) = Vector4(2.0, 2.0, 2.0, 2.0) - Vector4(2.0, 0.0, 0.0, 0.0) = Vector4(0.0, 2.0, 2.0, 2.0)
+        assert_eq_approx!(v2.slide(n), Vector4::new(0.0, 2.0, 2.0, 2.0));
     }
 }
