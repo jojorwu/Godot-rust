@@ -7,10 +7,12 @@
 
 mod approx_eq;
 mod float;
+mod geometry;
 mod glam_helpers;
 mod xform;
 
 pub use approx_eq::ApproxEq;
+pub use geometry::{Geometry2D, Geometry3D};
 pub use float::FloatExt;
 
 /// Wraps `value` between `min` and `max`.

@@ -20,9 +20,8 @@ pub struct ObjectRtti {
     /// Cached instance ID. May point to dead objects.
     instance_id: InstanceId,
 
-    /// Only in Debug mode: dynamic class.
-    #[cfg(safeguards_strict)]
-    class_name: crate::meta::ClassId,
+    /// The dynamic class of the object.
+    class_id: crate::meta::ClassId,
 }
 
 impl ObjectRtti {
@@ -31,9 +30,7 @@ impl ObjectRtti {
     pub fn of<T: GodotClass>(instance_id: InstanceId) -> Self {
         Self {
             instance_id,
-
-            #[cfg(safeguards_strict)]
-            class_name: T::class_id(),
+            class_id: T::class_id(),
         }
     }
 
@@ -43,7 +40,6 @@ impl ObjectRtti {
     ///
     /// - `obj` must be a valid pointer to a live Godot object.
     /// - `instance_id` must be the ID corresponding to that object.
-    #[cfg(safeguards_strict)]
     pub unsafe fn from_obj_sys(
         obj: godot_ffi::GDExtensionObjectPtr,
         instance_id: InstanceId,
@@ -62,7 +58,7 @@ impl ObjectRtti {
 
         Self {
             instance_id,
-            class_name: class_id,
+            class_id,
         }
     }
 
@@ -75,16 +71,18 @@ impl ObjectRtti {
     ///
     /// # Panics (strict safeguards)
     /// If the stored type does not inherit from `T`.
-    #[cfg(safeguards_strict)]
     #[inline]
     pub fn check_type<T: GodotClass>(&self) {
-        crate::classes::ensure_object_inherits(self.class_name, T::class_id(), self.instance_id);
+        #[cfg(safeguards_strict)]
+        crate::classes::ensure_object_inherits(self.class_id, T::class_id(), self.instance_id);
+
+        #[cfg(not(safeguards_strict))]
+        let _ = self;
     }
 
-    #[cfg(safeguards_strict)]
     #[inline]
     pub(crate) fn is_type<T: GodotClass>(&self) -> bool {
-        self.class_name.inherits(T::class_id())
+        self.class_id.inherits(T::class_id())
     }
 
     #[inline]

@@ -20,7 +20,7 @@ impl OwnedRdIndexArray {
     #[track_caller]
     pub fn new(
         server: &crate::obj::Gd<RenderingDevice>,
-        index_buffer: Rid,
+        index_buffer: crate::builtin::Rid,
         index_offset: u32,
         index_count: u32,
     ) -> Self {

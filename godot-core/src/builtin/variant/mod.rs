@@ -1785,6 +1785,27 @@ fn get_variant_to_type_constructor(
     c
 }
 
+pub(crate) fn get_variant_from_type_constructor(
+    from_type: VariantType,
+) -> sys::GDExtensionVariantFromTypeConstructorFunc {
+    static CONSTRUCTORS: sys::Global<[sys::GDExtensionVariantFromTypeConstructorFunc; 40]> =
+        sys::Global::new(|| [None; 40]);
+
+    let index = from_type.sys() as usize;
+    if index >= 40 {
+        return unsafe { interface_fn!(get_variant_from_type_constructor)(from_type.sys()) };
+    }
+
+    let mut constructors = CONSTRUCTORS.lock();
+    if let Some(c) = constructors[index] {
+        return Some(c);
+    }
+
+    let c = unsafe { interface_fn!(get_variant_from_type_constructor)(from_type.sys()) };
+    constructors[index] = c;
+    c
+}
+
 #[cfg(since_api = "4.4")]
 pub(crate) fn get_variant_get_internal_ptr_func(
     variant_type: VariantType,
